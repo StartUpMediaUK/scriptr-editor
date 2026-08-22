@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "content": [
+    {
+      "id": "heading-1",
+      "type": "heading",
+      "level": 1,
+      "content": [{ "type": "text", "text": "The Seven Seals" }]
+    },
+    {
+      "id": "paragraph-1",
+      "type": "paragraph",
+      "content": [
+        { "type": "text", "text": "John does not open the seals. " },
+        {
+          "type": "text",
+          "text": "The Lamb does",
+          "marks": [
+            { "type": "bold" },
+            { "type": "reference", "referenceId": "reference-1" }
+          ]
+        },
+        { "type": "text", "text": ", as explored in " },
+        {
+          "type": "text",
+          "text": "The Day of the Lord",
+          "marks": [
+            { "type": "internalDocumentLink", "targetId": "document-day" }
+          ]
+        },
+        { "type": "text", "text": "." }
+      ]
+    },
+    {
+      "id": "list-1",
+      "type": "list",
+      "kind": "check",
+      "items": [
+        {
+          "id": "item-1",
+          "checked": true,
+          "content": [{ "type": "text", "text": "Read Revelation 6" }],
+          "children": [
+            {
+              "id": "item-1-1",
+              "checked": false,
+              "content": [{ "type": "text", "text": "Compare translations" }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scripture-1",
+      "type": "scripture",
+      "address": {
+        "book": "REV",
+        "chapter": 6,
+        "verseStart": 1,
+        "verseEnd": 2
+      },
+      "translationId": "KJV"
+    },
+    {
+      "id": "comparison-1",
+      "type": "translationComparison",
+      "address": { "book": "ROM", "chapter": 8, "verseStart": 28 },
+      "translationIds": ["KJV", "WEB"],
+      "layout": "twoColumn"
+    },
+    {
+      "id": "image-1",
+      "type": "image",
+      "assetId": "asset-1",
+      "src": "https://example.com/lamb.jpg",
+      "alt": "A lamb",
+      "caption": [{ "type": "text", "text": "The Lamb who was slain" }],
+      "alignment": "center",
+      "width": 1200,
+      "height": 800
+    },
+    {
+      "id": "extension-1",
+      "type": "extension",
+      "name": "uk.startupmedia.example.prayer",
+      "version": 1,
+      "data": { "label": "Prayer", "body": "Give us wisdom." }
+    }
+  ],
+  "references": {
+    "reference-1": {
+      "id": "reference-1",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The action belongs to Christ.",
+              "marks": [{ "type": "italic" }]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -2,7 +2,7 @@
 
 Reusable rich-text editor infrastructure for Scripture-aware writing applications.
 
-The package is under active development and does not yet expose an editor. Its architecture and canonical document format will be established through the audited implementation plan before feature APIs are published.
+The package is under active development and does not yet expose an interactive editor. It now provides the audited Canonical Document v1 contracts, host seams, migrations, extension definitions, and validation codec that later editor and renderer modules will use.
 
 ## Boundary
 
@@ -24,6 +24,18 @@ pnpm dev
 ```
 
 The Vite development harness follows the design system in `docs/prototype/Scriptr.html`, which is authoritative for user-facing visual and interaction decisions.
+
+## Foundation interfaces
+
+```ts
+import { createDocumentCodec, DOCUMENT_VERSION } from 'scriptr-editor/document';
+
+const codec = createDocumentCodec();
+const document = codec.deserialize(storedJson);
+const portableJson = codec.serialize(document);
+```
+
+See `docs/canonical-document-v1.md` and `docs/architecture.md` for the persisted format, extension contract, host seams, and compatibility policy.
 
 ## Releases
 

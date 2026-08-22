@@ -40,6 +40,12 @@ try {
   const requiredFiles = [
     'package/LICENSE',
     'package/README.md',
+    'package/dist/document/index.d.ts',
+    'package/dist/document/index.js',
+    'package/dist/extensions/index.d.ts',
+    'package/dist/extensions/index.js',
+    'package/dist/host/index.d.ts',
+    'package/dist/host/index.js',
     'package/dist/index.d.ts',
     'package/dist/index.js',
     'package/package.json',
@@ -77,12 +83,12 @@ try {
     [
       '--input-type=module',
       '--eval',
-      "import { PACKAGE_NAME } from 'scriptr-editor'; process.stdout.write(PACKAGE_NAME);",
+      "import { PACKAGE_NAME } from 'scriptr-editor'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineExtension}`);",
     ],
     { cwd: fixtureDirectory, encoding: 'utf8' },
   );
 
-  if (importedName !== 'scriptr-editor') {
+  if (importedName !== 'scriptr-editor:1:function') {
     throw new Error(`Unexpected package import result: ${importedName}`);
   }
 
