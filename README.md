@@ -2,7 +2,7 @@
 
 Reusable rich-text editor infrastructure for Scripture-aware writing applications.
 
-The package is under active development and does not yet expose an interactive editor. It now provides the audited Canonical Document v1 contracts, host seams, migrations, extension definitions, and validation codec that later editor and renderer modules will use.
+The package is under active development. It provides audited Canonical Document v1 contracts, a React rich-text editor, a semantically equivalent read-only renderer, host seams, migrations, extension definitions, and validation codecs.
 
 ## Boundary
 
@@ -36,6 +36,20 @@ const portableJson = codec.serialize(document);
 ```
 
 See `docs/canonical-document-v1.md` and `docs/architecture.md` for the persisted format, extension contract, host seams, and compatibility policy.
+
+## React editor
+
+Import the package stylesheet once in the consuming application, then pass a canonical document to the controlled editor.
+
+```tsx
+import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
+import 'scriptr-editor/styles.css';
+
+<ScriptrEditor value={document} onChange={setDocument} />;
+<ScriptrRenderer value={document} />;
+```
+
+The editor includes contextual formatting, slash commands with keyboard navigation, Markdown shortcuts, block reordering, undo/redo, mobile interactions, and read-only mode. Its visual variables can be scoped through the documented `--scriptr-*` custom properties without replacing the package's layout hierarchy.
 
 ## Releases
 

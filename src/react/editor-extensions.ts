@@ -1,0 +1,142 @@
+import { Mark, mergeAttributes, Node } from '@tiptap/core';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import TaskItem from '@tiptap/extension-task-item';
+import TaskList from '@tiptap/extension-task-list';
+import Underline from '@tiptap/extension-underline';
+import UniqueID from '@tiptap/extension-unique-id';
+import StarterKit from '@tiptap/starter-kit';
+
+const Callout = Node.create({
+  name: 'callout',
+  group: 'block',
+  content: 'inline*',
+  draggable: true,
+  defining: true,
+  addAttributes() {
+    return {
+      id: { default: null },
+      tone: { default: 'note' },
+    };
+  },
+  parseHTML() {
+    return [{ tag: 'aside[data-scriptr-callout]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'aside',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-callout': '',
+        class: 'scriptr-editor__callout',
+      }),
+      0,
+    ];
+  },
+});
+
+const PortableBlock = Node.create({
+  name: 'portableBlock',
+  group: 'block',
+  atom: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      id: { default: null },
+      blockType: { default: 'extension' },
+      payload: { default: '{}' },
+    };
+  },
+  parseHTML() {
+    return [{ tag: 'div[data-scriptr-portable-block]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-portable-block': '',
+        class: 'scriptr-editor__portable-block',
+      }),
+    ];
+  },
+});
+
+const InternalDocumentLink = Mark.create({
+  name: 'internalDocumentLink',
+  inclusive: false,
+  addAttributes() {
+    return { targetId: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: 'a[data-scriptr-document-link]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'a',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-document-link': '',
+        class: 'scriptr-editor__internal-link',
+      }),
+      0,
+    ];
+  },
+});
+
+const ReferenceAnchor = Mark.create({
+  name: 'referenceAnchor',
+  inclusive: false,
+  addAttributes() {
+    return { referenceId: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: 'span[data-scriptr-reference]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-reference': '',
+        class: 'scriptr-editor__reference-anchor',
+      }),
+      0,
+    ];
+  },
+});
+
+const idTypes = [
+  'paragraph',
+  'heading',
+  'blockquote',
+  'codeBlock',
+  'horizontalRule',
+  'bulletList',
+  'orderedList',
+  'taskList',
+  'listItem',
+  'taskItem',
+  'callout',
+  'portableBlock',
+];
+
+export function createEditorExtensions(placeholder: string) {
+  return [
+    StarterKit.configure({
+      link: false,
+      underline: false,
+      trailingNode: false,
+    }),
+    Underline,
+    Link.configure({
+      autolink: false,
+      openOnClick: false,
+      HTMLAttributes: { rel: 'noopener noreferrer' },
+    }),
+    TaskList,
+    TaskItem.configure({ nested: true }),
+    Callout,
+    PortableBlock,
+    InternalDocumentLink,
+    ReferenceAnchor,
+    UniqueID.configure({ types: idTypes }),
+    Placeholder.configure({ placeholder }),
+  ];
+}

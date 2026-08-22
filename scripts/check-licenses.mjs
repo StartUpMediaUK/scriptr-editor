@@ -8,6 +8,7 @@ const allowedLicenses = new Set([
   'CC-BY-4.0',
   'ISC',
   'MIT',
+  'MIT-0',
   'Python-2.0',
 ]);
 
