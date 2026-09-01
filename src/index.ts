@@ -7,4 +7,5 @@ export const PACKAGE_API_VERSION = 0;
 export * from './document/index.js';
 export * from './extensions/index.js';
 export type * from './host/index.js';
+export * from './scripture/index.js';
 export * from './react/index.js';

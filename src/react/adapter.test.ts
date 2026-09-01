@@ -60,6 +60,23 @@ const document: CanonicalDocument = {
 };
 
 describe('canonical editor adapter', () => {
+  it('does not transform an ordinary typed Bible reference', () => {
+    const canonical = editorJsonToCanonical({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          attrs: { id: 'plain-reference' },
+          content: [{ type: 'text', text: 'Romans 8:28' }],
+        },
+      ],
+    });
+
+    expect(canonical.content[0]).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Romans 8:28' }],
+    });
+  });
   it('round-trips baseline blocks without engine data leaking into the document', () => {
     const editorJson = canonicalToEditorJson(document);
     const roundTrip = editorJsonToCanonical(editorJson);

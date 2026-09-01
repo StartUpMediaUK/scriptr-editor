@@ -1,4 +1,5 @@
 import type { ScriptureAddress } from '../document/types.js';
+import type { ScriptureStructure } from '../scripture/types.js';
 
 export type ScriptureTranslation = {
   readonly id: string;
@@ -6,26 +7,37 @@ export type ScriptureTranslation = {
   readonly abbreviation: string;
   readonly languageTag: string;
   readonly attribution?: string | undefined;
+  readonly copyright?: string | undefined;
 };
 
-export type ScriptureBook = {
-  readonly id: string;
-  readonly name: string;
-  readonly abbreviations: readonly string[];
-  readonly chapters: readonly number[];
-};
-
-export type ScriptureStructure = {
-  readonly books: readonly ScriptureBook[];
-};
+export type ScriptureCachePolicy = 'forbidden' | 'session' | 'persistent';
 
 export type PassageText = {
   readonly address: ScriptureAddress;
   readonly translationId: string;
   readonly text: string;
   readonly attribution: string;
-  readonly cache: 'forbidden' | 'session' | 'persistent';
+  readonly cache: ScriptureCachePolicy;
 };
+
+export type ScriptureProviderFailure =
+  | 'offline'
+  | 'not-found'
+  | 'not-licensed'
+  | 'rate-limited'
+  | 'unavailable';
+
+export class ScriptureProviderError extends Error {
+  override readonly name = 'ScriptureProviderError';
+
+  constructor(
+    readonly reason: ScriptureProviderFailure,
+    message: string,
+    readonly retryable: boolean,
+  ) {
+    super(message);
+  }
+}
 
 export type ScriptureProvider = {
   readonly listTranslations: (
@@ -42,3 +54,5 @@ export type ScriptureProvider = {
     signal?: AbortSignal,
   ) => Promise<PassageText>;
 };
+
+export type { ScriptureStructure } from '../scripture/types.js';

@@ -51,6 +51,22 @@ import 'scriptr-editor/styles.css';
 
 The editor includes contextual formatting, slash commands with keyboard navigation, Markdown shortcuts, block reordering, undo/redo, mobile interactions, and read-only mode. Its visual variables can be scoped through the documented `--scriptr-*` custom properties without replacing the package's layout hierarchy.
 
+## Scripture references
+
+Scripture access is provider-neutral. A host supplies translations, lightweight book/chapter/verse structure, canonicalization, passage text, attribution, and cache policy through `ScriptureProvider`. The structure can be retained locally so deliberate reference selection remains available offline.
+
+```tsx
+import { ScripturePicker } from 'scriptr-editor/react';
+import {
+  createFakeScriptureProvider,
+  parseReferenceQuery,
+} from 'scriptr-editor/scripture';
+
+<ScripturePicker structure={localStructure} onSelect={insertReference} />;
+```
+
+The picker accepts progressive input such as `Ro`, `Romans 8`, `Romans 8:28`, and `Romans 8:28-30`. Ordinary editor text is never automatically converted into Scripture content. The included fake provider and conformance assertion support deterministic consumer tests without YouVersion or network access.
+
 ## Releases
 
 The package uses semantic versioning and Changesets. Every release candidate must pass the full quality gate and packed-consumer test. npm publication requires an explicit owner audit and approval.

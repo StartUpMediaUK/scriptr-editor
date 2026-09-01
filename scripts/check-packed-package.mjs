@@ -50,6 +50,8 @@ try {
     'package/dist/index.js',
     'package/dist/react/index.d.ts',
     'package/dist/react/index.js',
+    'package/dist/scripture/index.d.ts',
+    'package/dist/scripture/index.js',
     'package/dist/styles.css',
     'package/package.json',
   ];
@@ -86,12 +88,12 @@ try {
     [
       '--input-type=module',
       '--eval',
-      "import { PACKAGE_NAME } from 'scriptr-editor'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { ScriptrRenderer } from 'scriptr-editor/react'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineExtension}:${typeof ScriptrRenderer}`);",
+      "import { PACKAGE_NAME } from 'scriptr-editor'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { ScriptrRenderer } from 'scriptr-editor/react'; import { parseReferenceQuery } from 'scriptr-editor/scripture'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof parseReferenceQuery}`);",
     ],
     { cwd: fixtureDirectory, encoding: 'utf8' },
   );
 
-  if (importedName !== 'scriptr-editor:1:function:function') {
+  if (importedName !== 'scriptr-editor:1:function:function:function') {
     throw new Error(`Unexpected package import result: ${importedName}`);
   }
 

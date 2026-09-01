@@ -25,7 +25,7 @@ class FakeScriptureProvider implements ScriptureProvider {
         {
           id: 'ROM',
           name: 'Romans',
-          abbreviations: ['Ro', 'Rom'],
+          aliases: ['Ro', 'Rom'],
           chapters: [16, 33, 33, 35, 23, 29, 25, 39],
         },
       ],
