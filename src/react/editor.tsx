@@ -3,6 +3,7 @@ import type { Editor } from '@tiptap/react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { EditorView } from '@tiptap/pm/view';
+import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import {
   forwardRef,
   useEffect,
@@ -13,7 +14,12 @@ import {
 } from 'react';
 
 import { createDocumentCodec } from '../document/codec.js';
-import type { CanonicalDocument, ImageBlock } from '../document/types.js';
+import type { CanonicalLocation } from '../document/locations.js';
+import type {
+  CanonicalDocument,
+  ExtensionBlock,
+  ImageBlock,
+} from '../document/types.js';
 import type {
   Reference,
   ScriptureBlock,
@@ -23,6 +29,7 @@ import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
 import { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
 import { createEditorExtensions } from './editor-extensions.js';
+import type { ReactExtensionRenderer } from './renderer.js';
 
 export type EditorChange = {
   readonly origin: 'user';
@@ -42,6 +49,7 @@ export type ScriptrEditorProps = {
   readonly className?: string | undefined;
   readonly scriptureProvider?: ScriptureProvider | undefined;
   readonly imageHost?: ImageHost | undefined;
+  readonly extensions?: readonly ReactExtensionRenderer[] | undefined;
 };
 
 export type ScriptrEditorHandle = {
@@ -56,6 +64,11 @@ export type ScriptrEditorHandle = {
     block: TranslationComparisonBlock,
   ) => void;
   readonly insertImage: (block: ImageBlock) => void;
+  readonly insertExtension: (block: ExtensionBlock) => void;
+  readonly navigateTo: (
+    location: CanonicalLocation,
+    options?: { readonly highlightMs?: number | undefined },
+  ) => boolean;
   readonly addReference: (reference: Reference) => void;
   readonly updateReference: (reference: Reference) => void;
   readonly removeReference: (referenceId: string) => void;
@@ -67,6 +80,7 @@ const emptyDocument: CanonicalDocument = {
   version: 1,
   content: [{ id: 'initial-paragraph', type: 'paragraph', content: [] }],
 };
+const noExtensions: readonly ReactExtensionRenderer[] = [];
 
 type SlashItem = {
   readonly label: string;
@@ -199,6 +213,73 @@ function moveCurrentBlock(editor: Editor, direction: -1 | 1) {
   moveCurrentBlockView(editor.view, direction);
 }
 
+function navigateToLocation(
+  editor: Editor,
+  location: CanonicalLocation,
+  highlightMs = 1600,
+) {
+  let blockPosition: number | undefined;
+  let selectionFrom: number | undefined;
+  let selectionTo: number | undefined;
+  editor.state.doc.descendants((node, position) => {
+    if (blockPosition === undefined && node.attrs.id === location.blockId)
+      blockPosition = position;
+    if (blockPosition === undefined) return true;
+    if (location.kind === 'reference' || location.kind === 'internalLink') {
+      const mark = node.marks.find((candidate) =>
+        location.kind === 'reference'
+          ? candidate.type.name === 'referenceAnchor' &&
+            candidate.attrs.referenceId === location.referenceId
+          : candidate.type.name === 'internalDocumentLink' &&
+            candidate.attrs.targetId === location.targetId,
+      );
+      if (mark) {
+        selectionFrom = position;
+        selectionTo = position + node.nodeSize;
+        return false;
+      }
+    }
+    return true;
+  });
+  if (blockPosition === undefined) return false;
+  const foundBlockPosition = blockPosition;
+  const block = editor.state.doc.nodeAt(foundBlockPosition);
+  if (!block) return false;
+  if (location.kind === 'text') {
+    let remaining = location.offset ?? 0;
+    block.descendants((node, relativePosition) => {
+      if (!node.isText || selectionFrom !== undefined) return true;
+      if (remaining > node.nodeSize) {
+        remaining -= node.nodeSize;
+        return true;
+      }
+      selectionFrom = foundBlockPosition + 1 + relativePosition + remaining;
+      selectionTo = Math.min(
+        selectionFrom + (location.length ?? 0),
+        foundBlockPosition + block.nodeSize - 1,
+      );
+      return false;
+    });
+  }
+  const transaction = editor.state.tr;
+  transaction.setSelection(
+    selectionFrom !== undefined && selectionTo !== undefined
+      ? TextSelection.create(editor.state.doc, selectionFrom, selectionTo)
+      : NodeSelection.create(editor.state.doc, foundBlockPosition),
+  );
+  editor.view.dispatch(transaction.scrollIntoView());
+  const element = editor.view.nodeDOM(foundBlockPosition);
+  if (element instanceof HTMLElement) {
+    element.classList.add('scriptr-editor__temporary-highlight');
+    globalThis.setTimeout(
+      () => element.classList.remove('scriptr-editor__temporary-highlight'),
+      Math.max(0, highlightMs),
+    );
+  }
+  editor.commands.focus();
+  return true;
+}
+
 function ToolbarButton({
   active = false,
   disabled = false,
@@ -242,6 +323,7 @@ export const ScriptrEditor = forwardRef<
     className,
     scriptureProvider,
     imageHost,
+    extensions: extensionRenderers = noExtensions,
   },
   forwardedRef,
 ) {
@@ -252,9 +334,15 @@ export const ScriptrEditor = forwardRef<
   const documentRef = useRef(currentDocument);
   documentRef.current = currentDocument;
   const codec = useMemo(() => createDocumentCodec(), []);
-  const extensions = useMemo(
-    () => createEditorExtensions(placeholder, scriptureProvider, imageHost),
-    [placeholder, scriptureProvider, imageHost],
+  const editorExtensions = useMemo(
+    () =>
+      createEditorExtensions(
+        placeholder,
+        scriptureProvider,
+        imageHost,
+        extensionRenderers,
+      ),
+    [placeholder, scriptureProvider, imageHost, extensionRenderers],
   );
   const [slashQuery, setSlashQuery] = useState<string>();
   const [slashIndex, setSlashIndex] = useState(0);
@@ -269,7 +357,7 @@ export const ScriptrEditor = forwardRef<
   };
   const serializedValue = value ? codec.serialize(value) : undefined;
   const editor = useEditor({
-    extensions,
+    extensions: editorExtensions,
     content: canonicalToEditorJson(initialDocument),
     editable,
     autofocus,
@@ -278,6 +366,7 @@ export const ScriptrEditor = forwardRef<
       attributes: {
         'aria-label': ariaLabel,
         class: 'scriptr-editor__content',
+        dir: 'auto',
         spellcheck: 'true',
       },
       handleKeyDown(view, event) {
@@ -376,6 +465,15 @@ export const ScriptrEditor = forwardRef<
           .content?.[0];
         if (content) void editor?.chain().focus().insertContent(content).run();
       },
+      insertExtension: (block) => {
+        const content = canonicalToEditorJson({ version: 1, content: [block] })
+          .content?.[0];
+        if (content) void editor?.chain().focus().insertContent(content).run();
+      },
+      navigateTo: (location, options) =>
+        editor
+          ? navigateToLocation(editor, location, options?.highlightMs)
+          : false,
       addReference: (reference) => {
         if (!editor || editor.state.selection.empty) return;
         const nextReferences = {

@@ -13,6 +13,7 @@ const extensionDefinitionSchema = z
 export type ExtensionRegistry = {
   readonly names: readonly string[];
   readonly validate: (block: ExtensionBlock) => ExtensionBlock;
+  readonly get: (name: string) => ExtensionRegistration | undefined;
 };
 
 export function createExtensionRegistry(
@@ -25,11 +26,22 @@ export function createExtensionRegistry(
     if (byName.has(definition.name)) {
       throw new Error(`Duplicate extension definition: ${definition.name}`);
     }
+    const routes = new Set<number>();
+    for (const migration of definition.migrations ?? []) {
+      if (routes.has(migration.from))
+        throw new Error(
+          `Ambiguous extension migration for ${definition.name} version ${migration.from}.`,
+        );
+      if (migration.to <= migration.from)
+        throw new Error(`Invalid extension migration for ${definition.name}.`);
+      routes.add(migration.from);
+    }
     byName.set(definition.name, definition);
   }
 
   return {
     names: [...byName.keys()].sort(),
+    get: (name) => byName.get(name),
     validate(block) {
       const definition = byName.get(block.name);
       if (!definition) return block;

@@ -769,6 +769,12 @@
   border-top-color: var(--scriptr-color-accent) !important;
 }
 
+.scriptr-editor__temporary-highlight {
+  border-radius: var(--scriptr-radius-sm);
+  background: color-mix(in srgb, var(--scriptr-color-accent) 20%, transparent);
+  transition: background-color 240ms ease;
+}
+
 @media (prefers-color-scheme: dark) {
   .scriptr-editor,
   .scriptr-renderer,

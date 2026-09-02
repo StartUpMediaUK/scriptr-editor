@@ -37,6 +37,8 @@ const portableJson = codec.serialize(document);
 
 See `docs/canonical-document-v1.md` and `docs/architecture.md` for the persisted format, extension contract, host seams, and compatibility policy.
 
+Production integration, canonical search-result navigation, extension failure isolation, and bundle budgets are documented in `docs/production-hardening.md`.
+
 ## React editor
 
 Import the package stylesheet once in the consuming application, then pass a canonical document to the controlled editor.

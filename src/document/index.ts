@@ -6,6 +6,8 @@ export type {
 } from './codec.js';
 export { extractInternalDocumentLinks } from './links.js';
 export type { InternalDocumentLinkEdge } from './links.js';
+export { findDocumentLocations } from './locations.js';
+export type { CanonicalLocation, LocatedDocumentMatch } from './locations.js';
 export { migrateDocument } from './migrations.js';
 export type { DocumentMigration, MigrationResult } from './migrations.js';
 export {

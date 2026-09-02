@@ -1,3 +1,4 @@
+import { Component } from 'react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -8,6 +9,8 @@ import type {
   ListItem,
   Mark,
   Reference,
+  ExtensionBlock,
+  JsonValue,
 } from '../document/types.js';
 import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
@@ -25,7 +28,72 @@ export type ScriptrRendererProps = {
   readonly scriptureProvider?: ScriptureProvider | undefined;
   readonly documentTargetProvider?: DocumentTargetProvider | undefined;
   readonly imageHost?: ImageHost | undefined;
+  readonly extensions?: readonly ReactExtensionRenderer[] | undefined;
+  readonly onRenderError?:
+    | ((error: Error, block: ExtensionBlock) => void)
+    | undefined;
 };
+
+export type ReactExtensionRenderer = {
+  readonly name: string;
+  readonly version: number;
+  readonly parseData: (input: unknown) => JsonValue;
+  readonly renderReadonly: (
+    data: JsonValue,
+    context: { readonly locale?: string | undefined },
+  ) => ReactNode;
+  readonly renderEditable?:
+    | ((
+        data: JsonValue,
+        context: { readonly locale?: string | undefined },
+      ) => ReactNode)
+    | undefined;
+};
+
+class ExtensionErrorBoundary extends Component<
+  {
+    readonly block: ExtensionBlock;
+    readonly onError?:
+      | ((error: Error, block: ExtensionBlock) => void)
+      | undefined;
+    readonly children: ReactNode;
+  },
+  { readonly failed: boolean }
+> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override componentDidCatch(error: Error) {
+    this.props.onError?.(error, this.props.block);
+  }
+  override render() {
+    return this.state.failed ? (
+      <div
+        className="scriptr-renderer__extension"
+        data-extension={this.props.block.name}
+      >
+        This content could not be displayed.
+      </div>
+    ) : (
+      this.props.children
+    );
+  }
+}
+
+function ExtensionOutput({
+  block,
+  extension,
+}: {
+  readonly block: ExtensionBlock;
+  readonly extension: ReactExtensionRenderer;
+}) {
+  if (block.version !== extension.version)
+    throw new Error(
+      `Unsupported ${block.name} extension version ${block.version}.`,
+    );
+  return extension.renderReadonly(extension.parseData(block.data), {});
+}
 
 function ResolvedInternalLink({
   targetId,
@@ -291,18 +359,32 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
           key={block.id}
         />
       );
-    case 'extension':
-      return (
-        props.renderExtension?.(block) ?? (
-          <div
-            className="scriptr-renderer__extension"
-            data-extension={block.name}
-            key={block.id}
-          >
-            This content requires the {block.name} extension.
-          </div>
-        )
+    case 'extension': {
+      const extension = props.extensions?.find(
+        (item) => item.name === block.name,
       );
+      return (
+        <ExtensionErrorBoundary
+          block={block}
+          key={block.id}
+          onError={props.onRenderError}
+        >
+          {extension ? (
+            <ExtensionOutput block={block} extension={extension} />
+          ) : (
+            (props.renderExtension?.(block) ?? (
+              <div
+                className="scriptr-renderer__extension"
+                data-extension={block.name}
+                key={block.id}
+              >
+                This content requires the {block.name} extension.
+              </div>
+            ))
+          )}
+        </ExtensionErrorBoundary>
+      );
+    }
   }
 }
 
@@ -312,6 +394,7 @@ export function ScriptrRenderer(props: ScriptrRendererProps) {
       className={['scriptr-renderer', props.className]
         .filter(Boolean)
         .join(' ')}
+      dir="auto"
     >
       {props.document.content.map((block) => renderBlock(block, props))}
     </article>

@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest';
 
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { renderToString } from 'react-dom/server';
 
 import type { CanonicalDocument } from '../document/types.js';
 import { createFakeScriptureProvider } from '../scripture/fake-provider.js';
@@ -145,5 +146,67 @@ describe('ScriptrRenderer', () => {
     link.click();
     expect(onLink).not.toHaveBeenCalled();
     expect(link).toHaveTextContent('The Day of the Lord');
+  });
+
+  it('renders registered extension blocks and isolates extension failures', () => {
+    const onRenderError = vi.fn();
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const extensionDocument: CanonicalDocument = {
+      version: 1,
+      content: [
+        {
+          id: 'fixture',
+          type: 'extension',
+          name: 'fixture',
+          version: 1,
+          data: { message: 'Portable' },
+        },
+      ],
+    };
+    const { rerender } = render(
+      <ScriptrRenderer
+        document={extensionDocument}
+        extensions={[
+          {
+            name: 'fixture',
+            version: 1,
+            parseData: (input) =>
+              input === null ? null : { message: 'Portable' },
+            renderReadonly: () => <p>Portable extension</p>,
+          },
+        ]}
+        onRenderError={onRenderError}
+      />,
+    );
+    expect(screen.getByText('Portable extension')).toBeInTheDocument();
+    rerender(
+      <ScriptrRenderer
+        document={extensionDocument}
+        extensions={[
+          {
+            name: 'fixture',
+            version: 1,
+            parseData: () => null,
+            renderReadonly: () => {
+              throw new Error('Broken extension');
+            },
+          },
+        ]}
+        onRenderError={onRenderError}
+      />,
+    );
+    expect(
+      screen.getByText('This content could not be displayed.'),
+    ).toBeInTheDocument();
+    expect(onRenderError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('supports server-side read-only rendering without browser globals', () => {
+    expect(renderToString(<ScriptrRenderer document={document} />)).toContain(
+      'The Seven Seals',
+    );
   });
 });

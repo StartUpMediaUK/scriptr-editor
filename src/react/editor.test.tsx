@@ -2,11 +2,13 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
+import { createRef, StrictMode } from 'react';
 
 import type { CanonicalDocument } from '../document/types.js';
 import { ScriptrEditor } from './editor.js';
+import type { ScriptrEditorHandle } from './editor.js';
 
 const document: CanonicalDocument = {
   version: 1,
@@ -51,5 +53,89 @@ describe('ScriptrEditor', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Document editor')).toHaveTextContent('');
     });
+  });
+
+  it('navigates to a stable canonical location and temporarily highlights it', async () => {
+    const editorRef = createRef<ScriptrEditorHandle>();
+    render(<ScriptrEditor ref={editorRef} value={document} />);
+    await waitFor(() => expect(editorRef.current).not.toBeNull());
+    let found = false;
+    act(() => {
+      found =
+        editorRef.current?.navigateTo(
+          { blockId: 'paragraph', kind: 'text', offset: 2, length: 5 },
+          { highlightMs: 0 },
+        ) ?? false;
+    });
+    expect(found).toBe(true);
+  });
+
+  it('mounts multiple Strict Mode editors independently', async () => {
+    render(
+      <StrictMode>
+        <ScriptrEditor value={document} />
+        <ScriptrEditor value={document} />
+      </StrictMode>,
+    );
+    await waitFor(() =>
+      expect(screen.getAllByLabelText('Document editor')).toHaveLength(2),
+    );
+  });
+
+  it('retains automatic direction and a representative large document', async () => {
+    const largeDocument: CanonicalDocument = {
+      version: 1,
+      content: Array.from({ length: 200 }, (_, index) => ({
+        id: `paragraph-${index}`,
+        type: 'paragraph' as const,
+        content: [
+          {
+            type: 'text' as const,
+            text: index === 199 ? 'שלום' : `Paragraph ${index}`,
+          },
+        ],
+      })),
+    };
+    render(<ScriptrEditor value={largeDocument} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText('Document editor')).toHaveTextContent(
+        'שלום',
+      ),
+    );
+    expect(screen.getByLabelText('Document editor')).toHaveAttribute(
+      'dir',
+      'auto',
+    );
+  });
+
+  it('renders a registered third-party block in the authoring surface', async () => {
+    render(
+      <ScriptrEditor
+        extensions={[
+          {
+            name: 'fixture',
+            version: 1,
+            parseData: () => ({ message: 'hello' }),
+            renderReadonly: () => 'Read only',
+            renderEditable: () => 'Editable extension',
+          },
+        ]}
+        value={{
+          version: 1,
+          content: [
+            {
+              id: 'extension',
+              type: 'extension',
+              name: 'fixture',
+              version: 1,
+              data: { message: 'hello' },
+            },
+          ],
+        }}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByText('Editable extension')).toBeInTheDocument(),
+    );
   });
 });
