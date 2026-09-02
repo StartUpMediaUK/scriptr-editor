@@ -535,6 +535,97 @@
   text-align: center;
 }
 
+.scriptr-image {
+  width: min(100%, 686px);
+  margin: 27.6px auto;
+}
+.scriptr-image[data-alignment='start'] {
+  margin-inline: 0 auto;
+}
+.scriptr-image[data-alignment='end'] {
+  margin-inline: auto 0;
+}
+.scriptr-image[data-alignment='wide'] {
+  width: 100%;
+}
+.scriptr-image img,
+.scriptr-image__placeholder {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--scriptr-radius-md);
+}
+.scriptr-image__placeholder {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  border: 1px dashed var(--scriptr-color-divider);
+  color: var(--scriptr-color-muted);
+  background: var(--scriptr-color-surface);
+  font-size: 13px;
+}
+.scriptr-image__controls,
+.scriptr-image__alignment,
+.scriptr-image-uploader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: end;
+}
+.scriptr-image__controls {
+  margin-top: 9px;
+  padding: 9px;
+  border: 1px solid var(--scriptr-color-divider);
+  border-radius: var(--scriptr-radius-md);
+  background: var(--scriptr-color-ground);
+  font-family: var(--scriptr-font-ui);
+  font-size: 11px;
+}
+.scriptr-image__controls label {
+  display: grid;
+  gap: 3px;
+}
+.scriptr-image__controls button,
+.scriptr-image__controls input,
+.scriptr-image-uploader button,
+.scriptr-image-uploader input {
+  min-height: 32px;
+  border: 1px solid var(--scriptr-color-divider);
+  border-radius: var(--scriptr-radius-sm);
+  color: var(--scriptr-color-text);
+  background: var(--scriptr-color-ground);
+  font: inherit;
+}
+.scriptr-image__alignment button[aria-pressed='true'] {
+  border-color: var(--scriptr-color-accent);
+  color: var(--scriptr-color-accent-700);
+}
+.scriptr-image__caption-input {
+  width: 100%;
+  margin-top: 7px;
+  border: 0;
+  color: var(--scriptr-color-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+.scriptr-image-uploader {
+  padding: 18px;
+  border: 1px dashed var(--scriptr-color-divider);
+  border-radius: var(--scriptr-radius-md);
+  color: var(--scriptr-color-text);
+  background: var(--scriptr-color-surface);
+  font-family: var(--scriptr-font-ui);
+}
+.scriptr-image-uploader p {
+  width: 100%;
+  margin: 0;
+  color: #9b3f38;
+  font-size: 12px;
+}
+
 .scriptr-editor__history {
   display: flex;
   justify-content: flex-end;
@@ -729,7 +820,11 @@
   }
 
   .scriptr-scripture select,
-  .scriptr-scripture button {
+  .scriptr-scripture button,
+  .scriptr-image__controls button,
+  .scriptr-image__controls input,
+  .scriptr-image-uploader button,
+  .scriptr-image-uploader input {
     min-height: 44px;
   }
 }

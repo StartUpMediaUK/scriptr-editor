@@ -91,6 +91,10 @@ After deliberate picker selection, call `editorRef.current.insertScripture(block
 
 Internal links use opaque host-owned target IDs. `DocumentLinkPicker` searches a supplied `DocumentTargetProvider`, while `setInternalDocumentLink` applies the selected target to the current editor selection. `extractInternalDocumentLinks` returns the target, containing block, inline path, surrounding context, and character offsets so consuming applications can build backlink and exact-navigation features without putting those concerns in the editor package.
 
+## Images
+
+Images remain host-managed. Pass an `ImageHost` to `ImageUploader`, `ScriptrEditor`, and `ScriptrRenderer`; the host can validate file type, size and quota, report upload progress, resolve durable asset IDs, replace an asset, and decide what removal notifications mean for storage cleanup. `insertImage` adds the returned canonical block. The editor stores only portable identity, presentation metadata, alt text and caption—never credentials or quota state.
+
 ## Releases
 
 The package uses semantic versioning and Changesets. Every release candidate must pass the full quality gate and packed-consumer test. npm publication requires an explicit owner audit and approval.

@@ -15,3 +15,8 @@ export { ReferenceEditor } from './reference-editor.js';
 export type { ReferenceEditorProps } from './reference-editor.js';
 export { DocumentLinkPicker } from './document-link-picker.js';
 export type { DocumentLinkPickerProps } from './document-link-picker.js';
+export { ImageBlockContent, ImageUploader } from './image-block.js';
+export type {
+  ImageBlockContentProps,
+  ImageUploaderProps,
+} from './image-block.js';

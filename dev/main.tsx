@@ -89,6 +89,18 @@ const initialDocument: CanonicalDocument = {
       translationIds: ['KJV', 'WEB'],
       layout: 'twoColumn',
     },
+    {
+      id: 'study-image',
+      type: 'image',
+      assetId: 'development-open-bible',
+      alt: 'An open Bible represented by a quiet placeholder illustration',
+      alignment: 'center',
+      width: 900,
+      height: 480,
+      caption: [
+        { type: 'text', text: 'A place for Scripture and reflection.' },
+      ],
+    },
   ],
   references: {
     'last-adam': {
@@ -181,6 +193,23 @@ const demoDocumentProvider = {
     ),
 };
 
+const demoImageHost = {
+  upload: () =>
+    Promise.reject(new Error('Uploads are disabled in this fixture.')),
+  resolve: (assetId: string) =>
+    Promise.resolve(
+      assetId === 'development-open-bible'
+        ? {
+            assetId,
+            src: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="900" height="480" viewBox="0 0 900 480"%3E%3Crect width="900" height="480" rx="18" fill="%23eee9df"/%3E%3Cpath d="M450 105c-74-48-158-49-250-17v264c92-32 176-31 250 17 74-48 158-49 250-17V88c-92-32-176-31-250 17Z" fill="%23fffdf8" stroke="%23c8bda9" stroke-width="4"/%3E%3Cpath d="M450 105v264" stroke="%23c8bda9" stroke-width="4"/%3E%3C/svg%3E',
+            width: 900,
+            height: 480,
+          }
+        : undefined,
+    ),
+  onRemoved: () => undefined,
+};
+
 function DevelopmentHarness() {
   const [document, setDocument] = useState(initialDocument);
   const [preview, setPreview] = useState(false);
@@ -209,6 +238,7 @@ function DevelopmentHarness() {
           <ScriptrRenderer
             document={document}
             documentTargetProvider={demoDocumentProvider}
+            imageHost={demoImageHost}
             scriptureProvider={demoProvider}
           />
         ) : (
@@ -216,6 +246,7 @@ function DevelopmentHarness() {
             value={document}
             onChange={setDocument}
             scriptureProvider={demoProvider}
+            imageHost={demoImageHost}
             autofocus
           />
         )}

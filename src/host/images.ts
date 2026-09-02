@@ -12,7 +12,12 @@ export type HostedImage = {
 };
 
 export type ImageHost = {
+  readonly validate?: (file: Blob) => void | Promise<void>;
   readonly upload: (input: ImageUploadInput) => Promise<HostedImage>;
+  readonly replace?: (
+    assetId: string,
+    input: ImageUploadInput,
+  ) => Promise<HostedImage>;
   readonly resolve: (
     assetId: string,
     signal?: AbortSignal,

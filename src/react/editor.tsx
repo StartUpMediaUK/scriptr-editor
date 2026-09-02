@@ -13,13 +13,14 @@ import {
 } from 'react';
 
 import { createDocumentCodec } from '../document/codec.js';
-import type { CanonicalDocument } from '../document/types.js';
+import type { CanonicalDocument, ImageBlock } from '../document/types.js';
 import type {
   Reference,
   ScriptureBlock,
   TranslationComparisonBlock,
 } from '../document/types.js';
 import type { ScriptureProvider } from '../host/scripture.js';
+import type { ImageHost } from '../host/images.js';
 import { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
 import { createEditorExtensions } from './editor-extensions.js';
 
@@ -40,6 +41,7 @@ export type ScriptrEditorProps = {
   readonly ariaLabel?: string | undefined;
   readonly className?: string | undefined;
   readonly scriptureProvider?: ScriptureProvider | undefined;
+  readonly imageHost?: ImageHost | undefined;
 };
 
 export type ScriptrEditorHandle = {
@@ -53,6 +55,7 @@ export type ScriptrEditorHandle = {
   readonly insertTranslationComparison: (
     block: TranslationComparisonBlock,
   ) => void;
+  readonly insertImage: (block: ImageBlock) => void;
   readonly addReference: (reference: Reference) => void;
   readonly updateReference: (reference: Reference) => void;
   readonly removeReference: (referenceId: string) => void;
@@ -238,6 +241,7 @@ export const ScriptrEditor = forwardRef<
     ariaLabel = 'Document editor',
     className,
     scriptureProvider,
+    imageHost,
   },
   forwardedRef,
 ) {
@@ -249,8 +253,8 @@ export const ScriptrEditor = forwardRef<
   documentRef.current = currentDocument;
   const codec = useMemo(() => createDocumentCodec(), []);
   const extensions = useMemo(
-    () => createEditorExtensions(placeholder, scriptureProvider),
-    [placeholder, scriptureProvider],
+    () => createEditorExtensions(placeholder, scriptureProvider, imageHost),
+    [placeholder, scriptureProvider, imageHost],
   );
   const [slashQuery, setSlashQuery] = useState<string>();
   const [slashIndex, setSlashIndex] = useState(0);
@@ -363,6 +367,11 @@ export const ScriptrEditor = forwardRef<
         if (content) void editor?.chain().focus().insertContent(content).run();
       },
       insertTranslationComparison: (block) => {
+        const content = canonicalToEditorJson({ version: 1, content: [block] })
+          .content?.[0];
+        if (content) void editor?.chain().focus().insertContent(content).run();
+      },
+      insertImage: (block) => {
         const content = canonicalToEditorJson({ version: 1, content: [block] })
           .content?.[0];
         if (content) void editor?.chain().focus().insertContent(content).run();

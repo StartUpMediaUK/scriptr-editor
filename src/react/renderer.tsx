@@ -10,8 +10,10 @@ import type {
   Reference,
 } from '../document/types.js';
 import type { ScriptureProvider } from '../host/scripture.js';
+import type { ImageHost } from '../host/images.js';
 import type { DocumentTargetProvider } from '../host/documents.js';
 import { ScriptureBlockContent } from './scripture-blocks.js';
+import { ImageBlockContent } from './image-block.js';
 
 export type ScriptrRendererProps = {
   readonly document: CanonicalDocument;
@@ -22,6 +24,7 @@ export type ScriptrRendererProps = {
     | undefined;
   readonly scriptureProvider?: ScriptureProvider | undefined;
   readonly documentTargetProvider?: DocumentTargetProvider | undefined;
+  readonly imageHost?: ImageHost | undefined;
 };
 
 function ResolvedInternalLink({
@@ -281,25 +284,12 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
       );
     case 'image':
       return (
-        <figure data-alignment={block.alignment} key={block.id}>
-          {block.src ? (
-            <img
-              alt={block.alt}
-              height={block.height}
-              src={block.src}
-              width={block.width}
-            />
-          ) : (
-            <div
-              aria-label={block.alt}
-              className="scriptr-renderer__image-placeholder"
-              role="img"
-            />
-          )}
-          {block.caption?.length ? (
-            <figcaption>{inline(block.caption)}</figcaption>
-          ) : null}
-        </figure>
+        <ImageBlockContent
+          block={block}
+          captionContent={block.caption ? inline(block.caption) : undefined}
+          imageHost={props.imageHost}
+          key={block.id}
+        />
       );
     case 'extension':
       return (

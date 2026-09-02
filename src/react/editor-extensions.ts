@@ -7,6 +7,8 @@ import Underline from '@tiptap/extension-underline';
 import UniqueID from '@tiptap/extension-unique-id';
 import StarterKit from '@tiptap/starter-kit';
 import type { ScriptureProvider } from '../host/scripture.js';
+import type { ImageHost } from '../host/images.js';
+import { createImageNodeViewRenderer } from './image-block.js';
 import { createScriptureNodeViewRenderer } from './scripture-blocks.js';
 
 const Callout = Node.create({
@@ -91,6 +93,33 @@ const createScriptureBlockNode = (provider: ScriptureProvider | undefined) =>
     },
   });
 
+const createImageBlockNode = (imageHost: ImageHost | undefined) =>
+  Node.create({
+    name: 'imageBlock',
+    group: 'block',
+    atom: true,
+    draggable: true,
+    addAttributes() {
+      return {
+        id: { default: null },
+        blockType: { default: 'image' },
+        payload: { default: '{}' },
+      };
+    },
+    parseHTML() {
+      return [{ tag: 'div[data-scriptr-image-block]' }];
+    },
+    renderHTML({ HTMLAttributes }) {
+      return [
+        'div',
+        mergeAttributes(HTMLAttributes, { 'data-scriptr-image-block': '' }),
+      ];
+    },
+    addNodeView() {
+      return createImageNodeViewRenderer(imageHost);
+    },
+  });
+
 const InternalDocumentLink = Mark.create({
   name: 'internalDocumentLink',
   inclusive: false,
@@ -147,11 +176,13 @@ const idTypes = [
   'callout',
   'portableBlock',
   'scriptureBlock',
+  'imageBlock',
 ];
 
 export function createEditorExtensions(
   placeholder: string,
   scriptureProvider?: ScriptureProvider,
+  imageHost?: ImageHost,
 ) {
   return [
     StarterKit.configure({
@@ -170,6 +201,7 @@ export function createEditorExtensions(
     Callout,
     PortableBlock,
     createScriptureBlockNode(scriptureProvider),
+    createImageBlockNode(imageHost),
     InternalDocumentLink,
     ReferenceAnchor,
     UniqueID.configure({ types: idTypes }),

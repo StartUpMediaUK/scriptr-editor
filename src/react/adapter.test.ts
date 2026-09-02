@@ -63,6 +63,17 @@ const document: CanonicalDocument = {
       translationIds: ['KJV', 'WEB'],
       layout: 'twoColumn',
     },
+    {
+      id: 'image',
+      type: 'image',
+      assetId: 'asset-1',
+      src: 'https://example.com/image.jpg',
+      alt: 'Open Bible',
+      alignment: 'center',
+      width: 1200,
+      height: 800,
+      caption: [{ type: 'text', text: 'Study notes' }],
+    },
   ],
 };
 
@@ -94,16 +105,27 @@ describe('canonical editor adapter', () => {
 
   it('maps Scripture blocks to authored editor nodes', () => {
     const editorJson = canonicalToEditorJson(document);
-    expect(editorJson.content?.at(-2)).toMatchObject({
+    expect(editorJson.content?.at(-3)).toMatchObject({
       type: 'scriptureBlock',
       attrs: { blockType: 'scripture' },
     });
-    expect(editorJson.content?.at(-1)).toMatchObject({
+    expect(editorJson.content?.at(-2)).toMatchObject({
       type: 'scriptureBlock',
       attrs: { blockType: 'translationComparison' },
     });
-    expect(editorJsonToCanonical(editorJson).content.slice(-2)).toEqual(
-      document.content.slice(-2),
+    expect(editorJsonToCanonical(editorJson).content.slice(-3, -1)).toEqual(
+      document.content.slice(-3, -1),
+    );
+  });
+
+  it('maps images to an authored image node and round-trips them', () => {
+    const editorJson = canonicalToEditorJson(document);
+    expect(editorJson.content?.at(-1)).toMatchObject({
+      type: 'imageBlock',
+      attrs: { blockType: 'image' },
+    });
+    expect(editorJsonToCanonical(editorJson).content.at(-1)).toEqual(
+      document.content.at(-1),
     );
   });
 
