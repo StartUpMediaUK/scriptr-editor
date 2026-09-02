@@ -53,8 +53,15 @@ const document: CanonicalDocument = {
     {
       id: 'scripture',
       type: 'scripture',
-      address: { book: 'REV', chapter: 6, verseStart: 1 },
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
       translationId: 'KJV',
+    },
+    {
+      id: 'comparison',
+      type: 'translationComparison',
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationIds: ['KJV', 'WEB'],
+      layout: 'twoColumn',
     },
   ],
 };
@@ -85,14 +92,18 @@ describe('canonical editor adapter', () => {
     expect(JSON.stringify(roundTrip)).not.toContain('ProseMirror');
   });
 
-  it('preserves out-of-phase canonical blocks as opaque portable nodes', () => {
+  it('maps Scripture blocks to authored editor nodes', () => {
     const editorJson = canonicalToEditorJson(document);
-    expect(editorJson.content?.at(-1)).toMatchObject({
-      type: 'portableBlock',
+    expect(editorJson.content?.at(-2)).toMatchObject({
+      type: 'scriptureBlock',
       attrs: { blockType: 'scripture' },
     });
-    expect(editorJsonToCanonical(editorJson).content.at(-1)).toEqual(
-      document.content.at(-1),
+    expect(editorJson.content?.at(-1)).toMatchObject({
+      type: 'scriptureBlock',
+      attrs: { blockType: 'translationComparison' },
+    });
+    expect(editorJsonToCanonical(editorJson).content.slice(-2)).toEqual(
+      document.content.slice(-2),
     );
   });
 

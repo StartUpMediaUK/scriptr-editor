@@ -108,7 +108,10 @@ function listItemToEditor(
 
 function opaqueBlockToEditor(block: Block): EditorNode {
   return {
-    type: 'portableBlock',
+    type:
+      block.type === 'scripture' || block.type === 'translationComparison'
+        ? 'scriptureBlock'
+        : 'portableBlock',
     attrs: {
       id: block.id,
       blockType: block.type,
@@ -355,7 +358,8 @@ function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
         ? { id, type: 'list', kind, start, items }
         : { id, type: 'list', kind, items };
     }
-    case 'portableBlock': {
+    case 'portableBlock':
+    case 'scriptureBlock': {
       const payload = stringAttr(node, 'payload');
       if (!payload) return undefined;
       const parsed: unknown = JSON.parse(payload);

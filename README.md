@@ -67,6 +67,24 @@ import {
 
 The picker accepts progressive input such as `Ro`, `Romans 8`, `Romans 8:28`, and `Romans 8:28-30`. Ordinary editor text is never automatically converted into Scripture content. The included fake provider and conformance assertion support deterministic consumer tests without YouVersion or network access.
 
+Pass the same provider to editable and read-only contexts so Scripture and Translation Comparison blocks resolve identically and always retain their address when passage text is unavailable:
+
+```tsx
+<ScriptrEditor
+  ref={editorRef}
+  value={document}
+  onChange={setDocument}
+  scriptureProvider={scriptureProvider}
+/>
+
+<ScriptrRenderer
+  document={document}
+  scriptureProvider={scriptureProvider}
+/>
+```
+
+After deliberate picker selection, call `editorRef.current.insertScripture(block)` or `insertTranslationComparison(block)`. Each block stores only its address and translation configuration. The provider result supplies display text, attribution, and cache policy; passage text is not copied into the canonical document.
+
 ## Releases
 
 The package uses semantic versioning and Changesets. Every release candidate must pass the full quality gate and packed-consumer test. npm publication requires an explicit owner audit and approval.

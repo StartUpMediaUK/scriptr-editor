@@ -14,6 +14,11 @@ import {
 
 import { createDocumentCodec } from '../document/codec.js';
 import type { CanonicalDocument } from '../document/types.js';
+import type {
+  ScriptureBlock,
+  TranslationComparisonBlock,
+} from '../document/types.js';
+import type { ScriptureProvider } from '../host/scripture.js';
 import { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
 import { createEditorExtensions } from './editor-extensions.js';
 
@@ -33,6 +38,7 @@ export type ScriptrEditorProps = {
   readonly placeholder?: string | undefined;
   readonly ariaLabel?: string | undefined;
   readonly className?: string | undefined;
+  readonly scriptureProvider?: ScriptureProvider | undefined;
 };
 
 export type ScriptrEditorHandle = {
@@ -42,6 +48,10 @@ export type ScriptrEditorHandle = {
   readonly undo: () => void;
   readonly redo: () => void;
   readonly moveCurrentBlock: (direction: -1 | 1) => void;
+  readonly insertScripture: (block: ScriptureBlock) => void;
+  readonly insertTranslationComparison: (
+    block: TranslationComparisonBlock,
+  ) => void;
 };
 
 const emptyDocument: CanonicalDocument = {
@@ -221,6 +231,7 @@ export const ScriptrEditor = forwardRef<
     placeholder = "Write, or type '/' for commands…",
     ariaLabel = 'Document editor',
     className,
+    scriptureProvider,
   },
   forwardedRef,
 ) {
@@ -232,8 +243,8 @@ export const ScriptrEditor = forwardRef<
   documentRef.current = currentDocument;
   const codec = useMemo(() => createDocumentCodec(), []);
   const extensions = useMemo(
-    () => createEditorExtensions(placeholder),
-    [placeholder],
+    () => createEditorExtensions(placeholder, scriptureProvider),
+    [placeholder, scriptureProvider],
   );
   const [slashQuery, setSlashQuery] = useState<string>();
   const [slashIndex, setSlashIndex] = useState(0);
@@ -339,6 +350,16 @@ export const ScriptrEditor = forwardRef<
       redo: () => void editor?.commands.redo(),
       moveCurrentBlock: (direction) => {
         if (editor) moveCurrentBlock(editor, direction);
+      },
+      insertScripture: (block) => {
+        const content = canonicalToEditorJson({ version: 1, content: [block] })
+          .content?.[0];
+        if (content) void editor?.chain().focus().insertContent(content).run();
+      },
+      insertTranslationComparison: (block) => {
+        const content = canonicalToEditorJson({ version: 1, content: [block] })
+          .content?.[0];
+        if (content) void editor?.chain().focus().insertContent(content).run();
       },
     }),
     [editor],

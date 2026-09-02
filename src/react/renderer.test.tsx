@@ -2,10 +2,12 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { CanonicalDocument } from '../document/types.js';
+import { createFakeScriptureProvider } from '../scripture/fake-provider.js';
+import { testStructure } from '../scripture/test-structure.js';
 import { ScriptrRenderer } from './renderer.js';
 
 const document: CanonicalDocument = {
@@ -43,16 +45,67 @@ const document: CanonicalDocument = {
         },
       ],
     },
+    {
+      id: 'scripture',
+      type: 'scripture',
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationId: 'KJV',
+    },
+    {
+      id: 'comparison',
+      type: 'translationComparison',
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationIds: ['KJV', 'WEB'],
+      layout: 'twoColumn',
+    },
   ],
 };
+
+const provider = createFakeScriptureProvider({
+  structure: testStructure,
+  translations: [
+    {
+      id: 'KJV',
+      name: 'King James Version',
+      abbreviation: 'KJV',
+      languageTag: 'en',
+    },
+    {
+      id: 'WEB',
+      name: 'World English Bible',
+      abbreviation: 'WEB',
+      languageTag: 'en',
+    },
+  ],
+  passages: [
+    {
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationId: 'KJV',
+      text: 'All things work together for good.',
+      attribution: 'King James Version — test fixture',
+      cache: 'persistent',
+    },
+    {
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationId: 'WEB',
+      text: 'All things work together for good to those who love God.',
+      attribution: 'World English Bible — test fixture',
+      cache: 'persistent',
+    },
+  ],
+});
 
 afterEach(cleanup);
 
 describe('ScriptrRenderer', () => {
-  it('preserves authored hierarchy without editing controls', () => {
+  it('preserves authored hierarchy without editing controls', async () => {
     const onLink = vi.fn();
     const { container } = render(
-      <ScriptrRenderer document={document} onInternalDocumentLink={onLink} />,
+      <ScriptrRenderer
+        document={document}
+        onInternalDocumentLink={onLink}
+        scriptureProvider={provider}
+      />,
     );
 
     expect(
@@ -62,5 +115,16 @@ describe('ScriptrRenderer', () => {
     expect(onLink).toHaveBeenCalledWith('day-of-the-lord');
     expect(screen.getByRole('checkbox')).toBeChecked();
     expect(container.querySelector('.scriptr-editor__history')).toBeNull();
+    await waitFor(() => {
+      expect(
+        screen.getAllByText('King James Version — test fixture'),
+      ).toHaveLength(2);
+    });
+    expect(
+      screen.getByText('World English Bible — test fixture'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-layout="twoColumn"]'),
+    ).toBeInTheDocument();
   });
 });

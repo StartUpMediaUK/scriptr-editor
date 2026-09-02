@@ -341,10 +341,23 @@
   color: var(--scriptr-color-muted);
 }
 
-.scriptr-renderer__scripture > strong,
-.scriptr-renderer__comparison > strong {
-  display: block;
-  margin-bottom: 4.6px;
+.scriptr-scripture {
+  padding: 18.4px;
+  border: 1px solid var(--scriptr-color-divider);
+  border-radius: var(--scriptr-radius-md);
+  background: color-mix(in srgb, var(--scriptr-color-accent) 5%, transparent);
+}
+
+.scriptr-scripture > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9.2px;
+  margin-bottom: 13.8px;
+}
+
+.scriptr-scripture > header > span,
+.scriptr-scripture__passage > strong {
   color: var(--scriptr-color-accent-700);
   font-family: var(--scriptr-font-heading);
   font-size: 11px;
@@ -353,18 +366,61 @@
   text-transform: uppercase;
 }
 
-.scriptr-renderer__comparison {
+.scriptr-scripture__passages {
   display: grid;
   grid-template-columns: 1fr;
   gap: 13.8px 18.4px;
 }
 
-.scriptr-renderer__comparison > strong {
-  grid-column: 1 / -1;
+.scriptr-scripture[data-layout='twoColumn'] .scriptr-scripture__passages {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.scriptr-renderer__comparison[data-layout='twoColumn'] {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.scriptr-scripture__passage p {
+  margin: 4.6px 0;
+  text-align: left;
+}
+
+.scriptr-scripture__passage small {
+  display: block;
+  margin-top: 9.2px;
+  color: var(--scriptr-color-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.scriptr-scripture select,
+.scriptr-scripture button {
+  min-height: 32px;
+  color: var(--scriptr-color-text);
+  background: var(--scriptr-color-ground);
+  border: 1px solid var(--scriptr-color-divider);
+  border-radius: var(--scriptr-radius-sm);
+  font: 500 11px/1.2 var(--scriptr-font-body);
+}
+
+.scriptr-scripture__layout,
+.scriptr-scripture__translation-controls {
+  display: flex;
+  gap: 2px;
+}
+
+.scriptr-scripture__translation {
+  position: relative;
+}
+
+.scriptr-scripture__translation-controls {
+  justify-content: flex-end;
+  margin-top: 4.6px;
+}
+
+.scriptr-scripture__translation-controls button {
+  width: 32px;
+}
+
+.scriptr-scripture > select {
+  margin-top: 13.8px;
+  padding-inline: 9.2px;
 }
 
 .scriptr-renderer figure {
@@ -568,8 +624,13 @@
     min-height: 44px;
   }
 
-  .scriptr-renderer__comparison[data-layout='twoColumn'] {
+  .scriptr-scripture[data-layout='twoColumn'] .scriptr-scripture__passages {
     grid-template-columns: 1fr;
+  }
+
+  .scriptr-scripture select,
+  .scriptr-scripture button {
+    min-height: 44px;
   }
 }
 

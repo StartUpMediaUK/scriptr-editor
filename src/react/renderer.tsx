@@ -8,6 +8,8 @@ import type {
   Mark,
   Reference,
 } from '../document/types.js';
+import type { ScriptureProvider } from '../host/scripture.js';
+import { ScriptureBlockContent } from './scripture-blocks.js';
 
 export type ScriptrRendererProps = {
   readonly document: CanonicalDocument;
@@ -16,6 +18,7 @@ export type ScriptrRendererProps = {
   readonly renderExtension?:
     | ((block: Extract<Block, { type: 'extension' }>) => ReactNode)
     | undefined;
+  readonly scriptureProvider?: ScriptureProvider | undefined;
 };
 
 function referenceText(reference: Reference | undefined): string | undefined {
@@ -152,16 +155,6 @@ function renderListItems(
   ));
 }
 
-function scriptureLabel(
-  block: Extract<Block, { type: 'scripture' | 'translationComparison' }>,
-) {
-  const { address } = block;
-  const verses = address.verseStart
-    ? `:${address.verseStart}${address.verseEnd ? `–${address.verseEnd}` : ''}`
-    : '';
-  return `${address.book} ${address.chapter}${verses}`;
-}
-
 function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
   const inline = (content: readonly InlineContent[]) =>
     renderInline(
@@ -220,26 +213,13 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
         </ul>
       );
     case 'scripture':
-      return (
-        <blockquote className="scriptr-renderer__scripture" key={block.id}>
-          <strong>
-            {scriptureLabel(block)} · {block.translationId}
-          </strong>
-          <p>Passage text is resolved by the configured Scripture provider.</p>
-        </blockquote>
-      );
     case 'translationComparison':
       return (
-        <section
-          className="scriptr-renderer__comparison"
-          data-layout={block.layout}
+        <ScriptureBlockContent
+          block={block}
           key={block.id}
-        >
-          <strong>{scriptureLabel(block)}</strong>
-          {block.translationIds.map((translationId) => (
-            <div key={translationId}>{translationId}</div>
-          ))}
-        </section>
+          provider={props.scriptureProvider}
+        />
       );
     case 'image':
       return (

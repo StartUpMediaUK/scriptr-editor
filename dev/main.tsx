@@ -9,6 +9,7 @@ import {
   ScriptrRenderer,
 } from '../src/react/index.ts';
 import { formatScriptureAddress } from '../src/scripture/address.ts';
+import { createFakeScriptureProvider } from '../src/scripture/fake-provider.ts';
 import type { ScriptureStructure } from '../src/scripture/types.ts';
 import './styles.css';
 import '../src/react/styles.css';
@@ -55,6 +56,19 @@ const initialDocument: CanonicalDocument = {
         },
       ],
     },
+    {
+      id: 'scripture-romans',
+      type: 'scripture',
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationId: 'KJV',
+    },
+    {
+      id: 'comparison-romans',
+      type: 'translationComparison',
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationIds: ['KJV', 'WEB'],
+      layout: 'twoColumn',
+    },
   ],
 };
 
@@ -79,6 +93,40 @@ const demoStructure: ScriptureStructure = {
     },
   ],
 };
+
+const demoProvider = createFakeScriptureProvider({
+  structure: demoStructure,
+  translations: [
+    {
+      id: 'KJV',
+      name: 'King James Version',
+      abbreviation: 'KJV',
+      languageTag: 'en',
+    },
+    {
+      id: 'WEB',
+      name: 'World English Bible',
+      abbreviation: 'WEB',
+      languageTag: 'en',
+    },
+  ],
+  passages: [
+    {
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationId: 'KJV',
+      text: 'And we know that all things work together for good to them that love God.',
+      attribution: 'King James Version — development fixture',
+      cache: 'persistent',
+    },
+    {
+      address: { book: 'ROM', chapter: 8, verseStart: 28 },
+      translationId: 'WEB',
+      text: 'We know that all things work together for good for those who love God.',
+      attribution: 'World English Bible — development fixture',
+      cache: 'persistent',
+    },
+  ],
+});
 
 function DevelopmentHarness() {
   const [document, setDocument] = useState(initialDocument);
@@ -105,9 +153,17 @@ function DevelopmentHarness() {
           </div>
         </div>
         {preview ? (
-          <ScriptrRenderer document={document} />
+          <ScriptrRenderer
+            document={document}
+            scriptureProvider={demoProvider}
+          />
         ) : (
-          <ScriptrEditor value={document} onChange={setDocument} autofocus />
+          <ScriptrEditor
+            value={document}
+            onChange={setDocument}
+            scriptureProvider={demoProvider}
+            autofocus
+          />
         )}
         {selectedReference ? (
           <p className="selected-reference">Selected: {selectedReference}</p>
@@ -122,6 +178,18 @@ function DevelopmentHarness() {
               setSelectedReference(
                 formatScriptureAddress(address, demoStructure),
               );
+              setDocument((current) => ({
+                ...current,
+                content: [
+                  ...current.content,
+                  {
+                    id: `scripture-${Date.now()}`,
+                    type: 'scripture',
+                    address,
+                    translationId: 'KJV',
+                  },
+                ],
+              }));
               setPickerOpen(false);
             }}
             structure={demoStructure}

@@ -6,6 +6,8 @@ import TaskList from '@tiptap/extension-task-list';
 import Underline from '@tiptap/extension-underline';
 import UniqueID from '@tiptap/extension-unique-id';
 import StarterKit from '@tiptap/starter-kit';
+import type { ScriptureProvider } from '../host/scripture.js';
+import { createScriptureNodeViewRenderer } from './scripture-blocks.js';
 
 const Callout = Node.create({
   name: 'callout',
@@ -59,6 +61,35 @@ const PortableBlock = Node.create({
     ];
   },
 });
+
+const createScriptureBlockNode = (provider: ScriptureProvider | undefined) =>
+  Node.create({
+    name: 'scriptureBlock',
+    group: 'block',
+    atom: true,
+    draggable: true,
+    addAttributes() {
+      return {
+        id: { default: null },
+        blockType: { default: 'scripture' },
+        payload: { default: '{}' },
+      };
+    },
+    parseHTML() {
+      return [{ tag: 'div[data-scriptr-scripture-block]' }];
+    },
+    renderHTML({ HTMLAttributes }) {
+      return [
+        'div',
+        mergeAttributes(HTMLAttributes, {
+          'data-scriptr-scripture-block': '',
+        }),
+      ];
+    },
+    addNodeView() {
+      return createScriptureNodeViewRenderer(provider);
+    },
+  });
 
 const InternalDocumentLink = Mark.create({
   name: 'internalDocumentLink',
@@ -115,9 +146,13 @@ const idTypes = [
   'taskItem',
   'callout',
   'portableBlock',
+  'scriptureBlock',
 ];
 
-export function createEditorExtensions(placeholder: string) {
+export function createEditorExtensions(
+  placeholder: string,
+  scriptureProvider?: ScriptureProvider,
+) {
   return [
     StarterKit.configure({
       link: false,
@@ -134,6 +169,7 @@ export function createEditorExtensions(placeholder: string) {
     TaskItem.configure({ nested: true }),
     Callout,
     PortableBlock,
+    createScriptureBlockNode(scriptureProvider),
     InternalDocumentLink,
     ReferenceAnchor,
     UniqueID.configure({ types: idTypes }),
