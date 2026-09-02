@@ -11,3 +11,7 @@ export { ScripturePicker } from './scripture-picker.js';
 export type { ScripturePickerProps } from './scripture-picker.js';
 export { ScriptureBlockContent } from './scripture-blocks.js';
 export type { ScriptureBlockContentProps } from './scripture-blocks.js';
+export { ReferenceEditor } from './reference-editor.js';
+export type { ReferenceEditorProps } from './reference-editor.js';
+export { DocumentLinkPicker } from './document-link-picker.js';
+export type { DocumentLinkPickerProps } from './document-link-picker.js';

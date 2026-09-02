@@ -374,6 +374,61 @@ function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
   }
 }
 
+function reconcileReferenceData(
+  blocks: readonly Block[],
+  references: Readonly<Record<string, Reference>> | undefined,
+) {
+  const anchored = new Set<string>();
+  const inline = (content: readonly InlineContent[]): InlineContent[] =>
+    content.map((item) => {
+      if (item.type !== 'text' || !item.marks) return item;
+      const marks = item.marks.filter((mark) => {
+        if (mark.type !== 'reference') return true;
+        if (!references?.[mark.referenceId]) return false;
+        anchored.add(mark.referenceId);
+        return true;
+      });
+      return marks.length
+        ? { ...item, marks }
+        : { type: 'text', text: item.text };
+    });
+  const listItems = (items: readonly ListItem[]): ListItem[] =>
+    items.map((item) => ({
+      ...item,
+      content: inline(item.content),
+      ...(item.children ? { children: listItems(item.children) } : {}),
+    }));
+  const content = blocks.map((block): Block => {
+    switch (block.type) {
+      case 'paragraph':
+      case 'heading':
+      case 'blockquote':
+      case 'callout':
+        return { ...block, content: inline(block.content) };
+      case 'list':
+        return { ...block, items: listItems(block.items) };
+      case 'image':
+        return block.caption
+          ? { ...block, caption: inline(block.caption) }
+          : block;
+      default:
+        return block;
+    }
+  });
+  const retainedReferences = references
+    ? Object.fromEntries(
+        Object.entries(references).filter(([id]) => anchored.has(id)),
+      )
+    : undefined;
+  return {
+    content,
+    references:
+      retainedReferences && Object.keys(retainedReferences).length
+        ? retainedReferences
+        : undefined,
+  };
+}
+
 export function editorJsonToCanonical(
   input: unknown,
   references?: Readonly<Record<string, Reference>>,
@@ -381,11 +436,19 @@ export function editorJsonToCanonical(
   const editorDocument = editorNodeSchema.parse(input);
   if (editorDocument.type !== 'doc')
     throw new Error('Editor JSON must have a doc root.');
-  const content = (editorDocument.content ?? []).flatMap((node, index) => {
-    const block = editorNodeToBlock(node, index);
-    return block ? [block] : [];
-  });
+  const parsedContent = (editorDocument.content ?? []).flatMap(
+    (node, index) => {
+      const block = editorNodeToBlock(node, index);
+      return block ? [block] : [];
+    },
+  );
+  const { content, references: reconciledReferences } = reconcileReferenceData(
+    parsedContent,
+    references,
+  );
   return createDocumentCodec().parse(
-    references ? { version: 1, content, references } : { version: 1, content },
+    reconciledReferences
+      ? { version: 1, content, references: reconciledReferences }
+      : { version: 1, content },
   );
 }

@@ -11,6 +11,9 @@ export type InternalDocumentLinkEdge = {
   readonly blockId: string;
   readonly path: readonly number[];
   readonly text: string;
+  readonly context: string;
+  readonly offsetStart: number;
+  readonly offsetEnd: number;
 };
 
 function targetFromMarks(
@@ -25,8 +28,15 @@ function extractInlineEdges(
   pathPrefix: readonly number[],
 ): InternalDocumentLinkEdge[] {
   const edges: InternalDocumentLinkEdge[] = [];
+  const context = content
+    .map((inline) => (inline.type === 'text' ? inline.text : '\n'))
+    .join('');
+  let offset = 0;
   for (const [index, inline] of content.entries()) {
-    if (inline.type !== 'text') continue;
+    if (inline.type !== 'text') {
+      offset += 1;
+      continue;
+    }
     const targetId = targetFromMarks(inline.marks);
     if (targetId) {
       edges.push({
@@ -34,8 +44,12 @@ function extractInlineEdges(
         blockId,
         path: [...pathPrefix, index],
         text: inline.text,
+        context,
+        offsetStart: offset,
+        offsetEnd: offset + inline.text.length,
       });
     }
+    offset += inline.text.length;
   }
   return edges;
 }

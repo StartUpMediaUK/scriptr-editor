@@ -127,4 +127,23 @@ describe('ScriptrRenderer', () => {
       container.querySelector('[data-layout="twoColumn"]'),
     ).toBeInTheDocument();
   });
+
+  it('retains authored link text when the host target is unavailable', async () => {
+    const onLink = vi.fn();
+    render(
+      <ScriptrRenderer
+        document={document}
+        documentTargetProvider={{
+          search: () => Promise.resolve([]),
+          resolve: () => Promise.resolve(undefined),
+        }}
+        onInternalDocumentLink={onLink}
+      />,
+    );
+    const link = screen.getByRole('link', { name: 'The Day of the Lord' });
+    await waitFor(() => expect(link).toHaveAttribute('aria-disabled', 'true'));
+    link.click();
+    expect(onLink).not.toHaveBeenCalled();
+    expect(link).toHaveTextContent('The Day of the Lord');
+  });
 });

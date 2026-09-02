@@ -15,6 +15,7 @@ import {
 import { createDocumentCodec } from '../document/codec.js';
 import type { CanonicalDocument } from '../document/types.js';
 import type {
+  Reference,
   ScriptureBlock,
   TranslationComparisonBlock,
 } from '../document/types.js';
@@ -52,6 +53,11 @@ export type ScriptrEditorHandle = {
   readonly insertTranslationComparison: (
     block: TranslationComparisonBlock,
   ) => void;
+  readonly addReference: (reference: Reference) => void;
+  readonly updateReference: (reference: Reference) => void;
+  readonly removeReference: (referenceId: string) => void;
+  readonly setInternalDocumentLink: (targetId: string) => void;
+  readonly removeInternalDocumentLink: () => void;
 };
 
 const emptyDocument: CanonicalDocument = {
@@ -360,6 +366,73 @@ export const ScriptrEditor = forwardRef<
         const content = canonicalToEditorJson({ version: 1, content: [block] })
           .content?.[0];
         if (content) void editor?.chain().focus().insertContent(content).run();
+      },
+      addReference: (reference) => {
+        if (!editor || editor.state.selection.empty) return;
+        const nextReferences = {
+          ...documentRef.current.references,
+          [reference.id]: reference,
+        };
+        documentRef.current = {
+          ...documentRef.current,
+          references: nextReferences,
+        };
+        void editor
+          .chain()
+          .focus()
+          .setMark('referenceAnchor', { referenceId: reference.id })
+          .run();
+      },
+      updateReference: (reference) => {
+        if (!editor || !documentRef.current.references?.[reference.id]) return;
+        const references = {
+          ...documentRef.current.references,
+          [reference.id]: reference,
+        };
+        const nextDocument = editorJsonToCanonical(
+          editor.getJSON(),
+          references,
+        );
+        documentRef.current = nextDocument;
+        onChange?.(nextDocument, {
+          origin: 'user',
+          editorJson: editor.getJSON(),
+        });
+      },
+      removeReference: (referenceId) => {
+        if (!editor) return;
+        const references = Object.fromEntries(
+          Object.entries(documentRef.current.references ?? {}).filter(
+            ([id]) => id !== referenceId,
+          ),
+        );
+        documentRef.current = {
+          ...documentRef.current,
+          references: Object.keys(references).length ? references : undefined,
+        };
+        const transaction = editor.state.tr;
+        editor.state.doc.descendants((node, position) => {
+          for (const mark of node.marks) {
+            if (
+              mark.type.name === 'referenceAnchor' &&
+              mark.attrs.referenceId === referenceId
+            ) {
+              transaction.removeMark(position, position + node.nodeSize, mark);
+            }
+          }
+        });
+        editor.view.dispatch(transaction);
+      },
+      setInternalDocumentLink: (targetId) => {
+        if (!editor || editor.state.selection.empty) return;
+        void editor
+          .chain()
+          .focus()
+          .setMark('internalDocumentLink', { targetId })
+          .run();
+      },
+      removeInternalDocumentLink: () => {
+        void editor?.chain().focus().unsetMark('internalDocumentLink').run();
       },
     }),
     [editor],

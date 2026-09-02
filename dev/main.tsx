@@ -31,7 +31,27 @@ const initialDocument: CanonicalDocument = {
         { type: 'text', text: 'The Lamb does', marks: [{ type: 'bold' }] },
         {
           type: 'text',
-          text: ' — the same argument Paul makes when he calls Christ the last Adam.',
+          text: ' — the same argument Paul makes when he calls ',
+        },
+        {
+          type: 'text',
+          text: 'Christ the last Adam',
+          marks: [{ type: 'reference', referenceId: 'last-adam' }],
+        },
+        {
+          type: 'text',
+          text: ' in ',
+        },
+        {
+          type: 'text',
+          text: 'The Day of the Lord',
+          marks: [
+            { type: 'internalDocumentLink', targetId: 'day-of-the-lord' },
+          ],
+        },
+        {
+          type: 'text',
+          text: '.',
         },
       ],
     },
@@ -70,6 +90,22 @@ const initialDocument: CanonicalDocument = {
       layout: 'twoColumn',
     },
   ],
+  references: {
+    'last-adam': {
+      id: 'last-adam',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Paul develops this comparison in 1 Corinthians 15.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 };
 
 const demoStructure: ScriptureStructure = {
@@ -128,6 +164,23 @@ const demoProvider = createFakeScriptureProvider({
   ],
 });
 
+const demoDocumentProvider = {
+  search: () =>
+    Promise.resolve([
+      {
+        id: 'day-of-the-lord',
+        label: 'The Day of the Lord',
+        description: 'Study',
+      },
+    ]),
+  resolve: (id: string) =>
+    Promise.resolve(
+      id === 'day-of-the-lord'
+        ? { id, label: 'The Day of the Lord', description: 'Study' }
+        : undefined,
+    ),
+};
+
 function DevelopmentHarness() {
   const [document, setDocument] = useState(initialDocument);
   const [preview, setPreview] = useState(false);
@@ -155,6 +208,7 @@ function DevelopmentHarness() {
         {preview ? (
           <ScriptrRenderer
             document={document}
+            documentTargetProvider={demoDocumentProvider}
             scriptureProvider={demoProvider}
           />
         ) : (

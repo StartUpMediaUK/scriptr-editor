@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createDocumentCodec } from '../document/codec.js';
-import type { CanonicalDocument } from '../document/types.js';
+import type { CanonicalDocument, Reference } from '../document/types.js';
 import { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
 
 const document: CanonicalDocument = {
@@ -111,5 +111,57 @@ describe('canonical editor adapter', () => {
     expect(() => editorJsonToCanonical({ type: 'page', content: [] })).toThrow(
       'doc root',
     );
+  });
+
+  it('removes orphaned Reference data when its final anchor is deleted', () => {
+    const references: Record<string, Reference> = {
+      note: {
+        id: 'note',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'A shallow note.' }],
+          },
+        ],
+      },
+    };
+    const result = editorJsonToCanonical(
+      {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            attrs: { id: 'paragraph' },
+            content: [{ type: 'text', text: 'Anchor removed.' }],
+          },
+        ],
+      },
+      references,
+    );
+    expect(result.references).toBeUndefined();
+  });
+
+  it('drops pasted Reference anchors without their definitions', () => {
+    const result = editorJsonToCanonical({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          attrs: { id: 'paragraph' },
+          content: [
+            {
+              type: 'text',
+              text: 'Keep the text.',
+              marks: [
+                { type: 'referenceAnchor', attrs: { referenceId: 'missing' } },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.content[0]).toMatchObject({
+      content: [{ type: 'text', text: 'Keep the text.' }],
+    });
   });
 });

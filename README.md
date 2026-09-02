@@ -85,6 +85,12 @@ Pass the same provider to editable and read-only contexts so Scripture and Trans
 
 After deliberate picker selection, call `editorRef.current.insertScripture(block)` or `insertTranslationComparison(block)`. Each block stores only its address and translation configuration. The provider result supplies display text, attribution, and cache policy; passage text is not copied into the canonical document.
 
+## References and document links
+
+`ScriptrEditorHandle` exposes `addReference`, `updateReference`, and `removeReference` for the current text selection. `ReferenceEditor` provides the deliberately shallow annotation surface: paragraphs, emphasis, underline, lists, and external links only. Removing a Reference preserves its selected source text; deleting its final anchor automatically removes the orphaned definition.
+
+Internal links use opaque host-owned target IDs. `DocumentLinkPicker` searches a supplied `DocumentTargetProvider`, while `setInternalDocumentLink` applies the selected target to the current editor selection. `extractInternalDocumentLinks` returns the target, containing block, inline path, surrounding context, and character offsets so consuming applications can build backlink and exact-navigation features without putting those concerns in the editor package.
+
 ## Releases
 
 The package uses semantic versioning and Changesets. Every release candidate must pass the full quality gate and packed-consumer test. npm publication requires an explicit owner audit and approval.

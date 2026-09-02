@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 
 import type {
   Block,
@@ -9,6 +10,7 @@ import type {
   Reference,
 } from '../document/types.js';
 import type { ScriptureProvider } from '../host/scripture.js';
+import type { DocumentTargetProvider } from '../host/documents.js';
 import { ScriptureBlockContent } from './scripture-blocks.js';
 
 export type ScriptrRendererProps = {
@@ -19,7 +21,55 @@ export type ScriptrRendererProps = {
     | ((block: Extract<Block, { type: 'extension' }>) => ReactNode)
     | undefined;
   readonly scriptureProvider?: ScriptureProvider | undefined;
+  readonly documentTargetProvider?: DocumentTargetProvider | undefined;
 };
+
+function ResolvedInternalLink({
+  targetId,
+  provider,
+  onNavigate,
+  children,
+}: {
+  readonly targetId: string;
+  readonly provider?: DocumentTargetProvider | undefined;
+  readonly onNavigate: ScriptrRendererProps['onInternalDocumentLink'];
+  readonly children: ReactNode;
+}) {
+  const [available, setAvailable] = useState<boolean>();
+  useEffect(() => {
+    if (!provider) return;
+    const controller = new AbortController();
+    void provider.resolve(targetId, controller.signal).then(
+      (target) => setAvailable(Boolean(target)),
+      () => {
+        if (!controller.signal.aborted) setAvailable(false);
+      },
+    );
+    return () => controller.abort();
+  }, [provider, targetId]);
+  return (
+    <a
+      aria-disabled={available === false || undefined}
+      data-target-state={
+        provider
+          ? available === undefined
+            ? 'loading'
+            : available
+              ? 'ready'
+              : 'unavailable'
+          : undefined
+      }
+      href={`#document-${encodeURIComponent(targetId)}`}
+      onClick={(event) => {
+        if (!onNavigate || available === false) return;
+        event.preventDefault();
+        onNavigate(targetId);
+      }}
+    >
+      {children}
+    </a>
+  );
+}
 
 function referenceText(reference: Reference | undefined): string | undefined {
   return reference?.content
@@ -33,6 +83,7 @@ function applyMark(
   key: string,
   references: CanonicalDocument['references'],
   onInternalDocumentLink: ScriptrRendererProps['onInternalDocumentLink'],
+  documentTargetProvider: ScriptrRendererProps['documentTargetProvider'],
 ): ReactNode {
   switch (mark.type) {
     case 'bold':
@@ -58,20 +109,14 @@ function applyMark(
       );
     case 'internalDocumentLink':
       return (
-        <a
-          href={`#document-${encodeURIComponent(mark.targetId)}`}
+        <ResolvedInternalLink
           key={key}
-          onClick={
-            onInternalDocumentLink
-              ? (event) => {
-                  event.preventDefault();
-                  onInternalDocumentLink(mark.targetId);
-                }
-              : undefined
-          }
+          onNavigate={onInternalDocumentLink}
+          provider={documentTargetProvider}
+          targetId={mark.targetId}
         >
           {child}
-        </a>
+        </ResolvedInternalLink>
       );
     case 'reference':
       return (
@@ -91,6 +136,7 @@ function renderInline(
   content: readonly InlineContent[],
   references: CanonicalDocument['references'],
   onInternalDocumentLink: ScriptrRendererProps['onInternalDocumentLink'],
+  documentTargetProvider: ScriptrRendererProps['documentTargetProvider'],
 ) {
   return content.map((inline, index) => {
     if (inline.type === 'hardBreak') return <br key={`break-${index}`} />;
@@ -102,6 +148,7 @@ function renderInline(
         `mark-${index}-${markIndex}`,
         references,
         onInternalDocumentLink,
+        documentTargetProvider,
       );
     }
     return <span key={`inline-${index}`}>{child}</span>;
@@ -113,6 +160,7 @@ function renderListItems(
   kind: 'bullet' | 'numbered' | 'check',
   references: CanonicalDocument['references'],
   onInternalDocumentLink: ScriptrRendererProps['onInternalDocumentLink'],
+  documentTargetProvider: ScriptrRendererProps['documentTargetProvider'],
 ): ReactNode {
   return items.map((item) => (
     <li
@@ -128,7 +176,12 @@ function renderListItems(
         />
       ) : null}
       <span>
-        {renderInline(item.content, references, onInternalDocumentLink)}
+        {renderInline(
+          item.content,
+          references,
+          onInternalDocumentLink,
+          documentTargetProvider,
+        )}
       </span>
       {item.children?.length ? (
         kind === 'numbered' ? (
@@ -138,6 +191,7 @@ function renderListItems(
               kind,
               references,
               onInternalDocumentLink,
+              documentTargetProvider,
             )}
           </ol>
         ) : (
@@ -147,6 +201,7 @@ function renderListItems(
               kind,
               references,
               onInternalDocumentLink,
+              documentTargetProvider,
             )}
           </ul>
         )
@@ -161,6 +216,7 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
       content,
       props.document.references,
       props.onInternalDocumentLink,
+      props.documentTargetProvider,
     );
   switch (block.type) {
     case 'paragraph':
@@ -197,6 +253,7 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
             block.kind,
             props.document.references,
             props.onInternalDocumentLink,
+            props.documentTargetProvider,
           )}
         </ol>
       ) : (
@@ -209,6 +266,7 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
             block.kind,
             props.document.references,
             props.onInternalDocumentLink,
+            props.documentTargetProvider,
           )}
         </ul>
       );

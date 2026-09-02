@@ -2,7 +2,9 @@
 
 .scriptr-editor,
 .scriptr-renderer,
-.scriptr-scripture-picker {
+.scriptr-scripture-picker,
+.scriptr-reference-editor,
+.scriptr-document-picker {
   --scriptr-color-ground: #f7f5f0;
   --scriptr-color-surface: #efede7;
   --scriptr-color-text: #201f1d;
@@ -169,6 +171,99 @@
 .scriptr-scripture-picker__insert:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+.scriptr-reference-editor,
+.scriptr-document-picker {
+  color: var(--scriptr-color-text, #201f1d);
+  background: var(--scriptr-color-ground, #f7f5f0);
+  border: 1px solid var(--scriptr-color-divider, #d9d3c8);
+  border-radius: var(--scriptr-radius-md, 4px);
+  box-shadow: 0 8px 24px rgb(32 31 29 / 14%);
+  font-family: var(--scriptr-font-body, 'Lora', Georgia, serif);
+}
+
+.scriptr-reference-editor {
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 9.2px;
+}
+
+.scriptr-reference-editor__toolbar {
+  display: flex;
+  gap: 2px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--scriptr-color-divider, #d9d3c8);
+}
+
+.scriptr-reference-editor button,
+.scriptr-document-picker button {
+  min-height: 32px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.scriptr-reference-editor button:hover,
+.scriptr-reference-editor button[aria-pressed='true'],
+.scriptr-document-picker button:hover {
+  color: var(--scriptr-color-accent-700, #7f501d);
+  border-color: var(--scriptr-color-divider, #d9d3c8);
+}
+
+.scriptr-reference-editor__content {
+  min-height: 6rem;
+  padding: 9.2px;
+  outline: none;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.scriptr-document-picker {
+  width: min(28rem, calc(100vw - 2rem));
+  padding: 13.8px;
+}
+
+.scriptr-document-picker > header,
+.scriptr-document-picker [role='option'] {
+  display: flex;
+  justify-content: space-between;
+  gap: 9.2px;
+}
+
+.scriptr-document-picker input {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 9.2px 0;
+  padding: 9.2px;
+  color: inherit;
+  background: var(--scriptr-color-surface, #efede7);
+  border: 1px solid var(--scriptr-color-divider, #d9d3c8);
+  outline: none;
+}
+
+.scriptr-document-picker [role='listbox'] {
+  display: grid;
+}
+
+.scriptr-document-picker [role='option'] {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 9.2px;
+  text-align: left;
+}
+
+.scriptr-document-picker small,
+.scriptr-document-picker [role='status'] {
+  color: var(--scriptr-color-muted, #716c64);
+  font-size: 11px;
+}
+
+.scriptr-renderer a[data-target-state='unavailable'] {
+  color: var(--scriptr-color-muted);
+  border-bottom-style: dashed;
+  cursor: not-allowed;
 }
 
 .scriptr-editor {
@@ -586,7 +681,9 @@
 @media (prefers-color-scheme: dark) {
   .scriptr-editor,
   .scriptr-renderer,
-  .scriptr-scripture-picker {
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker {
     --scriptr-color-ground: #201f1d;
     --scriptr-color-surface: #2a2825;
     --scriptr-color-text: #eee9df;
@@ -620,7 +717,10 @@
   }
 
   .scriptr-scripture-picker__options button,
-  .scriptr-scripture-picker__insert {
+  .scriptr-scripture-picker__insert,
+  .scriptr-reference-editor button,
+  .scriptr-document-picker button,
+  .scriptr-document-picker input {
     min-height: 44px;
   }
 

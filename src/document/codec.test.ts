@@ -138,6 +138,10 @@ describe('canonical document codec', () => {
         blockId: 'paragraph-1',
         path: [3],
         text: 'The Day of the Lord',
+        context:
+          'John does not open the seals. The Lamb does, as explored in The Day of the Lord.',
+        offsetStart: 60,
+        offsetEnd: 79,
       },
     ]);
   });
