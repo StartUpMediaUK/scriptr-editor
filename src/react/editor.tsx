@@ -89,7 +89,7 @@ type SlashItem = {
   readonly run: (editor: Editor) => void;
 };
 
-const slashItems: readonly SlashItem[] = [
+const coreSlashItems: readonly SlashItem[] = [
   {
     label: 'Text',
     hint: 'Plain paragraph',
@@ -344,6 +344,33 @@ export const ScriptrEditor = forwardRef<
       ),
     [placeholder, scriptureProvider, imageHost, extensionRenderers],
   );
+  const availableSlashItems = useMemo(() => {
+    const ids = new Set<string>();
+    return [
+      ...coreSlashItems,
+      ...extensionRenderers.flatMap((extension) =>
+        (extension.slashItems ?? []).map((item): SlashItem => {
+          const id = `${extension.name}:${item.id}`;
+          if (ids.has(id))
+            throw new Error(`Duplicate extension slash item: ${id}`);
+          ids.add(id);
+          return {
+            label: item.label,
+            hint: item.hint,
+            keywords: item.keywords ?? '',
+            run: (currentEditor) => {
+              const content = canonicalToEditorJson({
+                version: 1,
+                content: [item.createBlock()],
+              }).content?.[0];
+              if (content)
+                void currentEditor.chain().focus().insertContent(content).run();
+            },
+          };
+        }),
+      ),
+    ];
+  }, [extensionRenderers]);
   const [slashQuery, setSlashQuery] = useState<string>();
   const [slashIndex, setSlashIndex] = useState(0);
   const tiptapEditorRef = useRef<Editor | null>(null);
@@ -373,7 +400,7 @@ export const ScriptrEditor = forwardRef<
         const currentEditor = tiptapEditorRef.current;
         const currentQuery = slashQueryRef.current;
         if (currentEditor && currentQuery !== undefined) {
-          const matchingItems = slashItems.filter((item) =>
+          const matchingItems = availableSlashItems.filter((item) =>
             `${item.label} ${item.keywords}`
               .toLowerCase()
               .includes(currentQuery),
@@ -568,7 +595,7 @@ export const ScriptrEditor = forwardRef<
       />
     );
 
-  const filteredSlashItems = slashItems.filter((item) =>
+  const filteredSlashItems = availableSlashItems.filter((item) =>
     `${item.label} ${item.keywords}`.toLowerCase().includes(slashQuery ?? ''),
   );
 

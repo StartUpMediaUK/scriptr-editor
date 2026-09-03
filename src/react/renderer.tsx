@@ -48,7 +48,55 @@ export type ReactExtensionRenderer = {
         context: { readonly locale?: string | undefined },
       ) => ReactNode)
     | undefined;
+  readonly slashItems?: readonly ReactExtensionSlashItem[] | undefined;
 };
+
+export type ReactExtensionSlashItem = {
+  readonly id: string;
+  readonly label: string;
+  readonly hint: string;
+  readonly keywords?: string | undefined;
+  readonly createBlock: () => ExtensionBlock;
+};
+
+export type ReactExtensionDefinition<TData extends JsonValue> = {
+  readonly name: string;
+  readonly version: number;
+  readonly parseData: (input: unknown) => TData;
+  readonly renderReadonly: (
+    data: TData,
+    context: { readonly locale?: string | undefined },
+  ) => ReactNode;
+  readonly renderEditable?:
+    | ((
+        data: TData,
+        context: { readonly locale?: string | undefined },
+      ) => ReactNode)
+    | undefined;
+  readonly slashItems?: readonly ReactExtensionSlashItem[] | undefined;
+};
+
+export function defineReactExtension<TData extends JsonValue>(
+  definition: ReactExtensionDefinition<TData>,
+): ReactExtensionRenderer {
+  const renderEditable = definition.renderEditable;
+  return {
+    name: definition.name,
+    version: definition.version,
+    parseData: definition.parseData,
+    renderReadonly: (data, context) =>
+      definition.renderReadonly(definition.parseData(data), context),
+    ...(renderEditable
+      ? {
+          renderEditable: (
+            data: JsonValue,
+            context: { readonly locale?: string | undefined },
+          ) => renderEditable(definition.parseData(data), context),
+        }
+      : {}),
+    ...(definition.slashItems ? { slashItems: definition.slashItems } : {}),
+  };
+}
 
 class ExtensionErrorBoundary extends Component<
   {

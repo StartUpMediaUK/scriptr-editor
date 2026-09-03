@@ -97,6 +97,29 @@ try {
     throw new Error(`Unexpected package import result: ${importedName}`);
   }
 
+  writeFileSync(
+    join(fixtureDirectory, 'consumer.ts'),
+    "import type { CanonicalDocument, ScriptureProvider } from 'scriptr-editor';\nimport type { ScriptrEditorHandle } from 'scriptr-editor/react';\nconst document: CanonicalDocument = { version: 1, content: [] };\nconst provider: ScriptureProvider | undefined = undefined;\nconst handle: ScriptrEditorHandle | undefined = undefined;\nvoid [document, provider, handle];\n",
+  );
+  writeFileSync(
+    join(fixtureDirectory, 'tsconfig.json'),
+    JSON.stringify({
+      compilerOptions: {
+        module: 'NodeNext',
+        moduleResolution: 'NodeNext',
+        strict: true,
+        noEmit: true,
+        skipLibCheck: true,
+      },
+      files: ['consumer.ts'],
+    }),
+  );
+  execFileSync(
+    join(projectRoot, 'node_modules/.bin/tsc'),
+    ['-p', join(fixtureDirectory, 'tsconfig.json')],
+    { cwd: fixtureDirectory, stdio: 'inherit' },
+  );
+
   const installedDeclaration = readFileSync(
     join(fixtureDirectory, 'node_modules/scriptr-editor/dist/index.d.ts'),
     'utf8',

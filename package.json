@@ -1,6 +1,6 @@
 {
   "name": "scriptr-editor",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Reusable rich-text editor primitives for Scripture-aware writing experiences.",
   "license": "MIT",
   "type": "module",

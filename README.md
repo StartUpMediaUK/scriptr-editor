@@ -6,9 +6,9 @@ The package is under active development. It provides audited Canonical Document 
 
 ## Boundary
 
-`scriptr-editor` will own rich-text editing, canonical documents and migrations, provider-neutral Scripture references, translation comparisons, lightweight References, internal-document-link primitives, image primitives, extensions, and read-only rendering.
+`scriptr-editor` owns rich-text editing, canonical documents and migrations, provider-neutral Scripture references, translation comparisons, lightweight References, internal-document-link primitives, image primitives, extensions, and read-only rendering.
 
-Consuming applications own accounts, Pages, workspaces, storage, search, synchronization, sharing, and preferences. Host capabilities will be injected through typed APIs. The package will not depend directly on YouVersion or another Scripture provider.
+Consuming applications own accounts, Pages, workspaces, storage, search, synchronization, sharing, and preferences. Host capabilities are injected through typed APIs. The package does not depend directly on YouVersion or another Scripture provider.
 
 ## Development
 
@@ -35,7 +35,7 @@ const document = codec.deserialize(storedJson);
 const portableJson = codec.serialize(document);
 ```
 
-See `docs/canonical-document-v1.md` and `docs/architecture.md` for the persisted format, extension contract, host seams, and compatibility policy.
+See `docs/api.md`, `docs/canonical-document-v1.md`, and `docs/architecture.md` for the public API, persisted format, extension contract, host seams, and compatibility policy.
 
 Production integration, canonical search-result navigation, extension failure isolation, and bundle budgets are documented in `docs/production-hardening.md`.
 
@@ -48,10 +48,12 @@ import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
 import 'scriptr-editor/styles.css';
 
 <ScriptrEditor value={document} onChange={setDocument} />;
-<ScriptrRenderer value={document} />;
+<ScriptrRenderer document={document} />;
 ```
 
 The editor includes contextual formatting, slash commands with keyboard navigation, Markdown shortcuts, block reordering, undo/redo, mobile interactions, and read-only mode. Its visual variables can be scoped through the documented `--scriptr-*` custom properties without replacing the package's layout hierarchy.
+
+The stylesheet never fetches fonts or other remote assets. To match the prototype exactly, a host may self-host Cormorant Garamond and Lora; otherwise the declared Georgia/serif fallbacks preserve the hierarchy. Theme overrides should remain limited to the documented `--scriptr-color-*`, `--scriptr-font-*`, `--scriptr-editor-font-size`, and `--scriptr-editor-measure` tokens.
 
 ## Scripture references
 

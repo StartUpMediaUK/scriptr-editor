@@ -6,8 +6,13 @@ export type {
   ScriptrEditorProps,
 } from './editor.js';
 export { ScriptrRenderer } from './renderer.js';
+export { defineReactExtension } from './renderer.js';
 export type { ScriptrRendererProps } from './renderer.js';
-export type { ReactExtensionRenderer } from './renderer.js';
+export type {
+  ReactExtensionRenderer,
+  ReactExtensionDefinition,
+  ReactExtensionSlashItem,
+} from './renderer.js';
 export { ScripturePicker } from './scripture-picker.js';
 export type { ScripturePickerProps } from './scripture-picker.js';
 export { ScriptureBlockContent } from './scripture-blocks.js';

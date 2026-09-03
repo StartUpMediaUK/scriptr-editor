@@ -138,4 +138,32 @@ describe('ScriptrEditor', () => {
       expect(screen.getByText('Editable extension')).toBeInTheDocument(),
     );
   });
+
+  it('rejects conflicting contributed slash items', () => {
+    const extension = {
+      name: 'fixture',
+      version: 1,
+      parseData: () => null,
+      renderReadonly: () => null,
+      slashItems: [
+        {
+          id: 'insert',
+          label: 'Fixture',
+          hint: 'Insert fixture',
+          createBlock: () => ({
+            id: 'fixture',
+            type: 'extension' as const,
+            name: 'fixture',
+            version: 1,
+            data: null,
+          }),
+        },
+      ],
+    };
+    expect(() =>
+      render(
+        <ScriptrEditor extensions={[extension, extension]} value={document} />,
+      ),
+    ).toThrow('Duplicate extension slash item');
+  });
 });
