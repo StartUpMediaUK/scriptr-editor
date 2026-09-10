@@ -17,7 +17,7 @@ import './styles.css';
 import 'scriptr-editor/styles.css';
 
 const initialDocument: CanonicalDocument = {
-  version: 1,
+  version: 2,
   content: [
     {
       id: 'title',

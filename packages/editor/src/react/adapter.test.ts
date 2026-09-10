@@ -5,7 +5,7 @@ import type { CanonicalDocument, Reference } from '../document/types.js';
 import { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
 
 const document: CanonicalDocument = {
-  version: 1,
+  version: 2,
   content: [
     {
       id: 'heading',

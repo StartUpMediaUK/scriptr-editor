@@ -32,7 +32,7 @@ describe('canonical document codec', () => {
     const second = codec.serialize(codec.deserialize(first));
 
     expect(second).toBe(first);
-    expect(document.version).toBe(1);
+    expect(document.version).toBe(2);
     expect(document.content).toHaveLength(7);
   });
 
@@ -71,7 +71,7 @@ describe('canonical document codec', () => {
 
   it('rejects orphaned Reference definitions and missing definitions', () => {
     const orphaned = {
-      version: 1,
+      version: 2,
       content: [],
       references: {
         note: {
@@ -179,9 +179,60 @@ describe('document migrations', () => {
       blocks: [{ id: 'legacy-paragraph', type: 'paragraph', content: [] }],
     });
     expect(document).toEqual({
-      version: 1,
+      version: 2,
       content: [{ id: 'legacy-paragraph', type: 'paragraph', content: [] }],
     });
+  });
+
+  it('migrates v1 and validates the new v2 portable blocks', () => {
+    const migrated = createDocumentCodec().parse({ version: 1, content: [] });
+    expect(migrated.version).toBe(2);
+
+    const document = createDocumentCodec().parse({
+      version: 2,
+      content: [
+        {
+          id: 'columns',
+          type: 'columns',
+          columns: [
+            {
+              id: 'left',
+              content: [{ id: 'left-text', type: 'paragraph', content: [] }],
+            },
+            {
+              id: 'right',
+              content: [{ id: 'right-text', type: 'paragraph', content: [] }],
+            },
+          ],
+        },
+        {
+          id: 'toggle',
+          type: 'toggle',
+          summary: [{ type: 'text', text: 'Details' }],
+          headingLevel: 2,
+          content: [{ id: 'toggle-text', type: 'paragraph', content: [] }],
+        },
+        { id: 'video', type: 'video', assetId: 'video-1' },
+        {
+          id: 'audio',
+          type: 'audio',
+          src: 'https://example.com/audio.mp3',
+          title: 'Audio',
+        },
+        {
+          id: 'bookmark',
+          type: 'webBookmark',
+          url: 'https://example.com',
+          title: 'Example',
+        },
+      ],
+    });
+
+    expect(
+      createDocumentCodec().deserialize(
+        createDocumentCodec().serialize(document),
+      ),
+    ).toEqual(document);
   });
 });
 
@@ -200,7 +251,7 @@ describe('extension rendering seam', () => {
 });
 
 const _documentTypeCheck: CanonicalDocument = {
-  version: 1,
+  version: 2,
   content: [],
 };
 

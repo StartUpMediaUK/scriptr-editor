@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { DOCUMENT_VERSION } from './types.js';
-import type { JsonValue } from './types.js';
+import type { Block, InlineContent, JsonValue, ListItem } from './types.js';
 
 const nonEmptyId = z.string().trim().min(1);
 const positiveInteger = z.number().int().positive();
@@ -233,6 +233,48 @@ const imageBlockSchema = z
     height: positiveInteger.optional(),
   })
   .strict();
+const mediaSourceShape = {
+  assetId: nonEmptyId.optional(),
+  src: z.string().url().optional(),
+};
+const videoBlockSchema = z
+  .object({
+    ...blockBaseShape,
+    type: z.literal('video'),
+    ...mediaSourceShape,
+    title: z.string().trim().min(1).optional(),
+    posterAssetId: nonEmptyId.optional(),
+    caption: inlineArraySchema.optional(),
+    width: positiveInteger.optional(),
+    height: positiveInteger.optional(),
+  })
+  .strict()
+  .refine((block) => block.assetId !== undefined || block.src !== undefined, {
+    message: 'Video requires an assetId or src.',
+  });
+const audioBlockSchema = z
+  .object({
+    ...blockBaseShape,
+    type: z.literal('audio'),
+    ...mediaSourceShape,
+    title: z.string().trim().min(1),
+    transcript: inlineArraySchema.optional(),
+  })
+  .strict()
+  .refine((block) => block.assetId !== undefined || block.src !== undefined, {
+    message: 'Audio requires an assetId or src.',
+  });
+const webBookmarkBlockSchema = z
+  .object({
+    ...blockBaseShape,
+    type: z.literal('webBookmark'),
+    url: z.string().url(),
+    title: z.string().trim().min(1),
+    description: z.string().trim().min(1).optional(),
+    siteName: z.string().trim().min(1).optional(),
+    imageAssetId: nonEmptyId.optional(),
+  })
+  .strict();
 export const extensionBlockSchema = z
   .object({
     ...blockBaseShape,
@@ -243,19 +285,53 @@ export const extensionBlockSchema = z
   })
   .strict();
 
-export const blockSchema = z.union([
-  paragraphBlockSchema,
-  headingBlockSchema,
-  blockquoteBlockSchema,
-  codeBlockSchema,
-  calloutBlockSchema,
-  dividerBlockSchema,
-  listBlockSchema,
-  scriptureBlockSchema,
-  translationComparisonBlockSchema,
-  imageBlockSchema,
-  extensionBlockSchema,
-]);
+export const blockSchema: z.ZodType<Block> = z.lazy(() =>
+  z.union([
+    paragraphBlockSchema,
+    headingBlockSchema,
+    blockquoteBlockSchema,
+    codeBlockSchema,
+    calloutBlockSchema,
+    dividerBlockSchema,
+    listBlockSchema,
+    scriptureBlockSchema,
+    translationComparisonBlockSchema,
+    imageBlockSchema,
+    videoBlockSchema,
+    audioBlockSchema,
+    webBookmarkBlockSchema,
+    z
+      .object({
+        ...blockBaseShape,
+        type: z.literal('columns'),
+        columns: z
+          .array(
+            z
+              .object({
+                id: nonEmptyId,
+                content: z.array(blockSchema),
+              })
+              .strict(),
+          )
+          .min(2)
+          .max(4),
+      })
+      .strict(),
+    z
+      .object({
+        ...blockBaseShape,
+        type: z.literal('toggle'),
+        summary: inlineArraySchema,
+        headingLevel: z
+          .union([z.literal(1), z.literal(2), z.literal(3)])
+          .optional(),
+        defaultOpen: z.boolean().optional(),
+        content: z.array(blockSchema),
+      })
+      .strict(),
+    extensionBlockSchema,
+  ]),
+);
 
 const referenceTextMarkSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('bold') }).strict(),
@@ -316,7 +392,7 @@ export const canonicalDocumentSchema = z
       structuralIds.add(id);
     };
     const recordReferenceAnchors = (
-      content: readonly z.infer<typeof inlineContentSchema>[],
+      content: readonly InlineContent[],
       path: readonly (number | string)[],
     ) => {
       for (const [inlineIndex, inline] of content.entries()) {
@@ -335,7 +411,7 @@ export const canonicalDocumentSchema = z
       }
     };
     const visitListItems = (
-      items: readonly ListItemInput[],
+      items: readonly ListItem[],
       path: readonly (number | string)[],
     ) => {
       for (const [itemIndex, item] of items.entries()) {
@@ -348,8 +424,10 @@ export const canonicalDocumentSchema = z
       }
     };
 
-    for (const [index, block] of document.content.entries()) {
-      const blockPath = ['content', index] as const;
+    const visitBlock = (
+      block: Block,
+      blockPath: readonly (number | string)[],
+    ) => {
       recordStructuralId(block.id, [...blockPath, 'id']);
       switch (block.type) {
         case 'paragraph':
@@ -366,9 +444,41 @@ export const canonicalDocumentSchema = z
             recordReferenceAnchors(block.caption, [...blockPath, 'caption']);
           }
           break;
+        case 'video':
+          if (block.caption) {
+            recordReferenceAnchors(block.caption, [...blockPath, 'caption']);
+          }
+          break;
+        case 'audio':
+          if (block.transcript) {
+            recordReferenceAnchors(block.transcript, [
+              ...blockPath,
+              'transcript',
+            ]);
+          }
+          break;
+        case 'columns':
+          for (const [columnIndex, column] of block.columns.entries()) {
+            const columnPath = [...blockPath, 'columns', columnIndex];
+            recordStructuralId(column.id, [...columnPath, 'id']);
+            for (const [childIndex, child] of column.content.entries()) {
+              visitBlock(child, [...columnPath, 'content', childIndex]);
+            }
+          }
+          break;
+        case 'toggle':
+          recordReferenceAnchors(block.summary, [...blockPath, 'summary']);
+          for (const [childIndex, child] of block.content.entries()) {
+            visitBlock(child, [...blockPath, 'content', childIndex]);
+          }
+          break;
         default:
           break;
       }
+    };
+
+    for (const [index, block] of document.content.entries()) {
+      visitBlock(block, ['content', index]);
     }
 
     if (!document.references) return;

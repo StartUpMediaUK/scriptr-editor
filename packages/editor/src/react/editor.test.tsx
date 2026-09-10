@@ -11,7 +11,7 @@ import { ScriptrEditor } from './editor.js';
 import type { ScriptrEditorHandle } from './editor.js';
 
 const document: CanonicalDocument = {
-  version: 1,
+  version: 2,
   content: [
     {
       id: 'paragraph',
@@ -84,7 +84,7 @@ describe('ScriptrEditor', () => {
 
   it('retains automatic direction and a representative large document', async () => {
     const largeDocument: CanonicalDocument = {
-      version: 1,
+      version: 2,
       content: Array.from({ length: 200 }, (_, index) => ({
         id: `paragraph-${index}`,
         type: 'paragraph' as const,
@@ -114,20 +114,20 @@ describe('ScriptrEditor', () => {
         extensions={[
           {
             name: 'fixture',
-            version: 1,
+            version: 2,
             parseData: () => ({ message: 'hello' }),
             renderReadonly: () => 'Read only',
             renderEditable: () => 'Editable extension',
           },
         ]}
         value={{
-          version: 1,
+          version: 2,
           content: [
             {
               id: 'extension',
               type: 'extension',
               name: 'fixture',
-              version: 1,
+              version: 2,
               data: { message: 'hello' },
             },
           ],
@@ -142,7 +142,7 @@ describe('ScriptrEditor', () => {
   it('rejects conflicting contributed slash items', () => {
     const extension = {
       name: 'fixture',
-      version: 1,
+      version: 2,
       parseData: () => null,
       renderReadonly: () => null,
       slashItems: [
@@ -154,7 +154,7 @@ describe('ScriptrEditor', () => {
             id: 'fixture',
             type: 'extension' as const,
             name: 'fixture',
-            version: 1,
+            version: 2,
             data: null,
           }),
         },

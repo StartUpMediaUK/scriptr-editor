@@ -29,7 +29,11 @@ function inlineSequences(block: Block): readonly (readonly InlineContent[])[] {
     block.type === 'callout'
   )
     return [block.content];
-  if (block.type === 'image' && block.caption) return [block.caption];
+  if (block.type === 'toggle') return [block.summary];
+  if (block.type === 'columns') return [];
+  if ((block.type === 'image' || block.type === 'video') && block.caption)
+    return [block.caption];
+  if (block.type === 'audio' && block.transcript) return [block.transcript];
   if (block.type !== 'list') return [];
   const flatten = (items: readonly ListItem[]): (readonly InlineContent[])[] =>
     items.flatMap((item) => [item.content, ...flatten(item.children ?? [])]);
@@ -70,7 +74,17 @@ export function findDocumentLocations(
   const needle = trimmed.toLocaleLowerCase();
   if (!needle) return [];
   const matches: LocatedDocumentMatch[] = [];
-  for (const block of document.content) {
+  const allBlocks = (blocks: readonly Block[]): Block[] =>
+    blocks.flatMap((block) => [
+      block,
+      ...(block.type === 'columns'
+        ? block.columns.flatMap((column) => allBlocks(column.content))
+        : block.type === 'toggle'
+          ? allBlocks(block.content)
+          : []),
+    ]);
+  const blocks = allBlocks(document.content);
+  for (const block of blocks) {
     let blockOffset = 0;
     for (const content of inlineSequences(block)) {
       const text = inlineText(content);
@@ -115,7 +129,7 @@ export function findDocumentLocations(
       .flatMap((item) => item.content.map((inline) => inline.text))
       .join(' ');
     if (!text.toLocaleLowerCase().includes(needle)) continue;
-    const anchor = document.content.find((block) =>
+    const anchor = blocks.find((block) =>
       inlineSequences(block).some((content) =>
         content.some(
           (inline) =>

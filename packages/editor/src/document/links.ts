@@ -74,6 +74,8 @@ function inlineContentFor(block: Block): readonly InlineContent[] | undefined {
     case 'blockquote':
     case 'callout':
       return block.content;
+    case 'toggle':
+      return block.summary;
     default:
       return undefined;
   }
@@ -82,17 +84,35 @@ function inlineContentFor(block: Block): readonly InlineContent[] | undefined {
 export function extractInternalDocumentLinks(
   document: CanonicalDocument,
 ): readonly InternalDocumentLinkEdge[] {
-  return document.content.flatMap((block) => {
+  const extractBlock = (block: Block): InternalDocumentLinkEdge[] => {
     const inlineContent = inlineContentFor(block);
-    if (inlineContent) return extractInlineEdges(inlineContent, block.id, []);
-    if (block.type === 'image' && block.caption) {
-      return extractInlineEdges(block.caption, block.id, []);
+    const own = inlineContent
+      ? extractInlineEdges(inlineContent, block.id, [])
+      : [];
+    if ((block.type === 'image' || block.type === 'video') && block.caption) {
+      own.push(...extractInlineEdges(block.caption, block.id, []));
     }
-    if (block.type === 'list') {
-      return block.items.flatMap((item, index) =>
-        extractListItemEdges(item, block.id, [index]),
+    if (block.type === 'audio' && block.transcript) {
+      own.push(...extractInlineEdges(block.transcript, block.id, []));
+    }
+    if (block.type === 'columns') {
+      own.push(
+        ...block.columns.flatMap((column) =>
+          column.content.flatMap(extractBlock),
+        ),
       );
     }
-    return [];
-  });
+    if (block.type === 'toggle') {
+      own.push(...block.content.flatMap(extractBlock));
+    }
+    if (block.type === 'list') {
+      own.push(
+        ...block.items.flatMap((item, index) =>
+          extractListItemEdges(item, block.id, [index]),
+        ),
+      );
+    }
+    return own;
+  };
+  return document.content.flatMap(extractBlock);
 }

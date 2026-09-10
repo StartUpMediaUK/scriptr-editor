@@ -21,3 +21,12 @@ export type {
 } from './fake-provider.js';
 export { assertScriptureProviderConformance } from './provider-contract.js';
 export type { ProviderConformanceOptions } from './provider-contract.js';
+export {
+  createRemoteScriptureProvider,
+  createScriptureTransportHandler,
+} from './transport.js';
+export type {
+  ScriptureTransport,
+  ScriptureTransportRequest,
+  ScriptureTransportResponse,
+} from './transport.js';

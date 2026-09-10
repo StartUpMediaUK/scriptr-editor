@@ -2,7 +2,7 @@ import { z, ZodError } from 'zod';
 
 import { createExtensionRegistry } from '../extensions/registry.js';
 import type { ExtensionRegistration } from '../extensions/types.js';
-import { migrateDocument } from './migrations.js';
+import { documentV1ToV2Migration, migrateDocument } from './migrations.js';
 import type { DocumentMigration } from './migrations.js';
 import { canonicalDocumentSchema } from './schema.js';
 import { DOCUMENT_VERSION } from './types.js';
@@ -56,9 +56,23 @@ function normalizeDocument(
   document: CanonicalDocument,
   validateExtension: (block: ExtensionBlock) => ExtensionBlock,
 ): CanonicalDocument {
-  const content = document.content.map((block) =>
-    isExtensionBlock(block) ? validateExtension(block) : block,
-  );
+  const normalizeBlock = (block: Block): Block => {
+    if (isExtensionBlock(block)) return validateExtension(block);
+    if (block.type === 'columns') {
+      return {
+        ...block,
+        columns: block.columns.map((column) => ({
+          ...column,
+          content: column.content.map(normalizeBlock),
+        })),
+      };
+    }
+    if (block.type === 'toggle') {
+      return { ...block, content: block.content.map(normalizeBlock) };
+    }
+    return block;
+  };
+  const content = document.content.map(normalizeBlock);
   const references = document.references
     ? Object.fromEntries(
         Object.entries(document.references).sort(([left], [right]) =>
@@ -83,7 +97,7 @@ export function createDocumentCodec(
   options: DocumentCodecOptions = {},
 ): DocumentCodec {
   const extensionRegistry = createExtensionRegistry(options.extensions ?? []);
-  const migrations = options.migrations ?? [];
+  const migrations = [...(options.migrations ?? []), documentV1ToV2Migration];
 
   const parse = (input: unknown): CanonicalDocument => {
     try {

@@ -61,6 +61,8 @@ try {
     'package/dist/react/index.js',
     'package/dist/scripture/index.d.ts',
     'package/dist/scripture/index.js',
+    'package/dist/server.d.ts',
+    'package/dist/server.js',
     'package/dist/styles.css',
     'package/package.json',
   ];
@@ -97,18 +99,21 @@ try {
     [
       '--input-type=module',
       '--eval',
-      "import { PACKAGE_NAME } from 'scriptr-editor'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { ScriptrRenderer } from 'scriptr-editor/react'; import { parseReferenceQuery } from 'scriptr-editor/scripture'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof parseReferenceQuery}`);",
+      "import { PACKAGE_NAME, defineScriptr } from 'scriptr-editor'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { ScriptrRenderer } from 'scriptr-editor/react'; import { parseReferenceQuery } from 'scriptr-editor/scripture'; import { createScriptrServer } from 'scriptr-editor/server'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineScriptr}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof parseReferenceQuery}:${typeof createScriptrServer}`);",
     ],
     { cwd: fixtureDirectory, encoding: 'utf8' },
   );
 
-  if (importedName !== 'scriptr-editor:1:function:function:function') {
+  if (
+    importedName !==
+    'scriptr-editor:2:function:function:function:function:function'
+  ) {
     throw new Error(`Unexpected package import result: ${importedName}`);
   }
 
   writeFileSync(
     join(fixtureDirectory, 'consumer.ts'),
-    "import type { CanonicalDocument, ScriptureProvider } from 'scriptr-editor';\nimport type { ScriptrEditorHandle } from 'scriptr-editor/react';\nconst document: CanonicalDocument = { version: 1, content: [] };\nconst provider: ScriptureProvider | undefined = undefined;\nconst handle: ScriptrEditorHandle | undefined = undefined;\nvoid [document, provider, handle];\n",
+    "import { defineScriptr } from 'scriptr-editor';\nimport type { CanonicalDocument, ScriptureProvider } from 'scriptr-editor';\nimport type { ScriptrEditorHandle } from 'scriptr-editor/react';\nimport { createScriptrServer } from 'scriptr-editor/server';\nconst document: CanonicalDocument = { version: 2, content: [] };\nconst provider: ScriptureProvider | undefined = undefined;\nconst handle: ScriptrEditorHandle | undefined = undefined;\nconst client = defineScriptr();\nconst server = createScriptrServer({});\nvoid [document, provider, handle, client, server];\n",
   );
   writeFileSync(
     join(fixtureDirectory, 'tsconfig.json'),

@@ -12,7 +12,7 @@ function ExtensionNodeView({
 }) {
   try {
     const block = createDocumentCodec().parse({
-      version: 1,
+      version: 2,
       content: [JSON.parse(String(node.attrs.payload))],
     }).content[0];
     if (!block || block.type !== 'extension')

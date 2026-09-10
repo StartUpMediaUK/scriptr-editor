@@ -276,7 +276,7 @@ function ImageNodeView({
   imageHost,
 }: NodeViewProps & { readonly imageHost?: ImageHost | undefined }) {
   const parsed = createDocumentCodec().parse({
-    version: 1,
+    version: 2,
     content: [JSON.parse(String(node.attrs.payload))],
   }).content[0];
   if (!parsed || parsed.type !== 'image')

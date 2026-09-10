@@ -2,7 +2,7 @@
 
 Reusable rich-text editor infrastructure for Scripture-aware writing applications.
 
-The package is under active development. It provides audited Canonical Document v1 contracts, a React rich-text editor, a semantically equivalent read-only renderer, host seams, migrations, extension definitions, and validation codecs.
+The package is under active development. It provides Canonical Document v2 contracts with deterministic v1 migration, a React rich-text editor, a semantically equivalent read-only renderer, host seams, migrations, extension definitions, and validation codecs.
 
 ## Boundary
 
@@ -30,12 +30,20 @@ The Vite development harness follows the design system in `docs/prototype/Script
 ## Foundation interfaces
 
 ```ts
-import { createDocumentCodec, DOCUMENT_VERSION } from 'scriptr-editor/document';
+import { defineScriptr } from 'scriptr-editor';
 
-const codec = createDocumentCodec();
-const document = codec.deserialize(storedJson);
-const portableJson = codec.serialize(document);
+export const scriptr = defineScriptr({
+  capabilities: {
+    scripture: remoteScriptureProvider,
+    media: applicationMediaHost,
+  },
+});
+
+const document = scriptr.documents.deserialize(storedJson);
+const portableJson = scriptr.documents.serialize(document);
 ```
+
+Keep credentials in server-only application code. `createScriptrServer` from `scriptr-editor/server` exposes framework-neutral provider handlers that an application can place behind its authenticated routes.
 
 See `docs/api.md`, `docs/canonical-document-v1.md`, and `docs/architecture.md` for the public API, persisted format, extension contract, host seams, and compatibility policy.
 

@@ -12,7 +12,7 @@ import { testStructure } from '../scripture/test-structure.js';
 import { ScriptrRenderer } from './renderer.js';
 
 const document: CanonicalDocument = {
-  version: 1,
+  version: 2,
   content: [
     {
       id: 'heading',
@@ -154,13 +154,13 @@ describe('ScriptrRenderer', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
     const extensionDocument: CanonicalDocument = {
-      version: 1,
+      version: 2,
       content: [
         {
           id: 'fixture',
           type: 'extension',
           name: 'fixture',
-          version: 1,
+          version: 2,
           data: { message: 'Portable' },
         },
       ],
@@ -171,7 +171,7 @@ describe('ScriptrRenderer', () => {
         extensions={[
           {
             name: 'fixture',
-            version: 1,
+            version: 2,
             parseData: (input) =>
               input === null ? null : { message: 'Portable' },
             renderReadonly: () => <p>Portable extension</p>,
@@ -187,7 +187,7 @@ describe('ScriptrRenderer', () => {
         extensions={[
           {
             name: 'fixture',
-            version: 1,
+            version: 2,
             parseData: () => null,
             renderReadonly: () => {
               throw new Error('Broken extension');

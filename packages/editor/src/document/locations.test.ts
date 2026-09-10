@@ -6,7 +6,7 @@ import { findDocumentLocations } from './locations.js';
 describe('findDocumentLocations', () => {
   it('returns stable block-relative text and Scripture locations', () => {
     const document: CanonicalDocument = {
-      version: 1,
+      version: 2,
       content: [
         {
           id: 'p',

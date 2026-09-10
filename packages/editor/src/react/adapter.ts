@@ -367,7 +367,7 @@ function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
       if (!payload) return undefined;
       const parsed: unknown = JSON.parse(payload);
       const document = createDocumentCodec().parse({
-        version: 1,
+        version: 2,
         content: [parsed],
       });
       return document.content[0];
@@ -451,7 +451,7 @@ export function editorJsonToCanonical(
   );
   return createDocumentCodec().parse(
     reconciledReferences
-      ? { version: 1, content, references: reconciledReferences }
-      : { version: 1, content },
+      ? { version: 2, content, references: reconciledReferences }
+      : { version: 2, content },
   );
 }

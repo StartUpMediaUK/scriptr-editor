@@ -9,6 +9,17 @@ export type MigrationResult = {
   readonly applied: readonly string[];
 };
 
+export const documentV1ToV2Migration: DocumentMigration = {
+  from: 1,
+  to: 2,
+  migrate(input) {
+    if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+      throw new Error('Invalid Canonical Document v1 input.');
+    }
+    return { ...input, version: 2 };
+  },
+};
+
 function readVersion(input: unknown): number {
   if (
     typeof input !== 'object' ||

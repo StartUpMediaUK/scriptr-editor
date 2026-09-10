@@ -77,7 +77,7 @@ export type ScriptrEditorHandle = {
 };
 
 const emptyDocument: CanonicalDocument = {
-  version: 1,
+  version: 2,
   content: [{ id: 'initial-paragraph', type: 'paragraph', content: [] }],
 };
 const noExtensions: readonly ReactExtensionRenderer[] = [];
@@ -360,7 +360,7 @@ export const ScriptrEditor = forwardRef<
             keywords: item.keywords ?? '',
             run: (currentEditor) => {
               const content = canonicalToEditorJson({
-                version: 1,
+                version: 2,
                 content: [item.createBlock()],
               }).content?.[0];
               if (content)
@@ -478,22 +478,22 @@ export const ScriptrEditor = forwardRef<
         if (editor) moveCurrentBlock(editor, direction);
       },
       insertScripture: (block) => {
-        const content = canonicalToEditorJson({ version: 1, content: [block] })
+        const content = canonicalToEditorJson({ version: 2, content: [block] })
           .content?.[0];
         if (content) void editor?.chain().focus().insertContent(content).run();
       },
       insertTranslationComparison: (block) => {
-        const content = canonicalToEditorJson({ version: 1, content: [block] })
+        const content = canonicalToEditorJson({ version: 2, content: [block] })
           .content?.[0];
         if (content) void editor?.chain().focus().insertContent(content).run();
       },
       insertImage: (block) => {
-        const content = canonicalToEditorJson({ version: 1, content: [block] })
+        const content = canonicalToEditorJson({ version: 2, content: [block] })
           .content?.[0];
         if (content) void editor?.chain().focus().insertContent(content).run();
       },
       insertExtension: (block) => {
-        const content = canonicalToEditorJson({ version: 1, content: [block] })
+        const content = canonicalToEditorJson({ version: 2, content: [block] })
           .content?.[0];
         if (content) void editor?.chain().focus().insertContent(content).run();
       },

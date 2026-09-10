@@ -1,4 +1,4 @@
-export const DOCUMENT_VERSION = 1 as const;
+export const DOCUMENT_VERSION = 2 as const;
 
 export type DocumentVersion = typeof DOCUMENT_VERSION;
 
@@ -131,11 +131,60 @@ export type ImageBlock = BlockBase & {
   readonly height?: number | undefined;
 };
 
+export type MediaSource = {
+  readonly assetId?: string | undefined;
+  readonly src?: string | undefined;
+};
+
+export type VideoBlock = BlockBase &
+  MediaSource & {
+    readonly type: 'video';
+    readonly title?: string | undefined;
+    readonly posterAssetId?: string | undefined;
+    readonly caption?: readonly InlineContent[] | undefined;
+    readonly width?: number | undefined;
+    readonly height?: number | undefined;
+  };
+
+export type AudioBlock = BlockBase &
+  MediaSource & {
+    readonly type: 'audio';
+    readonly title: string;
+    readonly transcript?: readonly InlineContent[] | undefined;
+  };
+
+export type WebBookmarkBlock = BlockBase & {
+  readonly type: 'webBookmark';
+  readonly url: string;
+  readonly title: string;
+  readonly description?: string | undefined;
+  readonly siteName?: string | undefined;
+  readonly imageAssetId?: string | undefined;
+};
+
 export type ExtensionBlock = BlockBase & {
   readonly type: 'extension';
   readonly name: string;
   readonly version: number;
   readonly data: JsonValue;
+};
+
+export type Column = {
+  readonly id: string;
+  readonly content: readonly Block[];
+};
+
+export type ColumnLayoutBlock = BlockBase & {
+  readonly type: 'columns';
+  readonly columns: readonly Column[];
+};
+
+export type ToggleBlock = BlockBase & {
+  readonly type: 'toggle';
+  readonly summary: readonly InlineContent[];
+  readonly headingLevel?: 1 | 2 | 3 | undefined;
+  readonly defaultOpen?: boolean | undefined;
+  readonly content: readonly Block[];
 };
 
 export type Block =
@@ -149,6 +198,11 @@ export type Block =
   | ScriptureBlock
   | TranslationComparisonBlock
   | ImageBlock
+  | VideoBlock
+  | AudioBlock
+  | WebBookmarkBlock
+  | ColumnLayoutBlock
+  | ToggleBlock
   | ExtensionBlock;
 
 export type ReferenceContentBlock = {

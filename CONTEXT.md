@@ -43,3 +43,23 @@ _Avoid_: Scriptr app, client
 **Extension Block**:
 A namespaced, versioned Block whose JSON-compatible data and rendering behaviour are supplied by an extension definition.
 _Avoid_: Custom blob, plugin state
+
+**Column Layout**:
+A Block that arranges two to four groups of ordinary authored Blocks side by side when space permits and in reading order when stacked.
+_Avoid_: Grid, application layout
+
+**Toggle**:
+A collapsible Block with an authored summary and nested authored Blocks. A Toggle Heading gives the summary heading semantics.
+_Avoid_: Accordion, disclosure widget
+
+**Media Block**:
+An image, audio, or video Block that stores portable authored metadata and either stable host asset identity or an allowed external source.
+_Avoid_: Upload, attachment record
+
+**Web Bookmark**:
+A Block containing a web URL and a sanitized metadata snapshot so authored output remains useful when live metadata cannot be resolved.
+_Avoid_: Embed, browser preview
+
+**Scriptr Configuration**:
+The reusable editor capabilities and feature choices assembled once by a Host. It contains no credentials or application authentication state.
+_Avoid_: Environment, global singleton
