@@ -2,8 +2,15 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRef, StrictMode } from 'react';
 
 import type { CanonicalDocument } from '../document/types.js';
@@ -164,6 +171,34 @@ describe('ScriptrEditor', () => {
       render(
         <ScriptrEditor extensions={[extension, extension]} value={document} />,
       ),
-    ).toThrow('Duplicate extension slash item');
+    ).toThrow('Duplicate command id');
+  });
+
+  it('renders categorized commands with icons and written notation', async () => {
+    const onCommand = vi.fn();
+    render(<ScriptrEditor onCommand={onCommand} value={document} />);
+    const editor = screen.getByLabelText('Document editor');
+    fireEvent.input(editor, { target: { textContent: '/' } });
+
+    await waitFor(() => expect(screen.getByRole('menu')).toBeInTheDocument());
+    expect(screen.getByText('Basic')).toBeInTheDocument();
+    expect(screen.getByText('Annotation')).toBeInTheDocument();
+    expect(screen.getByText('Layout')).toBeInTheDocument();
+    expect(screen.getByText('#')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('menuitem')[0]?.querySelector('svg'),
+    ).not.toBeNull();
+    expect(screen.queryByText('Large heading')).not.toBeInTheDocument();
+
+    fireEvent.keyDown(editor, { key: 'ArrowDown' });
+    expect(screen.getByRole('menuitem', { name: /Heading 1/ })).toHaveAttribute(
+      'data-selected',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('menuitem', { name: /Reference/ }));
+    expect(onCommand).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'reference', category: 'annotation' }),
+    );
   });
 });

@@ -13,6 +13,10 @@ import {
   useState,
 } from 'react';
 
+import { createCommandCatalogue } from '../commands/catalogue.js';
+import type { CommandIcon, ScriptrCommand } from '../commands/catalogue.js';
+import { defineScriptr } from '../config.js';
+import type { ScriptrConfiguration } from '../config.js';
 import { createDocumentCodec } from '../document/codec.js';
 import type { CanonicalLocation } from '../document/locations.js';
 import type {
@@ -50,6 +54,8 @@ export type ScriptrEditorProps = {
   readonly scriptureProvider?: ScriptureProvider | undefined;
   readonly imageHost?: ImageHost | undefined;
   readonly extensions?: readonly ReactExtensionRenderer[] | undefined;
+  readonly configuration?: ScriptrConfiguration | undefined;
+  readonly onCommand?: ((command: ScriptrCommand) => void) | undefined;
 };
 
 export type ScriptrEditorHandle = {
@@ -82,82 +88,63 @@ const emptyDocument: CanonicalDocument = {
 };
 const noExtensions: readonly ReactExtensionRenderer[] = [];
 
-type SlashItem = {
-  readonly label: string;
-  readonly hint: string;
-  readonly keywords: string;
+type SlashItem = ScriptrCommand & {
   readonly run: (editor: Editor) => void;
 };
 
-const coreSlashItems: readonly SlashItem[] = [
-  {
-    label: 'Text',
-    hint: 'Plain paragraph',
-    keywords: 'paragraph text',
-    run: (editor) => void editor.chain().focus().setParagraph().run(),
-  },
-  {
-    label: 'Heading 1',
-    hint: 'Large heading',
-    keywords: 'h1 title',
-    run: (editor) =>
-      void editor.chain().focus().toggleHeading({ level: 1 }).run(),
-  },
-  {
-    label: 'Heading 2',
-    hint: 'Section heading',
-    keywords: 'h2 subtitle',
-    run: (editor) =>
-      void editor.chain().focus().toggleHeading({ level: 2 }).run(),
-  },
-  {
-    label: 'Bulleted list',
-    hint: 'Unordered list',
-    keywords: 'bullet list',
-    run: (editor) => void editor.chain().focus().toggleBulletList().run(),
-  },
-  {
-    label: 'Numbered list',
-    hint: 'Ordered list',
-    keywords: 'number list',
-    run: (editor) => void editor.chain().focus().toggleOrderedList().run(),
-  },
-  {
-    label: 'Checklist',
-    hint: 'Items to check off',
-    keywords: 'task todo check',
-    run: (editor) => void editor.chain().focus().toggleTaskList().run(),
-  },
-  {
-    label: 'Quote',
-    hint: 'Block quotation',
-    keywords: 'blockquote quote',
-    run: (editor) => void editor.chain().focus().toggleBlockquote().run(),
-  },
-  {
-    label: 'Code',
-    hint: 'Code block',
-    keywords: 'code pre',
-    run: (editor) => void editor.chain().focus().toggleCodeBlock().run(),
-  },
-  {
-    label: 'Callout',
-    hint: 'Quietly emphasised note',
-    keywords: 'note aside callout',
-    run: (editor) =>
-      void editor
-        .chain()
-        .focus()
+const editorCommandIds = new Set([
+  'text',
+  'heading-1',
+  'heading-2',
+  'heading-3',
+  'bullet-list',
+  'ordered-list',
+  'checklist',
+  'quote',
+  'code',
+  'callout',
+  'divider',
+]);
+
+const runEditorCommand = (id: string, editor: Editor): void => {
+  const chain = editor.chain().focus();
+  switch (id) {
+    case 'text':
+      void chain.setParagraph().run();
+      return;
+    case 'heading-1':
+      void chain.toggleHeading({ level: 1 }).run();
+      return;
+    case 'heading-2':
+      void chain.toggleHeading({ level: 2 }).run();
+      return;
+    case 'heading-3':
+      void chain.toggleHeading({ level: 3 }).run();
+      return;
+    case 'bullet-list':
+      void chain.toggleBulletList().run();
+      return;
+    case 'ordered-list':
+      void chain.toggleOrderedList().run();
+      return;
+    case 'checklist':
+      void chain.toggleTaskList().run();
+      return;
+    case 'quote':
+      void chain.toggleBlockquote().run();
+      return;
+    case 'code':
+      void chain.toggleCodeBlock().run();
+      return;
+    case 'callout':
+      void chain
         .insertContent({ type: 'callout', attrs: { tone: 'note' } })
-        .run(),
-  },
-  {
-    label: 'Divider',
-    hint: 'Section break',
-    keywords: 'rule divider line',
-    run: (editor) => void editor.chain().focus().setHorizontalRule().run(),
-  },
-];
+        .run();
+      return;
+    case 'divider':
+      void chain.setHorizontalRule().run();
+  }
+};
 
 function updateSlashQuery(editor: Editor): string | undefined {
   const { $from } = editor.state.selection;
@@ -308,6 +295,47 @@ function ToolbarButton({
   );
 }
 
+function CommandIconView({ icon }: { readonly icon: CommandIcon }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="scriptr-editor__command-icon"
+      data-icon={icon}
+      viewBox="0 0 20 20"
+    >
+      <rect x="3" y="3" width="14" height="14" rx="2" />
+      {icon === 'columns' ? <path d="M10 3v14" /> : null}
+      {icon === 'toggle' ? <path d="m8 6 5 4-5 4Z" /> : null}
+      {icon === 'image' || icon === 'video' ? (
+        <path d="m5 14 3-4 2 2 2-3 3 5M7 7h.01" />
+      ) : null}
+      {icon === 'audio' ? (
+        <path d="M8 13V6l6-1v7M8 13c0 2-4 2-4 0s4-2 4 0Zm6-1c0 2-4 2-4 0s4-2 4 0Z" />
+      ) : null}
+      {icon === 'link' || icon === 'bookmark' ? (
+        <path d="M8 12 12 8M7 6H5a3 3 0 0 0 0 6h2m6-6h2a3 3 0 0 1 0 6h-2" />
+      ) : null}
+      {icon === 'scripture' || icon === 'compare' ? (
+        <path d="M6 5h8M6 8h8M6 11h5" />
+      ) : null}
+      {icon === 'reference' ? <path d="M7 6h6M7 10h6M7 14h4" /> : null}
+      {[
+        'text',
+        'heading',
+        'list',
+        'checklist',
+        'quote',
+        'code',
+        'callout',
+        'divider',
+        'extension',
+      ].includes(icon) ? (
+        <path d="M6 7h8M6 10h8M6 13h6" />
+      ) : null}
+    </svg>
+  );
+}
+
 export const ScriptrEditor = forwardRef<
   ScriptrEditorHandle,
   ScriptrEditorProps
@@ -324,6 +352,8 @@ export const ScriptrEditor = forwardRef<
     scriptureProvider,
     imageHost,
     extensions: extensionRenderers = noExtensions,
+    configuration,
+    onCommand,
   },
   forwardedRef,
 ) {
@@ -333,44 +363,80 @@ export const ScriptrEditor = forwardRef<
   const currentDocument = value ?? initialDocument;
   const documentRef = useRef(currentDocument);
   documentRef.current = currentDocument;
+  const resolvedScriptureProvider =
+    scriptureProvider ?? configuration?.capabilities.scripture;
+  const resolvedImageHost = imageHost ?? configuration?.capabilities.images;
   const codec = useMemo(() => createDocumentCodec(), []);
   const editorExtensions = useMemo(
     () =>
       createEditorExtensions(
         placeholder,
-        scriptureProvider,
-        imageHost,
+        resolvedScriptureProvider,
+        resolvedImageHost,
         extensionRenderers,
       ),
-    [placeholder, scriptureProvider, imageHost, extensionRenderers],
+    [
+      placeholder,
+      resolvedScriptureProvider,
+      resolvedImageHost,
+      extensionRenderers,
+    ],
   );
-  const availableSlashItems = useMemo(() => {
-    const ids = new Set<string>();
-    return [
-      ...coreSlashItems,
-      ...extensionRenderers.flatMap((extension) =>
-        (extension.slashItems ?? []).map((item): SlashItem => {
-          const id = `${extension.name}:${item.id}`;
-          if (ids.has(id))
-            throw new Error(`Duplicate extension slash item: ${id}`);
-          ids.add(id);
-          return {
-            label: item.label,
-            hint: item.hint,
-            keywords: item.keywords ?? '',
-            run: (currentEditor) => {
+  const commandCatalogue = useMemo(() => {
+    const features =
+      configuration?.features ??
+      defineScriptr({
+        capabilities: {
+          scripture: resolvedScriptureProvider,
+          images: resolvedImageHost,
+        },
+      }).features;
+    const extensionCommands = extensionRenderers.flatMap((extension) =>
+      (extension.slashItems ?? []).map(
+        (item): ScriptrCommand => ({
+          id: `${extension.name}:${item.id}`,
+          category: 'extension',
+          label: item.label,
+          notation: item.notation ?? 'EXT',
+          icon: 'extension',
+          keywords: item.keywords?.split(/\s+/).filter(Boolean) ?? [],
+        }),
+      ),
+    );
+    return createCommandCatalogue({ features, extensions: extensionCommands });
+  }, [
+    configuration,
+    extensionRenderers,
+    resolvedImageHost,
+    resolvedScriptureProvider,
+  ]);
+  const availableSlashItems = useMemo(
+    () =>
+      commandCatalogue.all.map(
+        (command): SlashItem => ({
+          ...command,
+          run: (currentEditor) => {
+            const [extensionName, extensionItemId] = command.id.split(':');
+            const extensionItem = extensionRenderers
+              .find((extension) => extension.name === extensionName)
+              ?.slashItems?.find((item) => item.id === extensionItemId);
+            if (extensionItem) {
               const content = canonicalToEditorJson({
                 version: 2,
-                content: [item.createBlock()],
+                content: [extensionItem.createBlock()],
               }).content?.[0];
               if (content)
                 void currentEditor.chain().focus().insertContent(content).run();
-            },
-          };
+              return;
+            }
+            if (editorCommandIds.has(command.id))
+              runEditorCommand(command.id, currentEditor);
+            else onCommand?.(command);
+          },
         }),
       ),
-    ];
-  }, [extensionRenderers]);
+    [commandCatalogue, extensionRenderers, onCommand],
+  );
   const [slashQuery, setSlashQuery] = useState<string>();
   const [slashIndex, setSlashIndex] = useState(0);
   const tiptapEditorRef = useRef<Editor | null>(null);
@@ -400,10 +466,11 @@ export const ScriptrEditor = forwardRef<
         const currentEditor = tiptapEditorRef.current;
         const currentQuery = slashQueryRef.current;
         if (currentEditor && currentQuery !== undefined) {
+          const matchingIds = new Set(
+            commandCatalogue.search(currentQuery).map((item) => item.id),
+          );
           const matchingItems = availableSlashItems.filter((item) =>
-            `${item.label} ${item.keywords}`
-              .toLowerCase()
-              .includes(currentQuery),
+            matchingIds.has(item.id),
           );
           if (event.key === 'Escape') {
             event.preventDefault();
@@ -595,9 +662,18 @@ export const ScriptrEditor = forwardRef<
       />
     );
 
-  const filteredSlashItems = availableSlashItems.filter((item) =>
-    `${item.label} ${item.keywords}`.toLowerCase().includes(slashQuery ?? ''),
+  const filteredIds = new Set(
+    commandCatalogue.search(slashQuery).map((item) => item.id),
   );
+  const filteredSlashItems = availableSlashItems.filter((item) =>
+    filteredIds.has(item.id),
+  );
+  const slashGroups = commandCatalogue.groups(slashQuery).map((group) => ({
+    ...group,
+    commands: filteredSlashItems.filter(
+      (item) => item.category === group.category,
+    ),
+  }));
 
   return (
     <div
@@ -714,25 +790,38 @@ export const ScriptrEditor = forwardRef<
           role="menu"
           aria-label="Insert block"
         >
-          <p className="scriptr-editor__menu-label">Basic blocks</p>
           {filteredSlashItems.length ? (
-            filteredSlashItems.map((item, index) => (
-              <button
-                className="scriptr-editor__slash-item"
-                data-selected={index === slashIndex || undefined}
-                key={item.label}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  removeSlashQuery(editor);
-                  item.run(editor);
-                  setSlashState(undefined);
-                }}
-                role="menuitem"
-                type="button"
+            slashGroups.map((group) => (
+              <div
+                className="scriptr-editor__command-group"
+                key={group.category}
               >
-                <span>{item.label}</span>
-                <small>{item.hint}</small>
-              </button>
+                <p className="scriptr-editor__menu-label">{group.label}</p>
+                {group.commands.map((item) => {
+                  const index = filteredSlashItems.findIndex(
+                    (candidate) => candidate.id === item.id,
+                  );
+                  return (
+                    <button
+                      className="scriptr-editor__slash-item"
+                      data-selected={index === slashIndex || undefined}
+                      key={item.id}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        removeSlashQuery(editor);
+                        item.run(editor);
+                        setSlashState(undefined);
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <CommandIconView icon={item.icon} />
+                      <span>{item.label}</span>
+                      <small>{item.notation}</small>
+                    </button>
+                  );
+                })}
+              </div>
             ))
           ) : (
             <p className="scriptr-editor__empty-menu">No matching blocks</p>

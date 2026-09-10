@@ -49,6 +49,8 @@ try {
   const requiredFiles = [
     'package/LICENSE',
     'package/README.md',
+    'package/dist/commands/index.d.ts',
+    'package/dist/commands/index.js',
     'package/dist/document/index.d.ts',
     'package/dist/document/index.js',
     'package/dist/extensions/index.d.ts',
@@ -99,14 +101,14 @@ try {
     [
       '--input-type=module',
       '--eval',
-      "import { PACKAGE_NAME, defineScriptr } from 'scriptr-editor'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { ScriptrRenderer } from 'scriptr-editor/react'; import { parseReferenceQuery } from 'scriptr-editor/scripture'; import { createScriptrServer } from 'scriptr-editor/server'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineScriptr}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof parseReferenceQuery}:${typeof createScriptrServer}`);",
+      "import { PACKAGE_NAME, defineScriptr } from 'scriptr-editor'; import { createCommandCatalogue } from 'scriptr-editor/commands'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { ScriptrRenderer } from 'scriptr-editor/react'; import { parseReferenceQuery } from 'scriptr-editor/scripture'; import { createScriptrServer } from 'scriptr-editor/server'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineScriptr}:${typeof createCommandCatalogue}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof parseReferenceQuery}:${typeof createScriptrServer}`);",
     ],
     { cwd: fixtureDirectory, encoding: 'utf8' },
   );
 
   if (
     importedName !==
-    'scriptr-editor:2:function:function:function:function:function'
+    'scriptr-editor:2:function:function:function:function:function:function'
   ) {
     throw new Error(`Unexpected package import result: ${importedName}`);
   }

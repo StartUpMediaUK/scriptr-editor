@@ -55,6 +55,7 @@ export type ReactExtensionSlashItem = {
   readonly id: string;
   readonly label: string;
   readonly hint: string;
+  readonly notation?: string | undefined;
   readonly keywords?: string | undefined;
   readonly createBlock: () => ExtensionBlock;
 };

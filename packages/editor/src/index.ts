@@ -12,6 +12,8 @@ export type {
   ScriptrFeatures,
 } from './config.js';
 
+export * from './commands/index.js';
+
 export * from './document/index.js';
 export * from './extensions/index.js';
 export type * from './host/index.js';

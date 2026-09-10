@@ -717,7 +717,7 @@
 .scriptr-editor__slash-item {
   display: grid;
   width: 100%;
-  grid-template-columns: 112px 1fr;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   gap: 9.2px;
   align-items: center;
   min-height: 38px;
@@ -732,6 +732,23 @@
   cursor: pointer;
 }
 
+.scriptr-editor__command-group + .scriptr-editor__command-group {
+  margin-top: 4.6px;
+  padding-top: 4.6px;
+  border-top: 1px solid var(--scriptr-color-divider);
+}
+
+.scriptr-editor__command-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.25;
+  opacity: 0.62;
+}
+
 .scriptr-editor__slash-item:hover,
 .scriptr-editor__slash-item[data-selected='true'] {
   background: color-mix(in srgb, var(--scriptr-color-text) 6%, transparent);
@@ -739,7 +756,9 @@
 
 .scriptr-editor__slash-item small {
   color: var(--scriptr-color-muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 11px;
+  white-space: nowrap;
 }
 
 .scriptr-editor__empty-menu {
@@ -747,6 +766,12 @@
   color: var(--scriptr-color-muted);
   font-size: 12px;
   text-align: center;
+}
+
+@media (pointer: coarse), (max-width: 640px) {
+  .scriptr-editor__slash-item {
+    min-height: 44px;
+  }
 }
 
 .scriptr-editor__content p.is-editor-empty:first-child::before {

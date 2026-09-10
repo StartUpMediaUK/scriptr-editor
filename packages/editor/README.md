@@ -57,11 +57,16 @@ Import the package stylesheet once in the consuming application, then pass a can
 import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
 import 'scriptr-editor/styles.css';
 
-<ScriptrEditor value={document} onChange={setDocument} />;
+<ScriptrEditor
+  configuration={scriptr}
+  value={document}
+  onChange={setDocument}
+  onCommand={openCommandWorkflow}
+/>;
 <ScriptrRenderer document={document} />;
 ```
 
-The editor includes contextual formatting, slash commands with keyboard navigation, Markdown shortcuts, block reordering, undo/redo, mobile interactions, and read-only mode. Its visual variables can be scoped through the documented `--scriptr-*` custom properties without replacing the package's layout hierarchy.
+The editor includes contextual formatting, categorized slash commands with icons, written notation and keyboard navigation, Markdown shortcuts, block reordering, undo/redo, mobile interactions, and read-only mode. Its visual variables can be scoped through the documented `--scriptr-*` custom properties without replacing the package's layout hierarchy.
 
 The stylesheet never fetches fonts or other remote assets. To match the prototype exactly, a host may self-host Cormorant Garamond and Lora; otherwise the declared Georgia/serif fallbacks preserve the hierarchy. Theme overrides should remain limited to the documented `--scriptr-color-*`, `--scriptr-font-*`, `--scriptr-editor-font-size`, and `--scriptr-editor-measure` tokens.
 

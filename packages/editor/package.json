@@ -23,6 +23,10 @@
       "types": "./dist/document/index.d.ts",
       "import": "./dist/document/index.js"
     },
+    "./commands": {
+      "types": "./dist/commands/index.d.ts",
+      "import": "./dist/commands/index.js"
+    },
     "./extensions": {
       "types": "./dist/extensions/index.d.ts",
       "import": "./dist/extensions/index.js"

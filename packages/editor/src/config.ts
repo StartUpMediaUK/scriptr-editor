@@ -1,4 +1,6 @@
 import type { ExtensionRegistration } from './extensions/types.js';
+import { createCommandCatalogue } from './commands/catalogue.js';
+import type { CommandCatalogue } from './commands/catalogue.js';
 import { createDocumentCodec } from './document/codec.js';
 import type { DocumentCodec } from './document/codec.js';
 import type { BookmarkProvider } from './host/bookmarks.js';
@@ -39,6 +41,7 @@ export type ScriptrConfiguration = {
   readonly features: ScriptrFeatures;
   readonly extensions: readonly ExtensionRegistration[];
   readonly documents: DocumentCodec;
+  readonly commands: CommandCatalogue;
 };
 
 const defaults: ScriptrFeatures = {
@@ -79,10 +82,14 @@ export function defineScriptr(
   const extensions = Object.freeze([...(input.extensions ?? [])]);
   const capabilities = Object.freeze({ ...input.capabilities });
   const requestedFeatures = { ...defaults, ...input.features };
+  const features = Object.freeze(
+    resolveFeatures(requestedFeatures, capabilities),
+  );
   return Object.freeze({
     capabilities,
-    features: Object.freeze(resolveFeatures(requestedFeatures, capabilities)),
+    features,
     extensions,
     documents: createDocumentCodec({ extensions }),
+    commands: createCommandCatalogue({ features }),
   });
 }
