@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import {
   mkdtempSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   rmSync,
@@ -9,12 +10,19 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const projectRoot = resolve(import.meta.dirname, '..');
+const projectRoot = resolve(import.meta.dirname);
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'scriptr-editor-pack-'));
+const pnpmCli = process.env.npm_execpath;
+
+if (!pnpmCli) {
+  throw new Error('pnpm did not provide its CLI path to the package check.');
+}
+
+const runPnpm = (arguments_, options) =>
+  execFileSync(process.execPath, [pnpmCli, ...arguments_], options);
 
 try {
-  const packageOutput = execFileSync(
-    'pnpm',
+  const packageOutput = runPnpm(
     ['pack', '--pack-destination', temporaryDirectory],
     {
       cwd: projectRoot,
@@ -36,7 +44,8 @@ try {
     encoding: 'utf8',
   })
     .trim()
-    .split('\n');
+    .split('\n')
+    .map((file) => file.trim());
   const requiredFiles = [
     'package/LICENSE',
     'package/README.md',
@@ -74,12 +83,12 @@ try {
   }
 
   const fixtureDirectory = join(temporaryDirectory, 'fixture');
-  execFileSync('mkdir', ['-p', fixtureDirectory]);
+  mkdirSync(fixtureDirectory);
   writeFileSync(
     join(fixtureDirectory, 'package.json'),
     JSON.stringify({ private: true, type: 'module' }),
   );
-  execFileSync('npm', ['install', '--ignore-scripts', tarballPath], {
+  runPnpm(['install', '--ignore-scripts', tarballPath], {
     cwd: fixtureDirectory,
     stdio: 'inherit',
   });
@@ -114,11 +123,10 @@ try {
       files: ['consumer.ts'],
     }),
   );
-  execFileSync(
-    join(projectRoot, 'node_modules/.bin/tsc'),
-    ['-p', join(fixtureDirectory, 'tsconfig.json')],
-    { cwd: fixtureDirectory, stdio: 'inherit' },
-  );
+  runPnpm(['exec', 'tsc', '-p', join(fixtureDirectory, 'tsconfig.json')], {
+    cwd: projectRoot,
+    stdio: 'inherit',
+  });
 
   const installedDeclaration = readFileSync(
     join(fixtureDirectory, 'node_modules/scriptr-editor/dist/index.d.ts'),

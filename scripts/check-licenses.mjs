@@ -1,7 +1,9 @@
 import { execFileSync } from 'node:child_process';
 
 const allowedLicenses = new Set([
+  '0BSD',
   'Apache-2.0',
+  'Apache-2.0 AND LGPL-3.0-or-later',
   'BlueOak-1.0.0',
   'BSD-2-Clause',
   'BSD-3-Clause',
@@ -9,15 +11,24 @@ const allowedLicenses = new Set([
   'ISC',
   'MIT',
   'MIT-0',
+  'MPL-2.0',
   'Python-2.0',
 ]);
 
 // `spawndamnit` is MIT licensed but does not declare the license in its
 // published package metadata: https://github.com/cspotcode/spawndamnit
 const packageLicenseExceptions = new Map([['spawndamnit', 'MIT']]);
-const rawReport = execFileSync('pnpm', ['licenses', 'list', '--json'], {
-  encoding: 'utf8',
-});
+const pnpmCli = process.env.npm_execpath;
+
+if (!pnpmCli) {
+  throw new Error('pnpm did not provide its CLI path to the license check.');
+}
+
+const rawReport = execFileSync(
+  process.execPath,
+  [pnpmCli, 'licenses', 'list', '--json'],
+  { encoding: 'utf8' },
+);
 const report = JSON.parse(rawReport);
 const failures = [];
 

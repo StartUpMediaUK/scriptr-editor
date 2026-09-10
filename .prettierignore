@@ -1,5 +1,9 @@
 dist
 coverage
 node_modules
+apps/docs/.next
+apps/docs/.source
+apps/docs/next-env.d.ts
+.turbo
 docs/prototype/Scriptr.html
 pnpm-lock.yaml

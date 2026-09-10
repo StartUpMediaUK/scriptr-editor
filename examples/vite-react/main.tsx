@@ -1,18 +1,20 @@
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import type { CanonicalDocument } from '../src/document/types.ts';
-import { PACKAGE_NAME } from '../src/index.ts';
+import { PACKAGE_NAME } from 'scriptr-editor';
+import type { CanonicalDocument } from 'scriptr-editor/document';
 import {
   ScripturePicker,
   ScriptrEditor,
   ScriptrRenderer,
-} from '../src/react/index.ts';
-import { formatScriptureAddress } from '../src/scripture/address.ts';
-import { createFakeScriptureProvider } from '../src/scripture/fake-provider.ts';
-import type { ScriptureStructure } from '../src/scripture/types.ts';
+} from 'scriptr-editor/react';
+import {
+  createFakeScriptureProvider,
+  formatScriptureAddress,
+  type ScriptureStructure,
+} from 'scriptr-editor/scripture';
 import './styles.css';
-import '../src/react/styles.css';
+import 'scriptr-editor/styles.css';
 
 const initialDocument: CanonicalDocument = {
   version: 1,

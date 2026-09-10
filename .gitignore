@@ -2,6 +2,10 @@ node_modules/
 dist/
 coverage/
 .vite/
+.next/
+.source/
+.turbo/
+*.tsbuildinfo
 *.tgz
 .DS_Store
 .env

@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const dist = resolve(import.meta.dirname, '../dist');
+const dist = resolve(import.meta.dirname, 'dist');
 const files = readdirSync(dist, { recursive: true }).map(String);
 const bytes = (suffix) =>
   files

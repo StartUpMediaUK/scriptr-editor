@@ -1,4 +1,19 @@
+packages:
+  - 'apps/*'
+  - 'examples/*'
+  - 'packages/*'
+
+catalog:
+  react: ^18.3.1 || ^19.0.0
+  react-dom: ^18.3.1 || ^19.0.0
+
 allowBuilds:
   esbuild: true
 
 strictPeerDependencies: true
+
+minimumReleaseAgeExclude:
+  - '@types/react-dom@19.3.0'
+  - '@types/react@19.3.0'
+  - fumadocs-core@16.15.9
+  - fumadocs-ui@16.15.9

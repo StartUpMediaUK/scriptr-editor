@@ -1,126 +1,35 @@
 {
-  "name": "scriptr-editor",
-  "version": "0.1.0",
-  "description": "Reusable rich-text editor primitives for Scripture-aware writing experiences.",
+  "name": "scriptr-editor-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Workspace for the reusable Scriptr Editor package, documentation, and examples.",
   "license": "MIT",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "sideEffects": [
-    "./dist/styles.css"
-  ],
-  "files": [
-    "dist",
-    "LICENSE",
-    "README.md"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./document": {
-      "types": "./dist/document/index.d.ts",
-      "import": "./dist/document/index.js"
-    },
-    "./extensions": {
-      "types": "./dist/extensions/index.d.ts",
-      "import": "./dist/extensions/index.js"
-    },
-    "./host": {
-      "types": "./dist/host/index.d.ts",
-      "import": "./dist/host/index.js"
-    },
-    "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js"
-    },
-    "./scripture": {
-      "types": "./dist/scripture/index.d.ts",
-      "import": "./dist/scripture/index.js"
-    },
-    "./styles.css": "./dist/styles.css",
-    "./package.json": "./package.json"
-  },
+  "packageManager": "pnpm@11.19.0",
   "engines": {
     "node": ">=20.19.0"
   },
-  "packageManager": "pnpm@11.19.0",
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/StartUpMediaUK/scriptr-editor.git"
-  },
-  "bugs": {
-    "url": "https://github.com/StartUpMediaUK/scriptr-editor/issues"
-  },
-  "homepage": "https://github.com/StartUpMediaUK/scriptr-editor#readme",
-  "keywords": [
-    "editor",
-    "rich-text",
-    "scripture",
-    "bible",
-    "react"
-  ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/copy-styles.mjs",
+    "build": "turbo run build",
+    "budgets:check": "pnpm --filter scriptr-editor budgets:check",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm budgets:check && pnpm package:check && pnpm licenses:check",
-    "budgets:check": "node scripts/check-budgets.mjs",
-    "dev": "vite",
+    "dev": "pnpm --filter @scriptr/example-vite-react dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "licenses:check": "node scripts/check-licenses.mjs",
-    "lint": "eslint .",
-    "package:check": "pnpm build && publint && attw --pack --profile esm-only --exclude-entrypoints ./styles.css && node scripts/check-packed-package.mjs",
-    "prepack": "pnpm build",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
-  },
-  "peerDependencies": {
-    "react": "^18.3.1 || ^19.0.0",
-    "react-dom": "^18.3.1 || ^19.0.0"
-  },
-  "dependencies": {
-    "@tiptap/core": "3.30.4",
-    "@tiptap/extension-bubble-menu": "3.30.4",
-    "@tiptap/extension-drag-handle-react": "3.30.4",
-    "@tiptap/extension-floating-menu": "3.30.4",
-    "@tiptap/extension-link": "3.30.4",
-    "@tiptap/extension-placeholder": "3.30.4",
-    "@tiptap/extension-task-item": "3.30.4",
-    "@tiptap/extension-task-list": "3.30.4",
-    "@tiptap/extension-underline": "3.30.4",
-    "@tiptap/extension-unique-id": "3.30.4",
-    "@tiptap/pm": "3.30.4",
-    "@tiptap/react": "3.30.4",
-    "@tiptap/starter-kit": "3.30.4",
-    "zod": "4.1.5"
+    "lint": "pnpm --filter scriptr-editor build && eslint .",
+    "package:check": "pnpm --filter scriptr-editor package:check",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "0.18.5",
     "@changesets/cli": "2.29.7",
     "@eslint/js": "9.35.0",
-    "@testing-library/jest-dom": "6.8.0",
-    "@testing-library/react": "16.3.0",
     "@types/node": "22.18.1",
-    "@types/react": "19.1.12",
-    "@types/react-dom": "19.1.9",
-    "@vitejs/plugin-react": "5.0.2",
-    "@vitest/coverage-v8": "3.2.4",
     "eslint": "9.35.0",
     "globals": "16.3.0",
-    "jsdom": "26.1.0",
     "prettier": "3.6.2",
-    "publint": "0.3.12",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
+    "turbo": "2.10.12",
     "typescript": "5.9.2",
-    "typescript-eslint": "8.42.0",
-    "vite": "7.1.4",
-    "vitest": "3.2.4"
+    "typescript-eslint": "8.42.0"
   }
 }

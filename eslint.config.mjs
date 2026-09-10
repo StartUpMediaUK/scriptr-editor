@@ -3,7 +3,16 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['coverage/**', 'dist/**', 'docs/prototype/**'] },
+  {
+    ignores: [
+      '**/.next/**',
+      '**/.source/**',
+      '**/.turbo/**',
+      '**/coverage/**',
+      '**/dist/**',
+      'docs/prototype/**',
+    ],
+  },
   eslint.configs.recommended,
   {
     files: ['**/*.{js,mjs}'],
