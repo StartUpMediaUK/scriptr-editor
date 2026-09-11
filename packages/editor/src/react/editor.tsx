@@ -4,6 +4,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { EditorView } from '@tiptap/pm/view';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
+import { Link2 } from 'lucide-react';
 import {
   forwardRef,
   useEffect,
@@ -12,6 +13,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { ReactNode } from 'react';
 
 import { createCommandCatalogue } from '../commands/catalogue.js';
 import type { CommandIcon, ScriptrCommand } from '../commands/catalogue.js';
@@ -31,9 +33,18 @@ import type {
 } from '../document/types.js';
 import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
+import type { DocumentTargetProvider } from '../host/documents.js';
 import { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
+import { DocumentLinkPicker } from './document-link-picker.js';
 import { createEditorExtensions } from './editor-extensions.js';
+import { ReferenceEditor } from './reference-editor.js';
 import type { ReactExtensionRenderer } from './renderer.js';
+import { ScriptureCommandDialog } from './scripture-command-dialog.js';
+import {
+  ColorPicker,
+  ColorPickerHue,
+  ColorPickerSelection,
+} from '../components/kibo-ui/color-picker/index.js';
 
 export type EditorChange = {
   readonly origin: 'user';
@@ -53,6 +64,7 @@ export type ScriptrEditorProps = {
   readonly className?: string | undefined;
   readonly scriptureProvider?: ScriptureProvider | undefined;
   readonly imageHost?: ImageHost | undefined;
+  readonly documentTargetProvider?: DocumentTargetProvider | undefined;
   readonly extensions?: readonly ReactExtensionRenderer[] | undefined;
   readonly configuration?: ScriptrConfiguration | undefined;
   readonly onCommand?: ((command: ScriptrCommand) => void) | undefined;
@@ -87,6 +99,52 @@ const emptyDocument: CanonicalDocument = {
   content: [{ id: 'initial-paragraph', type: 'paragraph', content: [] }],
 };
 const noExtensions: readonly ReactExtensionRenderer[] = [];
+
+type CommandWorkflow =
+  | { readonly type: 'scripture' | 'comparison' | 'internal-link' }
+  | {
+      readonly type: 'link';
+      readonly label: string;
+      readonly url: string;
+      readonly range: { readonly from: number; readonly to: number };
+    }
+  | {
+      readonly type: 'reference';
+      readonly reference: Reference;
+      readonly range: { readonly from: number; readonly to: number };
+    };
+
+let generatedId = 0;
+const createAuthoredId = (prefix: string) => {
+  generatedId += 1;
+  return `${prefix}-${Date.now().toString(36)}-${generatedId.toString(36)}`;
+};
+
+const normalizeExternalUrl = (value: string) => {
+  const candidate = value.trim();
+  if (!candidate || /\s/.test(candidate)) return undefined;
+  const withProtocol = /^[a-z][a-z\d+.-]*:/i.test(candidate)
+    ? candidate
+    : `https://${candidate}`;
+  try {
+    const parsed = new URL(withProtocol);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:')
+      return parsed.hostname === 'localhost' || parsed.hostname.includes('.')
+        ? parsed.href
+        : undefined;
+    if (parsed.protocol === 'mailto:')
+      return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(parsed.pathname)
+        ? parsed.href
+        : undefined;
+    if (parsed.protocol === 'tel:')
+      return /^\+?[\d(). -]{5,}$/.test(parsed.pathname)
+        ? parsed.href
+        : undefined;
+    return undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 type SlashItem = ScriptrCommand & {
   readonly run: (editor: Editor) => void;
@@ -278,7 +336,7 @@ function ToolbarButton({
   readonly disabled?: boolean | undefined;
   readonly label: string;
   readonly onPress: () => void;
-  readonly children: string;
+  readonly children: ReactNode;
 }) {
   return (
     <button
@@ -351,6 +409,7 @@ export const ScriptrEditor = forwardRef<
     className,
     scriptureProvider,
     imageHost,
+    documentTargetProvider,
     extensions: extensionRenderers = noExtensions,
     configuration,
     onCommand,
@@ -366,6 +425,9 @@ export const ScriptrEditor = forwardRef<
   const resolvedScriptureProvider =
     scriptureProvider ?? configuration?.capabilities.scripture;
   const resolvedImageHost = imageHost ?? configuration?.capabilities.images;
+  const resolvedDocumentTargetProvider =
+    documentTargetProvider ?? configuration?.capabilities.documents;
+  const [commandWorkflow, setCommandWorkflow] = useState<CommandWorkflow>();
   const codec = useMemo(() => createDocumentCodec(), []);
   const editorExtensions = useMemo(
     () =>
@@ -389,6 +451,7 @@ export const ScriptrEditor = forwardRef<
         capabilities: {
           scripture: resolvedScriptureProvider,
           images: resolvedImageHost,
+          documents: resolvedDocumentTargetProvider,
         },
       }).features;
     const extensionCommands = extensionRenderers.flatMap((extension) =>
@@ -431,6 +494,30 @@ export const ScriptrEditor = forwardRef<
             }
             if (editorCommandIds.has(command.id))
               runEditorCommand(command.id, currentEditor);
+            else if (command.id === 'scripture' || command.id === 'comparison')
+              setCommandWorkflow({ type: command.id });
+            else if (command.id === 'reference')
+              setCommandWorkflow({
+                type: 'reference',
+                range: {
+                  from: currentEditor.state.selection.from,
+                  to: currentEditor.state.selection.to,
+                },
+                reference: {
+                  id: createAuthoredId('reference'),
+                  content: [{ type: 'paragraph', content: [] }],
+                },
+              });
+            else if (command.id === 'link') {
+              const { from, to } = currentEditor.state.selection;
+              setCommandWorkflow({
+                type: 'link',
+                label: currentEditor.state.doc.textBetween(from, to),
+                url: '',
+                range: { from, to },
+              });
+            } else if (command.id === 'internal-link')
+              setCommandWorkflow({ type: 'internal-link' });
             else onCommand?.(command);
           },
         }),
@@ -439,6 +526,10 @@ export const ScriptrEditor = forwardRef<
   );
   const [slashQuery, setSlashQuery] = useState<string>();
   const [slashIndex, setSlashIndex] = useState(0);
+  const [blockMenuOpen, setBlockMenuOpen] = useState(false);
+  const [customColourOpen, setCustomColourOpen] = useState(false);
+  const blockMenuRef = useRef<HTMLDivElement | null>(null);
+  const activeBlockPositionRef = useRef(-1);
   const tiptapEditorRef = useRef<Editor | null>(null);
   const slashQueryRef = useRef<string | undefined>(undefined);
   const slashIndexRef = useRef(0);
@@ -512,6 +603,22 @@ export const ScriptrEditor = forwardRef<
           moveCurrentBlockView(view, 1);
           return true;
         }
+        if (
+          currentEditor?.state.selection.empty &&
+          currentEditor.isActive('link') &&
+          (event.key === 'Enter' || /^[.,!?;:]$/.test(event.key))
+        )
+          currentEditor.commands.unsetLink();
+        if (
+          currentEditor?.state.selection.empty &&
+          currentEditor.isActive('link') &&
+          event.key === ' ' &&
+          currentEditor.state.doc.textBetween(
+            Math.max(0, currentEditor.state.selection.from - 1),
+            currentEditor.state.selection.from,
+          ) === ' '
+        )
+          currentEditor.commands.unsetLink();
         return false;
       },
     },
@@ -531,6 +638,80 @@ export const ScriptrEditor = forwardRef<
       setSlashState(updateSlashQuery(updatedEditor));
     },
   });
+
+  useEffect(() => {
+    if (!blockMenuOpen) return;
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        blockMenuRef.current?.contains(event.target)
+      )
+        return;
+      setBlockMenuOpen(false);
+    };
+    const closeOnScroll = () => setBlockMenuOpen(false);
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer, true);
+    window.addEventListener('scroll', closeOnScroll, true);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer, true);
+      window.removeEventListener('scroll', closeOnScroll, true);
+    };
+  }, [blockMenuOpen]);
+
+  useEffect(() => {
+    if (!editor || !editable) return;
+    const revealHandleFromGutter = (event: MouseEvent) => {
+      const content = editor.view.dom;
+      const bounds = content.getBoundingClientRect();
+      const gutterWidth = 48;
+      if (
+        event.clientX < bounds.left - gutterWidth ||
+        event.clientX >= bounds.left ||
+        event.clientY < bounds.top ||
+        event.clientY > bounds.bottom
+      )
+        return;
+
+      const blockAtPointer = document.elementFromPoint(
+        bounds.left + 1,
+        event.clientY,
+      );
+      if (!blockAtPointer || !content.contains(blockAtPointer)) return;
+      blockAtPointer.dispatchEvent(
+        new MouseEvent('mousemove', {
+          bubbles: true,
+          clientX: bounds.left + 1,
+          clientY: event.clientY,
+        }),
+      );
+    };
+
+    document.addEventListener('mousemove', revealHandleFromGutter, true);
+    return () =>
+      document.removeEventListener('mousemove', revealHandleFromGutter, true);
+  }, [editable, editor]);
+
+  useEffect(() => {
+    if (!editor || !editable) return;
+    const editLink = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest('a[href]');
+      if (!anchor || !editor.view.dom.contains(anchor)) return;
+      event.preventDefault();
+      const from = editor.view.posAtDOM(anchor, 0);
+      setCommandWorkflow({
+        type: 'link',
+        label: anchor.textContent ?? '',
+        url: anchor.getAttribute('href') ?? '',
+        range: { from, to: from + (anchor.textContent?.length ?? 0) },
+      });
+    };
+    editor.view.dom.addEventListener('click', editLink);
+    return () => editor.view.dom.removeEventListener('click', editLink);
+  }, [editable, editor]);
   tiptapEditorRef.current = editor;
 
   useImperativeHandle(
@@ -674,6 +855,10 @@ export const ScriptrEditor = forwardRef<
       (item) => item.category === group.category,
     ),
   }));
+  const normalizedLinkUrl =
+    commandWorkflow?.type === 'link'
+      ? normalizeExternalUrl(commandWorkflow.url)
+      : undefined;
 
   return (
     <div
@@ -718,6 +903,143 @@ export const ScriptrEditor = forwardRef<
           className="scriptr-editor__bubble"
           options={{ placement: 'top' }}
         >
+          <details className="scriptr-editor__bubble-menu">
+            <summary>Normal text</summary>
+            <div className="scriptr-editor__bubble-panel">
+              <button
+                onClick={() => void editor.chain().focus().setParagraph().run()}
+                type="button"
+              >
+                Normal text
+              </button>
+              <button
+                onClick={() =>
+                  void editor.chain().focus().toggleHeading({ level: 1 }).run()
+                }
+                type="button"
+              >
+                Heading 1
+              </button>
+              <button
+                onClick={() =>
+                  void editor.chain().focus().toggleHeading({ level: 2 }).run()
+                }
+                type="button"
+              >
+                Heading 2
+              </button>
+              <button
+                onClick={() =>
+                  void editor.chain().focus().toggleBlockquote().run()
+                }
+                type="button"
+              >
+                Quote
+              </button>
+            </div>
+          </details>
+          <details className="scriptr-editor__bubble-menu">
+            <summary aria-label="Text and highlight colour">A</summary>
+            <div className="scriptr-editor__colour-panel">
+              <p>Text colour</p>
+              <div className="scriptr-editor__swatches">
+                {[
+                  '#24211d',
+                  '#6f6a63',
+                  '#9b5e3c',
+                  '#b56b24',
+                  '#a98520',
+                  '#398363',
+                  '#3978b9',
+                  '#8056aa',
+                  '#b84e7a',
+                  '#b74d43',
+                ].map((colour) => (
+                  <button
+                    aria-label={`Set text colour ${colour}`}
+                    key={colour}
+                    onClick={() =>
+                      void editor
+                        .chain()
+                        .focus()
+                        .setMark('textColour', { colour })
+                        .run()
+                    }
+                    style={{ color: colour }}
+                    type="button"
+                  >
+                    A
+                  </button>
+                ))}
+              </div>
+              <p>Highlight colour</p>
+              <div className="scriptr-editor__swatches">
+                <button
+                  aria-label="Remove highlight colour"
+                  onClick={() =>
+                    void editor
+                      .chain()
+                      .focus()
+                      .unsetMark('highlightColour')
+                      .run()
+                  }
+                  type="button"
+                >
+                  ∅
+                </button>
+                {[
+                  '#f4eee3',
+                  '#eee9df',
+                  '#f3e3dc',
+                  '#f7e0cc',
+                  '#f7edc9',
+                  '#dcece5',
+                  '#d9eafb',
+                  '#e8def4',
+                  '#f2dce7',
+                  '#f4dcda',
+                ].map((colour) => (
+                  <button
+                    aria-label={`Set highlight colour ${colour}`}
+                    key={colour}
+                    onClick={() =>
+                      void editor
+                        .chain()
+                        .focus()
+                        .setMark('highlightColour', { colour })
+                        .run()
+                    }
+                    style={{ backgroundColor: colour }}
+                    type="button"
+                  />
+                ))}
+              </div>
+              <details
+                onToggle={(event) =>
+                  setCustomColourOpen(event.currentTarget.open)
+                }
+              >
+                <summary>Custom colour</summary>
+                {customColourOpen ? (
+                  <ColorPicker
+                    onChange={(value) => {
+                      if (Array.isArray(value))
+                        void editor
+                          .chain()
+                          .focus()
+                          .setMark('textColour', {
+                            colour: `rgba(${value.join(',')})`,
+                          })
+                          .run();
+                    }}
+                  >
+                    <ColorPickerSelection className="h-28" />
+                    <ColorPickerHue />
+                  </ColorPicker>
+                ) : null}
+              </details>
+            </div>
+          </details>
           <ToolbarButton
             label="Bold"
             active={editor.isActive('bold')}
@@ -757,28 +1079,225 @@ export const ScriptrEditor = forwardRef<
             label="Link"
             active={editor.isActive('link')}
             onPress={() => {
+              const { from, to } = editor.state.selection;
               if (editor.isActive('link')) {
-                editor.chain().focus().unsetLink().run();
+                setCommandWorkflow({
+                  type: 'link',
+                  label: editor.state.doc.textBetween(from, to),
+                  url: String(editor.getAttributes('link').href ?? ''),
+                  range: { from, to },
+                });
                 return;
               }
-              const href = window.prompt('Link URL');
-              if (href) editor.chain().focus().setLink({ href }).run();
+              setCommandWorkflow({
+                type: 'link',
+                label: editor.state.doc.textBetween(from, to),
+                url: '',
+                range: { from, to },
+              });
             }}
           >
-            ↗
+            <Link2
+              aria-hidden="true"
+              className="scriptr-editor__command-icon"
+              data-icon="inline-start"
+            />
           </ToolbarButton>
+        </BubbleMenu>
+      ) : null}
+
+      {editable ? (
+        <BubbleMenu
+          editor={editor}
+          className="scriptr-editor__reference-end"
+          options={{ placement: 'top' }}
+          shouldShow={({ state }) =>
+            state.selection.empty && editor.isActive('referenceAnchor')
+          }
+        >
+          <button
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() =>
+              void editor.chain().focus().unsetMark('referenceAnchor').run()
+            }
+            type="button"
+          >
+            End reference here
+          </button>
+        </BubbleMenu>
+      ) : null}
+
+      {editable ? (
+        <BubbleMenu
+          editor={editor}
+          className="scriptr-editor__reference-end"
+          options={{ placement: 'top' }}
+          shouldShow={({ state }) =>
+            state.selection.empty && editor.isActive('link')
+          }
+        >
+          <button
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => void editor.chain().focus().unsetLink().run()}
+            type="button"
+          >
+            End link here
+          </button>
         </BubbleMenu>
       ) : null}
 
       {editable ? (
         <DragHandle
           editor={editor}
-          nested
           className="scriptr-editor__drag-handle"
+          onNodeChange={({ pos }) => {
+            activeBlockPositionRef.current = pos;
+          }}
         >
-          <button aria-label="Drag block to reorder" type="button">
-            ⋮⋮
-          </button>
+          <div ref={blockMenuRef}>
+            <button
+              aria-expanded={blockMenuOpen}
+              aria-label="Drag block to reorder"
+              onClick={() => {
+                if (!blockMenuOpen && activeBlockPositionRef.current >= 0)
+                  editor.commands.setNodeSelection(
+                    activeBlockPositionRef.current,
+                  );
+                setBlockMenuOpen((open) => !open);
+              }}
+              type="button"
+            >
+              ⋮⋮
+            </button>
+            {blockMenuOpen ? (
+              <div className="scriptr-editor__block-menu" role="menu">
+                <p>Block</p>
+                <button
+                  onClick={() => {
+                    void editor.chain().focus().setParagraph().run();
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  Turn into text
+                </button>
+                <button
+                  onClick={() => {
+                    void editor
+                      .chain()
+                      .focus()
+                      .toggleHeading({ level: 1 })
+                      .run();
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  Turn into heading 1
+                </button>
+                <details>
+                  <summary>Colour</summary>
+                  <p>Text colour</p>
+                  <div className="scriptr-editor__swatches">
+                    <button
+                      aria-label="Remove block text colour"
+                      onClick={() =>
+                        void editor
+                          .chain()
+                          .focus()
+                          .unsetMark('textColour')
+                          .run()
+                      }
+                      type="button"
+                    >
+                      A
+                    </button>
+                    {[
+                      '#6f6a63',
+                      '#9b5e3c',
+                      '#b56b24',
+                      '#a98520',
+                      '#398363',
+                      '#3978b9',
+                      '#8056aa',
+                      '#b84e7a',
+                      '#b74d43',
+                    ].map((colour) => (
+                      <button
+                        aria-label={`Set block text colour ${colour}`}
+                        key={colour}
+                        onClick={() =>
+                          void editor
+                            .chain()
+                            .focus()
+                            .setMark('textColour', { colour })
+                            .run()
+                        }
+                        style={{ color: colour }}
+                        type="button"
+                      >
+                        A
+                      </button>
+                    ))}
+                  </div>
+                  <p>Highlight colour</p>
+                  <div className="scriptr-editor__swatches">
+                    <button
+                      aria-label="Remove block highlight colour"
+                      onClick={() =>
+                        void editor
+                          .chain()
+                          .focus()
+                          .unsetMark('highlightColour')
+                          .run()
+                      }
+                      type="button"
+                    >
+                      ⊘
+                    </button>
+                    {[
+                      '#ece9e4',
+                      '#f1e6df',
+                      '#f5e2cf',
+                      '#f4ebcc',
+                      '#dfece5',
+                      '#dceaf5',
+                      '#e8e0f2',
+                      '#f2dfe7',
+                      '#f3dfdc',
+                    ].map((colour) => (
+                      <button
+                        aria-label={`Set block highlight colour ${colour}`}
+                        key={colour}
+                        onClick={() =>
+                          void editor
+                            .chain()
+                            .focus()
+                            .setMark('highlightColour', { colour })
+                            .run()
+                        }
+                        style={{ backgroundColor: colour }}
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                </details>
+                <button
+                  onClick={() => {
+                    editor.commands.deleteNode(
+                      editor.state.selection.$from.parent.type.name,
+                    );
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
+            ) : null}
+          </div>
         </DragHandle>
       ) : null}
 
@@ -826,6 +1345,270 @@ export const ScriptrEditor = forwardRef<
           ) : (
             <p className="scriptr-editor__empty-menu">No matching blocks</p>
           )}
+        </div>
+      ) : null}
+
+      {commandWorkflow?.type === 'scripture' ||
+      commandWorkflow?.type === 'comparison' ? (
+        resolvedScriptureProvider ? (
+          <div className="scriptr-editor__workflow-backdrop">
+            <ScriptureCommandDialog
+              mode={commandWorkflow.type}
+              onCancel={() => setCommandWorkflow(undefined)}
+              onSelect={(address, translationIds) => {
+                const block =
+                  commandWorkflow.type === 'scripture'
+                    ? {
+                        id: createAuthoredId('scripture'),
+                        type: 'scripture' as const,
+                        address,
+                        translationId: translationIds[0] ?? '',
+                      }
+                    : {
+                        id: createAuthoredId('comparison'),
+                        type: 'translationComparison' as const,
+                        address,
+                        translationIds,
+                        layout: 'twoColumn' as const,
+                      };
+                const content = canonicalToEditorJson({
+                  version: 2,
+                  content: [block],
+                }).content?.[0];
+                if (content)
+                  void editor.chain().focus().insertContent(content).run();
+                setCommandWorkflow(undefined);
+              }}
+              provider={resolvedScriptureProvider}
+            />
+          </div>
+        ) : null
+      ) : null}
+
+      {commandWorkflow?.type === 'reference' ? (
+        <div className="scriptr-editor__workflow-backdrop">
+          <section
+            aria-label="Add Reference"
+            aria-modal="true"
+            className="scriptr-editor__workflow-dialog"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setCommandWorkflow(undefined);
+            }}
+            role="dialog"
+          >
+            <header className="scriptr-editor__workflow-header">
+              <h2>Add Reference</h2>
+              <button
+                aria-label="Close Reference editor"
+                onClick={() => setCommandWorkflow(undefined)}
+                type="button"
+              >
+                ×
+              </button>
+            </header>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const { reference, range } = commandWorkflow;
+                if (!reference.title?.trim()) return;
+                documentRef.current = {
+                  ...documentRef.current,
+                  references: {
+                    ...documentRef.current.references,
+                    [reference.id]: reference,
+                  },
+                };
+                const chain = editor
+                  .chain()
+                  .focus()
+                  .setTextSelection(range)
+                  .setMark('referenceAnchor', {
+                    referenceId: reference.id,
+                  });
+                void chain.run();
+                setCommandWorkflow(undefined);
+              }}
+            >
+              <label className="scriptr-editor__workflow-field">
+                <span className="sr-only">Reference name</span>
+                <input
+                  aria-label="Link label"
+                  autoFocus
+                  onChange={(event) =>
+                    setCommandWorkflow({
+                      ...commandWorkflow,
+                      reference: {
+                        ...commandWorkflow.reference,
+                        title: event.currentTarget.value,
+                      },
+                    })
+                  }
+                  placeholder="Source, article, or note title"
+                  value={commandWorkflow.reference.title ?? ''}
+                />
+              </label>
+              <label className="scriptr-editor__workflow-field">
+                <span className="sr-only">Description</span>
+                <ReferenceEditor
+                  onChange={(reference) =>
+                    setCommandWorkflow({ ...commandWorkflow, reference })
+                  }
+                  reference={commandWorkflow.reference}
+                />
+              </label>
+              <footer className="scriptr-editor__workflow-actions">
+                <button
+                  onClick={() => setCommandWorkflow(undefined)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={!commandWorkflow.reference.title?.trim()}
+                  type="submit"
+                >
+                  Add Reference
+                </button>
+              </footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
+      {commandWorkflow?.type === 'internal-link' &&
+      resolvedDocumentTargetProvider ? (
+        <div className="scriptr-editor__workflow-backdrop">
+          <div
+            aria-label="Link to document"
+            aria-modal="true"
+            className="scriptr-editor__workflow-dialog"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setCommandWorkflow(undefined);
+            }}
+            role="dialog"
+          >
+            <DocumentLinkPicker
+              onCancel={() => setCommandWorkflow(undefined)}
+              onSelect={(target) => {
+                if (!editor.state.selection.empty)
+                  void editor
+                    .chain()
+                    .focus()
+                    .setMark('internalDocumentLink', { targetId: target.id })
+                    .run();
+                setCommandWorkflow(undefined);
+              }}
+              provider={resolvedDocumentTargetProvider}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {commandWorkflow?.type === 'link' ? (
+        <div className="scriptr-editor__workflow-backdrop">
+          <section
+            aria-label="Add or edit link"
+            aria-modal="true"
+            className="scriptr-editor__workflow-dialog"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setCommandWorkflow(undefined);
+            }}
+            role="dialog"
+          >
+            <header className="scriptr-editor__workflow-header">
+              <h2>Link</h2>
+              <button
+                aria-label="Close link editor"
+                onClick={() => setCommandWorkflow(undefined)}
+                type="button"
+              >
+                ×
+              </button>
+            </header>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!normalizedLinkUrl) return;
+                const { from, to } = commandWorkflow.range;
+                const label = commandWorkflow.label.trim();
+                const chain = editor
+                  .chain()
+                  .focus()
+                  .setTextSelection({ from, to });
+                if (label) {
+                  chain.insertContent({
+                    type: 'text',
+                    text: label,
+                    marks: [
+                      {
+                        type: 'link',
+                        attrs: { href: normalizedLinkUrl },
+                      },
+                    ],
+                  });
+                } else if (from !== to) {
+                  chain.setLink({ href: normalizedLinkUrl });
+                } else {
+                  chain.setLink({ href: normalizedLinkUrl });
+                }
+                void chain.run();
+                setCommandWorkflow(undefined);
+              }}
+            >
+              <label className="scriptr-editor__workflow-field">
+                <span className="sr-only">Link label</span>
+                <input
+                  autoFocus
+                  onChange={(event) =>
+                    setCommandWorkflow({
+                      ...commandWorkflow,
+                      label: event.currentTarget.value,
+                    })
+                  }
+                  placeholder="Link label"
+                  value={commandWorkflow.label}
+                />
+              </label>
+              <label className="scriptr-editor__workflow-field">
+                <span className="sr-only">Link URL</span>
+                <input
+                  aria-label="Link URL"
+                  aria-invalid={
+                    commandWorkflow.url && !normalizedLinkUrl ? true : undefined
+                  }
+                  inputMode="url"
+                  onChange={(event) =>
+                    setCommandWorkflow({
+                      ...commandWorkflow,
+                      url: event.currentTarget.value,
+                    })
+                  }
+                  placeholder="example.com"
+                  value={commandWorkflow.url}
+                />
+              </label>
+              <footer className="scriptr-editor__workflow-actions">
+                <button
+                  onClick={() => {
+                    const { from, to } = commandWorkflow.range;
+                    void editor
+                      .chain()
+                      .focus()
+                      .setTextSelection({ from, to })
+                      .unsetLink()
+                      .run();
+                    setCommandWorkflow(undefined);
+                  }}
+                  type="button"
+                >
+                  Remove link
+                </button>
+                <button disabled={!normalizedLinkUrl} type="submit">
+                  Add link
+                </button>
+              </footer>
+            </form>
+          </section>
         </div>
       ) : null}
     </div>

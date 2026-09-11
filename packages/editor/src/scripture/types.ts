@@ -4,6 +4,10 @@ export type ScriptureBookStructure = {
   readonly id: string;
   readonly name: string;
   readonly aliases: readonly string[];
+  /** Enables meaningful grouping without coupling the editor to a provider. */
+  readonly testament?: 'old' | 'new' | undefined;
+  /** Provider/translation-specific display names keyed by translation id. */
+  readonly translationNames?: Readonly<Record<string, string>> | undefined;
   /** Verse count at each one-based chapter index. */
   readonly chapters: readonly number[];
 };

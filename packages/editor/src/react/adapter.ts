@@ -62,6 +62,10 @@ function markToEditor(mark: Mark): EditorMark {
         type: 'referenceAnchor',
         attrs: { referenceId: mark.referenceId },
       };
+    case 'textColour':
+      return { type: 'textColour', attrs: { colour: mark.colour } };
+    case 'highlightColour':
+      return { type: 'highlightColour', attrs: { colour: mark.colour } };
     default:
       return { type: mark.type };
   }
@@ -240,6 +244,13 @@ function editorMarkToCanonical(mark: EditorMark): Mark | undefined {
       const referenceId = mark.attrs?.referenceId;
       return typeof referenceId === 'string'
         ? { type: 'reference', referenceId }
+        : undefined;
+    }
+    case 'textColour':
+    case 'highlightColour': {
+      const colour = mark.attrs?.colour;
+      return typeof colour === 'string'
+        ? { type: mark.type, colour }
         : undefined;
     }
     default:

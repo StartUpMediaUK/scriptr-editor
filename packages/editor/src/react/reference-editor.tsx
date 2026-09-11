@@ -1,8 +1,17 @@
-import type { JSONContent } from '@tiptap/core';
+import type { Editor, JSONContent } from '@tiptap/core';
 import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
+import {
+  Bold,
+  Italic,
+  Link as LinkIcon,
+  Underline as UnderlineIcon,
+} from 'lucide-react';
 import StarterKit from '@tiptap/starter-kit';
+import { useState } from 'react';
 
 import type {
   Mark,
@@ -62,7 +71,7 @@ function toEditorContent(reference: Reference): JSONContent {
   };
 }
 
-function fromEditorContent(id: string, json: JSONContent): Reference {
+function fromEditorContent(reference: Reference, json: JSONContent): Reference {
   const convertParagraph = (
     node: JSONContent,
     type: ReferenceContentBlock['type'],
@@ -114,7 +123,8 @@ function fromEditorContent(id: string, json: JSONContent): Reference {
     });
   const content = convertNodes(json.content ?? []);
   return {
-    id,
+    id: reference.id,
+    ...(reference.title ? { title: reference.title } : {}),
     content: content.length ? content : [{ type: 'paragraph', content: [] }],
   };
 }
@@ -124,6 +134,16 @@ export function ReferenceEditor({
   onChange,
   className,
 }: ReferenceEditorProps) {
+  const [slashQuery, setSlashQuery] = useState<string>();
+  const [linkEditorOpen, setLinkEditorOpen] = useState(false);
+  const [linkHref, setLinkHref] = useState('');
+  const updateSlashQuery = (currentEditor: Editor) => {
+    const { $from } = currentEditor.state.selection;
+    const match = /(?:^|\s)\/([^\s/]*)$/.exec(
+      $from.parent.textBetween(0, $from.parentOffset),
+    );
+    setSlashQuery(match?.[1]?.toLowerCase());
+  };
   const editor = useEditor({
     immediatelyRender: false,
     content: toEditorContent(reference),
@@ -139,6 +159,7 @@ export function ReferenceEditor({
       }),
       Underline,
       Link.configure({ autolink: false, openOnClick: false }),
+      Placeholder.configure({ placeholder: 'Add a description…' }),
     ],
     editorProps: {
       attributes: {
@@ -147,7 +168,11 @@ export function ReferenceEditor({
       },
     },
     onUpdate({ editor: updatedEditor }) {
-      onChange(fromEditorContent(reference.id, updatedEditor.getJSON()));
+      updateSlashQuery(updatedEditor);
+      onChange(fromEditorContent(reference, updatedEditor.getJSON()));
+    },
+    onSelectionUpdate({ editor: updatedEditor }) {
+      updateSlashQuery(updatedEditor);
     },
   });
 
@@ -158,54 +183,118 @@ export function ReferenceEditor({
         .filter(Boolean)
         .join(' ')}
     >
-      <div
-        aria-label="Reference formatting"
-        className="scriptr-reference-editor__toolbar"
-      >
+      <BubbleMenu editor={editor} className="scriptr-reference-editor__toolbar">
         <button
+          aria-label="Bold"
           aria-pressed={editor.isActive('bold')}
           onClick={() => void editor.chain().focus().toggleBold().run()}
           type="button"
         >
-          B
+          <Bold aria-hidden="true" />
         </button>
         <button
+          aria-label="Italic"
           aria-pressed={editor.isActive('italic')}
           onClick={() => void editor.chain().focus().toggleItalic().run()}
           type="button"
         >
-          I
+          <Italic aria-hidden="true" />
         </button>
         <button
+          aria-label="Underline"
           aria-pressed={editor.isActive('underline')}
           onClick={() => void editor.chain().focus().toggleUnderline().run()}
           type="button"
         >
-          U
+          <UnderlineIcon aria-hidden="true" />
         </button>
         <button
-          aria-pressed={editor.isActive('bulletList')}
-          onClick={() => void editor.chain().focus().toggleBulletList().run()}
-          type="button"
-        >
-          List
-        </button>
-        <button
+          aria-label="Link"
           aria-pressed={editor.isActive('link')}
           onClick={() => {
-            if (editor.isActive('link'))
-              void editor.chain().focus().unsetLink().run();
-            else {
-              const href = window.prompt('Link URL');
-              if (href) void editor.chain().focus().setLink({ href }).run();
-            }
+            setLinkHref(String(editor.getAttributes('link').href ?? ''));
+            setLinkEditorOpen((open) => !open);
           }}
           type="button"
         >
-          Link
+          <LinkIcon aria-hidden="true" />
         </button>
-      </div>
+        {linkEditorOpen ? (
+          <form
+            className="scriptr-reference-editor__link"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const href = linkHref.trim();
+              if (href) void editor.chain().focus().setLink({ href }).run();
+              else void editor.chain().focus().unsetLink().run();
+              setLinkEditorOpen(false);
+            }}
+          >
+            <input
+              aria-label="Link URL"
+              autoFocus
+              onChange={(event) => setLinkHref(event.currentTarget.value)}
+              placeholder="https://…"
+              type="url"
+              value={linkHref}
+            />
+            <button type="submit">Apply</button>
+          </form>
+        ) : null}
+      </BubbleMenu>
       <EditorContent editor={editor} />
+      {slashQuery !== undefined ? (
+        <div
+          className="scriptr-reference-editor__slash"
+          role="menu"
+          aria-label="Reference formatting commands"
+        >
+          {[
+            {
+              id: 'bold',
+              label: 'Bold',
+              run: () => editor.chain().focus().toggleBold(),
+            },
+            {
+              id: 'italic',
+              label: 'Italic',
+              run: () => editor.chain().focus().toggleItalic(),
+            },
+            {
+              id: 'underline',
+              label: 'Underline',
+              run: () => editor.chain().focus().toggleUnderline(),
+            },
+            {
+              id: 'list',
+              label: 'Bulleted list',
+              run: () => editor.chain().focus().toggleBulletList(),
+            },
+          ]
+            .filter((item) => item.label.toLowerCase().includes(slashQuery))
+            .map((item) => (
+              <button
+                key={item.id}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  const { from } = editor.state.selection;
+                  void item
+                    .run()
+                    .deleteRange({
+                      from: from - slashQuery.length - 1,
+                      to: from,
+                    })
+                    .run();
+                  setSlashQuery(undefined);
+                }}
+                role="menuitem"
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+        </div>
+      ) : null}
     </section>
   );
 }

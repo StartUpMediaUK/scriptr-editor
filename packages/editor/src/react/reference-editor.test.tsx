@@ -10,7 +10,7 @@ import { ReferenceEditor } from './reference-editor.js';
 afterEach(cleanup);
 
 describe('ReferenceEditor', () => {
-  it('exposes only shallow annotation formatting', async () => {
+  it('keeps annotation formatting contextual until text is selected', async () => {
     render(
       <ReferenceEditor
         onChange={vi.fn()}
@@ -28,7 +28,7 @@ describe('ReferenceEditor', () => {
     expect(
       await screen.findByLabelText('Reference annotation'),
     ).toHaveTextContent('Christ is the last Adam.');
-    expect(screen.getByRole('button', { name: 'B' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'bold' })).toBeNull();
     expect(screen.queryByRole('button', { name: /image/i })).toBeNull();
   });
 });

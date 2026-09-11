@@ -66,7 +66,9 @@ import 'scriptr-editor/styles.css';
 <ScriptrRenderer document={document} />;
 ```
 
-The editor includes contextual formatting, categorized slash commands with icons, written notation and keyboard navigation, Markdown shortcuts, block reordering, undo/redo, mobile interactions, and read-only mode. Its visual variables can be scoped through the documented `--scriptr-*` custom properties without replacing the package's layout hierarchy.
+The editor includes contextual formatting, categorized slash commands with icons, written notation and keyboard navigation, Markdown shortcuts, external-link creation/editing, block reordering, undo/redo, mobile interactions, and read-only mode. Its visual variables can be scoped through the documented `--scriptr-*` custom properties without replacing the package's layout hierarchy.
+
+Configured Scripture and document-lookup capabilities automatically enable package-owned Scripture, translation-comparison, and internal-link command workflows. References need no external capability: select text, run `/reference`, and author the lightweight annotation in the supplied dialog. External links likewise need no Host capability: use the selection toolbar or `/link`, enter a URL with or without its scheme, and optionally supply the visible label. Clicking an authored link while editing reopens the same link editor.
 
 The stylesheet never fetches fonts or other remote assets. To match the prototype exactly, a host may self-host Cormorant Garamond and Lora; otherwise the declared Georgia/serif fallbacks preserve the hierarchy. Theme overrides should remain limited to the documented `--scriptr-color-*`, `--scriptr-font-*`, `--scriptr-editor-font-size`, and `--scriptr-editor-measure` tokens.
 

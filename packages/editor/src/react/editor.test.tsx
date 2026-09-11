@@ -43,6 +43,27 @@ describe('ScriptrEditor', () => {
     expect(screen.getByLabelText('Drag block to reorder')).toBeInTheDocument();
   });
 
+  it('dismisses the block action menu when focus moves elsewhere or the page scrolls', async () => {
+    render(<ScriptrEditor value={document} />);
+    const handle = await screen.findByLabelText('Drag block to reorder');
+
+    fireEvent.click(handle);
+    expect(screen.getByText('Turn into text')).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByLabelText('Document editor'));
+    await waitFor(() =>
+      expect(screen.queryByText('Turn into text')).toBeNull(),
+    );
+
+    fireEvent.click(handle);
+    expect(screen.getByText('Turn into text')).toBeInTheDocument();
+    fireEvent.scroll(window);
+    await waitFor(() =>
+      expect(screen.queryByText('Turn into text')).toBeNull(),
+    );
+    await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+  });
+
   it('removes editing chrome when configured read-only', async () => {
     render(<ScriptrEditor editable={false} value={document} />);
 
@@ -75,6 +96,61 @@ describe('ScriptrEditor', () => {
         ) ?? false;
     });
     expect(found).toBe(true);
+  });
+
+  it('creates and edits a validated external link', async () => {
+    const rect = {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+    };
+    Object.defineProperty(Text.prototype, 'getClientRects', {
+      configurable: true,
+      value: () => [rect],
+    });
+    Object.defineProperty(Text.prototype, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => rect,
+    });
+    Object.defineProperty(Range.prototype, 'getClientRects', {
+      configurable: true,
+      value: () => [rect],
+    });
+    Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => rect,
+    });
+    const editorRef = createRef<ScriptrEditorHandle>();
+    render(<ScriptrEditor defaultValue={document} ref={editorRef} />);
+    await waitFor(() => expect(editorRef.current).not.toBeNull());
+    act(() => {
+      editorRef.current?.navigateTo(
+        { blockId: 'paragraph', kind: 'text', offset: 0, length: 5 },
+        { highlightMs: 0 },
+      );
+    });
+
+    const linkButton = await screen.findByRole('button', { name: 'Link' });
+    expect(linkButton.querySelector('svg')).toHaveClass('lucide-link-2');
+    fireEvent.click(linkButton);
+    const submit = screen.getByRole('button', { name: 'Add link' });
+    const url = screen.getByLabelText('Link URL');
+    expect(submit).toBeDisabled();
+    fireEvent.change(url, { target: { value: 'not a link' } });
+    expect(submit).toBeDisabled();
+    fireEvent.change(url, { target: { value: 'example.com' } });
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+
+    const anchor = await screen.findByRole('link');
+    expect(anchor).toHaveAttribute('href', 'https://example.com/');
+    fireEvent.click(anchor);
+    expect(await screen.findByLabelText('Link URL')).toHaveValue(
+      'https://example.com/',
+    );
   });
 
   it('mounts multiple Strict Mode editors independently', async () => {
@@ -197,8 +273,12 @@ describe('ScriptrEditor', () => {
     );
 
     fireEvent.click(screen.getByRole('menuitem', { name: /Reference/ }));
-    expect(onCommand).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'reference', category: 'annotation' }),
-    );
+    expect(
+      screen.getByRole('dialog', { name: 'Add Reference' }),
+    ).toHaveTextContent('Reference name');
+    expect(
+      screen.getByRole('button', { name: 'Add Reference' }),
+    ).toBeDisabled();
+    expect(onCommand).not.toHaveBeenCalled();
   });
 });

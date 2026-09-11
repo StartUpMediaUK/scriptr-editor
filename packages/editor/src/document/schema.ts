@@ -40,6 +40,15 @@ const markSchema = z.discriminatedUnion('type', [
     })
     .strict(),
   z.object({ type: z.literal('reference'), referenceId: nonEmptyId }).strict(),
+  z
+    .object({ type: z.literal('textColour'), colour: z.string().trim().min(1) })
+    .strict(),
+  z
+    .object({
+      type: z.literal('highlightColour'),
+      colour: z.string().trim().min(1),
+    })
+    .strict(),
 ]);
 
 const textInlineSchema = z
@@ -355,6 +364,7 @@ const referenceTextInlineSchema = z
 const referenceSchema = z
   .object({
     id: nonEmptyId,
+    title: z.string().trim().min(1).optional(),
     content: z
       .array(
         z

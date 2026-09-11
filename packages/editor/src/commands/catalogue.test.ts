@@ -19,6 +19,7 @@ describe('command catalogue', () => {
       },
     );
     expect(catalogue.all.some((item) => item.id === 'scripture')).toBe(false);
+    expect(catalogue.search('link').map((item) => item.id)).toContain('link');
   });
 
   it('searches notation and enables capability-backed categories', () => {

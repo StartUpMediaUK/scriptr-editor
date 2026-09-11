@@ -139,6 +139,11 @@ const builtins: readonly BuiltinCommand[] = [
     ['annotation', 'note', 'footnote'],
     'references',
   ),
+  command('link', 'annotation', 'Link', 'https://', 'link', [
+    'url',
+    'website',
+    'external',
+  ]),
   command(
     'internal-link',
     'annotation',

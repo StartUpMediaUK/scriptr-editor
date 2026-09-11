@@ -5,7 +5,10 @@ import {
   formatScriptureAddress,
   parseReferenceQuery,
 } from '../scripture/address.js';
-import type { ScriptureStructure } from '../scripture/types.js';
+import type {
+  ScriptureBookStructure,
+  ScriptureStructure,
+} from '../scripture/types.js';
 
 export type ScripturePickerProps = {
   readonly structure: ScriptureStructure;
@@ -14,6 +17,7 @@ export type ScripturePickerProps = {
   readonly onCancel?: (() => void) | undefined;
   readonly offline?: boolean | undefined;
   readonly className?: string | undefined;
+  readonly translationId?: string | undefined;
 };
 
 export function ScripturePicker({
@@ -23,58 +27,59 @@ export function ScripturePicker({
   onCancel,
   offline = false,
   className,
+  translationId,
 }: ScripturePickerProps) {
   const [query, setQuery] = useState(initialQuery);
+  const [previewQuery, setPreviewQuery] = useState<string>();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedBookId, setSelectedBookId] = useState<string>();
   const result = useMemo(
     () => parseReferenceQuery(query, structure),
     [query, structure],
   );
-  const book = result.books.length === 1 ? result.books[0] : undefined;
+  const book =
+    structure.books.find((candidate) => candidate.id === selectedBookId) ??
+    (result.books.length === 1 ? result.books[0] : undefined);
+  const nameOf = (candidate: ScriptureBookStructure) =>
+    candidate.translationNames?.[translationId ?? ''] ?? candidate.name;
   const options = useMemo(() => {
-    if (!book) {
-      return result.books.map((candidate) => ({
-        label: candidate.name,
-        query: candidate.name,
-      }));
-    }
-    if (result.stage === 'chapter') {
+    if (!book) return [];
+    if (
+      result.stage === 'chapter' ||
+      (result.stage === 'book' && selectedBookId)
+    )
       return book.chapters.map((_, index) => ({
         label: String(index + 1),
-        query: `${book.name} ${index + 1}`,
+        query: `${nameOf(book)} ${index + 1}`,
       }));
-    }
-    if (result.stage === 'verse' && result.address) {
+    if (
+      (result.stage === 'verse' ||
+        result.stage === 'range' ||
+        result.stage === 'complete') &&
+      result.address
+    ) {
       const verseCount = book.chapters[result.address.chapter - 1] ?? 0;
       return Array.from({ length: verseCount }, (_, index) => ({
         label: String(index + 1),
-        query: `${book.name} ${result.address?.chapter}:${index + 1}`,
+        query: `${nameOf(book)} ${result.address?.chapter}:${index + 1}`,
       }));
     }
-    if (result.stage === 'range' && result.address?.verseStart) {
-      const verseCount = book.chapters[result.address.chapter - 1] ?? 0;
-      return Array.from(
-        { length: verseCount - result.address.verseStart + 1 },
-        (_, index) => {
-          const verse = result.address?.verseStart ?? 1;
-          const end = verse + index;
-          return {
-            label: end === verse ? 'This verse' : `–${end}`,
-            query:
-              end === verse
-                ? `${book.name} ${result.address?.chapter}:${verse}`
-                : `${book.name} ${result.address?.chapter}:${verse}-${end}`,
-          };
-        },
-      );
-    }
     return [];
-  }, [book, result]);
-
+  }, [book, result, selectedBookId, translationId]);
   const chooseQuery = (nextQuery: string) => {
     setQuery(nextQuery);
+    setPreviewQuery(undefined);
     setActiveIndex(0);
   };
+  const rangeQuery = (verse: number) => {
+    const start = result.address?.verseStart;
+    if (!book || !result.address || !start) return;
+    const low = Math.min(start, verse);
+    const high = Math.max(start, verse);
+    return `${nameOf(book)} ${result.address.chapter}:${low}${low === high ? '' : `-${high}`}`;
+  };
+  const chooseVerse = (verse: number, fallback: string) =>
+    chooseQuery(rangeQuery(verse) ?? fallback);
   const submit = () => {
     if (result.address && !result.error) onSelect(result.address);
   };
@@ -107,9 +112,11 @@ export function ScripturePicker({
           autoFocus
           autoComplete="off"
           placeholder="Romans 8:28-30"
-          value={query}
+          value={previewQuery ?? query}
           onChange={(event) => {
             setQuery(event.currentTarget.value);
+            setSelectedBookId(undefined);
+            setPreviewQuery(undefined);
             setActiveIndex(0);
           }}
           onKeyDown={(event) => {
@@ -140,24 +147,77 @@ export function ScripturePicker({
             book: 'Choose a book',
             chapter: 'Choose a chapter',
             verse: 'Choose a verse',
-            range: 'Choose an ending verse, or insert this verse',
+            range: 'Select another verse for a range, or insert this verse',
             complete: 'Reference ready',
           }[result.stage]}
       </p>
-      {options.length ? (
+      {!book && result.books.length ? (
+        <div className="scriptr-scripture-picker__book-groups" role="listbox">
+          {(['old', 'new', 'other'] as const).map((testament) => {
+            const books = result.books.filter((candidate) =>
+              testament === 'other'
+                ? !candidate.testament
+                : candidate.testament === testament,
+            );
+            if (!books.length) return null;
+            return (
+              <section key={testament}>
+                <p>
+                  {testament === 'old'
+                    ? 'Old Testament'
+                    : testament === 'new'
+                      ? 'New Testament'
+                      : 'Books'}
+                </p>
+                {books.map((candidate) => (
+                  <button
+                    key={candidate.id}
+                    onClick={() => {
+                      setSelectedBookId(candidate.id);
+                      chooseQuery(nameOf(candidate));
+                    }}
+                    role="option"
+                    type="button"
+                  >
+                    {nameOf(candidate)}
+                  </button>
+                ))}
+              </section>
+            );
+          })}
+        </div>
+      ) : options.length ? (
         <div className="scriptr-scripture-picker__options" role="listbox">
-          {options.map((option, index) => (
-            <button
-              aria-selected={index === activeIndex}
-              data-active={index === activeIndex || undefined}
-              key={option.query}
-              onClick={() => chooseQuery(option.query)}
-              role="option"
-              type="button"
-            >
-              {option.label}
-            </button>
-          ))}
+          {options.map((option, index) => {
+            const verse = Number(option.label);
+            const start = result.address?.verseStart;
+            const end = result.address?.verseEnd ?? start;
+            const selected = Boolean(
+              start && end && verse >= start && verse <= end,
+            );
+            return (
+              <button
+                aria-selected={selected || index === activeIndex}
+                data-active={index === activeIndex || undefined}
+                data-selected={selected || undefined}
+                key={option.query}
+                onClick={() =>
+                  result.stage === 'chapter'
+                    ? chooseQuery(option.query)
+                    : chooseVerse(verse, option.query)
+                }
+                onMouseEnter={() => {
+                  const preview = rangeQuery(verse);
+                  if (preview) setPreviewQuery(preview);
+                }}
+                onMouseLeave={() => setPreviewQuery(undefined)}
+                role="option"
+                type="button"
+              >
+                {option.label}
+              </button>
+            );
+          })}
         </div>
       ) : null}
       <footer className="scriptr-scripture-picker__footer">

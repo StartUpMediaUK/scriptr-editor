@@ -125,9 +125,21 @@ const initialDocument: CanonicalDocument = {
 const demoStructure: ScriptureStructure = {
   books: [
     {
+      id: 'GEN',
+      name: 'Genesis',
+      aliases: ['Ge', 'Gen'],
+      testament: 'old',
+      chapters: [
+        31, 25, 24, 26, 32, 22, 24, 22, 29, 32, 32, 20, 18, 24, 21, 16, 27, 33,
+        38, 18, 34, 24, 20, 67, 34, 35, 46, 22, 35, 43, 55, 32, 20, 31, 29, 43,
+        36, 30, 23, 23, 57, 38, 34, 34, 28, 34, 31, 22, 33, 26,
+      ],
+    },
+    {
       id: 'ROM',
       name: 'Romans',
       aliases: ['Ro', 'Rom'],
+      testament: 'new',
       chapters: [
         32, 29, 31, 25, 21, 23, 25, 39, 33, 21, 36, 21, 14, 23, 33, 27,
       ],
@@ -136,6 +148,7 @@ const demoStructure: ScriptureStructure = {
       id: 'JHN',
       name: 'John',
       aliases: ['Jn'],
+      testament: 'new',
       chapters: [
         51, 25, 36, 54, 47, 71, 53, 59, 41, 42, 57, 50, 38, 31, 27, 33, 26, 40,
         42, 31, 25,
@@ -166,6 +179,34 @@ const demoProvider = createFakeScriptureProvider({
       translationId: 'KJV',
       text: 'And we know that all things work together for good to them that love God.',
       attribution: 'King James Version — development fixture',
+      cache: 'persistent',
+    },
+    {
+      address: { book: 'JHN', chapter: 3, verseStart: 16 },
+      translationId: 'KJV',
+      text: 'For God so loved the world, that he gave his only begotten Son.',
+      attribution: 'King James Version — development fixture',
+      cache: 'persistent',
+    },
+    {
+      address: { book: 'JHN', chapter: 3, verseStart: 16 },
+      translationId: 'WEB',
+      text: 'For God so loved the world, that he gave his one and only Son.',
+      attribution: 'World English Bible — development fixture',
+      cache: 'persistent',
+    },
+    {
+      address: { book: 'JHN', chapter: 1, verseStart: 1, verseEnd: 10 },
+      translationId: 'KJV',
+      text: 'In the beginning was the Word, and the Word was with God, and the Word was God. The true Light lighteth every man that cometh into the world.',
+      attribution: 'King James Version — development fixture',
+      cache: 'persistent',
+    },
+    {
+      address: { book: 'JHN', chapter: 1, verseStart: 1, verseEnd: 10 },
+      translationId: 'WEB',
+      text: 'In the beginning was the Word, and the Word was with God, and the Word was God. The true light enlightens everyone coming into the world.',
+      attribution: 'World English Bible — development fixture',
       cache: 'persistent',
     },
     {

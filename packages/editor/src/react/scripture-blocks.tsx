@@ -1,6 +1,6 @@
 import type { NodeViewProps } from '@tiptap/react';
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
   ScriptureAddress,
@@ -13,7 +13,10 @@ import type {
   ScriptureProvider,
   ScriptureTranslation,
 } from '../host/scripture.js';
-import { formatScriptureAddress } from '../scripture/address.js';
+import {
+  formatScriptureAddress,
+  parseReferenceQuery,
+} from '../scripture/address.js';
 import type { ScriptureStructure } from '../scripture/types.js';
 
 export type ScriptureBlockContentProps = {
@@ -121,6 +124,175 @@ function Passage({
   );
 }
 
+function EditableAddress({
+  address,
+  structure,
+  translationId,
+  onCommit,
+}: {
+  readonly address: ScriptureAddress;
+  readonly structure: ScriptureStructure;
+  readonly translationId: string;
+  readonly onCommit: (address: ScriptureAddress) => void;
+}) {
+  const book = structure.books.find(
+    (candidate) => candidate.id === address.book,
+  );
+  const displayName =
+    book?.translationNames?.[translationId] ?? book?.name ?? address.book;
+  const [bookText, setBookText] = useState(displayName);
+  const [chapterText, setChapterText] = useState(String(address.chapter));
+  const [verseText, setVerseText] = useState(
+    address.verseStart === undefined
+      ? ''
+      : `${address.verseStart}${address.verseEnd === undefined ? '' : `-${address.verseEnd}`}`,
+  );
+  const bookRef = useRef<HTMLInputElement>(null);
+  const chapterRef = useRef<HTMLInputElement>(null);
+  const verseRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    setBookText(displayName);
+    setChapterText(String(address.chapter));
+    setVerseText(
+      address.verseStart === undefined
+        ? ''
+        : `${address.verseStart}${address.verseEnd === undefined ? '' : `-${address.verseEnd}`}`,
+    );
+  }, [address, displayName]);
+  const normalizedBookText = bookText.trim().toLocaleLowerCase();
+  const matchingBook = structure.books.find((candidate) =>
+    [
+      candidate.translationNames?.[translationId],
+      candidate.name,
+      ...candidate.aliases,
+    ]
+      .filter((name): name is string => Boolean(name))
+      .some((name) => name.toLocaleLowerCase() === normalizedBookText),
+  );
+  const suggestedBook = structure.books.find((candidate) => {
+    const name = candidate.translationNames?.[translationId] ?? candidate.name;
+    return (
+      normalizedBookText.length > 0 &&
+      name.toLocaleLowerCase().startsWith(normalizedBookText) &&
+      name.toLocaleLowerCase() !== normalizedBookText
+    );
+  });
+  const bookSuggestion = suggestedBook
+    ? (suggestedBook.translationNames?.[translationId] ?? suggestedBook.name)
+    : undefined;
+  const acceptedBook = matchingBook ?? suggestedBook;
+  const acceptedBookName = acceptedBook
+    ? (acceptedBook.translationNames?.[translationId] ?? acceptedBook.name)
+    : undefined;
+  const commit = () => {
+    const result = parseReferenceQuery(
+      `${bookText} ${chapterText}${verseText ? `:${verseText}` : ''}`,
+      structure,
+    );
+    if (result.address && !result.error) onCommit(result.address);
+  };
+  return (
+    <div
+      aria-label="Scripture address"
+      className="scriptr-scripture__address-editor"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) commit();
+      }}
+      role="group"
+    >
+      <label className="scriptr-scripture__address-segment">
+        <span aria-hidden="true">
+          {bookText}
+          {bookSuggestion ? (
+            <i>{bookSuggestion.slice(bookText.length)}</i>
+          ) : null}
+        </span>
+        <input
+          aria-label="Bible book"
+          autoComplete="off"
+          onChange={(event) => setBookText(event.currentTarget.value)}
+          onKeyDown={(event) => {
+            const atEnd =
+              event.currentTarget.selectionStart === bookText.length;
+            if (
+              acceptedBookName &&
+              (event.key === 'Tab' ||
+                event.key === 'Enter' ||
+                (event.key === 'ArrowRight' && atEnd))
+            ) {
+              event.preventDefault();
+              setBookText(acceptedBookName);
+              chapterRef.current?.focus();
+            }
+          }}
+          ref={bookRef}
+          style={{
+            width: `${Math.max(bookSuggestion?.length ?? bookText.length, 2)}ch`,
+          }}
+          value={bookText}
+        />
+      </label>
+      <span aria-hidden="true" className="scriptr-scripture__book-gap" />
+      <label className="scriptr-scripture__address-segment">
+        <span aria-hidden="true">{chapterText}</span>
+        <input
+          aria-label="Chapter"
+          inputMode="numeric"
+          onChange={(event) =>
+            setChapterText(event.currentTarget.value.replace(/\D/g, ''))
+          }
+          onKeyDown={(event) => {
+            const atStart = event.currentTarget.selectionStart === 0;
+            const atEnd =
+              event.currentTarget.selectionStart === chapterText.length;
+            if (
+              (event.key === 'Backspace' && atStart) ||
+              (event.key === 'ArrowLeft' && atStart)
+            ) {
+              event.preventDefault();
+              bookRef.current?.focus();
+            } else if (
+              event.key === 'Enter' ||
+              event.key === 'Tab' ||
+              (event.key === 'ArrowRight' && atEnd)
+            ) {
+              event.preventDefault();
+              verseRef.current?.focus();
+            }
+          }}
+          ref={chapterRef}
+          style={{ width: `${Math.max(chapterText.length, 1)}ch` }}
+          value={chapterText}
+        />
+      </label>
+      <span aria-hidden="true">:</span>
+      <label className="scriptr-scripture__address-segment">
+        <span aria-hidden="true">{verseText}</span>
+        <input
+          aria-label="Verse or range"
+          inputMode="numeric"
+          onChange={(event) =>
+            setVerseText(event.currentTarget.value.replace(/[^\d-]/g, ''))
+          }
+          onKeyDown={(event) => {
+            const atStart = event.currentTarget.selectionStart === 0;
+            if (
+              (event.key === 'Backspace' && atStart) ||
+              (event.key === 'ArrowLeft' && atStart)
+            ) {
+              event.preventDefault();
+              chapterRef.current?.focus();
+            }
+          }}
+          ref={verseRef}
+          style={{ width: `${Math.max(verseText.length, 1)}ch` }}
+          value={verseText}
+        />
+      </label>
+    </div>
+  );
+}
+
 export function ScriptureBlockContent({
   block,
   provider,
@@ -128,6 +300,7 @@ export function ScriptureBlockContent({
   onChange,
 }: ScriptureBlockContentProps) {
   const { structure, translations } = useProviderMetadata(provider);
+  const [translationMenuOpen, setTranslationMenuOpen] = useState(false);
   const translationIds =
     block.type === 'scripture' ? [block.translationId] : block.translationIds;
   const translationMap = useMemo(
@@ -156,7 +329,16 @@ export function ScriptureBlockContent({
       data-type={block.type}
     >
       <header>
-        <span>{label}</span>
+        {editable && structure ? (
+          <EditableAddress
+            address={block.address}
+            onCommit={(address) => onChange?.({ ...block, address })}
+            structure={structure}
+            translationId={translationIds[0] ?? ''}
+          />
+        ) : (
+          <span>{label}</span>
+        )}
         {editable && translations.length ? (
           block.type === 'scripture' ? (
             <select
@@ -178,19 +360,56 @@ export function ScriptureBlockContent({
           ) : (
             <div className="scriptr-scripture__layout">
               <button
+                aria-label="One column"
                 aria-pressed={block.layout === 'oneColumn'}
                 onClick={() => onChange?.({ ...block, layout: 'oneColumn' })}
                 type="button"
               >
-                One column
+                ▰
               </button>
               <button
+                aria-label="Two columns"
                 aria-pressed={block.layout === 'twoColumn'}
                 onClick={() => onChange?.({ ...block, layout: 'twoColumn' })}
                 type="button"
               >
-                Two columns
+                ▥
               </button>
+              <button
+                aria-expanded={translationMenuOpen}
+                aria-label="Add translation"
+                onClick={() => setTranslationMenuOpen((open) => !open)}
+                type="button"
+              >
+                ＋
+              </button>
+              {translationMenuOpen ? (
+                <div
+                  className="scriptr-scripture__translation-menu"
+                  role="menu"
+                >
+                  {translations
+                    .filter(
+                      (translation) => !translationIds.includes(translation.id),
+                    )
+                    .map((translation) => (
+                      <button
+                        key={translation.id}
+                        onClick={() => {
+                          replaceTranslations([
+                            ...translationIds,
+                            translation.id,
+                          ]);
+                          setTranslationMenuOpen(false);
+                        }}
+                        role="menuitem"
+                        type="button"
+                      >
+                        {translation.name}
+                      </button>
+                    ))}
+                </div>
+              ) : null}
             </div>
           )
         ) : null}
@@ -246,26 +465,6 @@ export function ScriptureBlockContent({
           </div>
         ))}
       </div>
-      {editable && block.type === 'translationComparison' ? (
-        <select
-          aria-label="Add comparison translation"
-          value=""
-          onChange={(event) => {
-            const id = event.currentTarget.value;
-            if (id && !translationIds.includes(id))
-              replaceTranslations([...translationIds, id]);
-          }}
-        >
-          <option value="">Add translation…</option>
-          {translations
-            .filter((translation) => !translationIds.includes(translation.id))
-            .map((translation) => (
-              <option key={translation.id} value={translation.id}>
-                {translation.name}
-              </option>
-            ))}
-        </select>
-      ) : null}
     </section>
   );
 }

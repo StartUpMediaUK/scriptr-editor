@@ -1,6 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "types": ["node", "vitest/globals"]
   },
   "include": ["*.mjs", "src", "vitest.config.ts"]

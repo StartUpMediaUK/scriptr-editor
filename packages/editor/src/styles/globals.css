@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '../react/styles.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 7px;
+}
+
+:root {
+  --background: #f7f5f0;
+  --foreground: #201f1d;
+  --popover: #f7f5f0;
+  --popover-foreground: #201f1d;
+  --muted: #efede7;
+  --muted-foreground: #716c64;
+  --border: #d9d3c8;
+  --input: #d9d3c8;
+  --ring: #a56f2b;
+}
+
+.dark {
+  --background: #201f1d;
+  --foreground: #eee9df;
+  --popover: #201f1d;
+  --popover-foreground: #eee9df;
+  --muted: #2a2825;
+  --muted-foreground: #b8b0a3;
+  --border: #47433d;
+  --input: #47433d;
+  --ring: #cfa15f;
+}

@@ -32,11 +32,16 @@ export type ReferenceAnchorMark = {
   readonly referenceId: string;
 };
 
+export type ColourMark =
+  | { readonly type: 'textColour'; readonly colour: string }
+  | { readonly type: 'highlightColour'; readonly colour: string };
+
 export type Mark =
   | TextStyleMark
   | ExternalLinkMark
   | InternalDocumentLinkMark
-  | ReferenceAnchorMark;
+  | ReferenceAnchorMark
+  | ColourMark;
 
 export type TextInline = {
   readonly type: 'text';
@@ -212,6 +217,8 @@ export type ReferenceContentBlock = {
 
 export type Reference = {
   readonly id: string;
+  /** User-facing label for the source or note. */
+  readonly title?: string | undefined;
   readonly content: readonly ReferenceContentBlock[];
 };
 

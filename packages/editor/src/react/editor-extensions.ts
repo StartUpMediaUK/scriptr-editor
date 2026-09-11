@@ -149,7 +149,7 @@ const InternalDocumentLink = Mark.create({
 
 const ReferenceAnchor = Mark.create({
   name: 'referenceAnchor',
-  inclusive: false,
+  inclusive: true,
   addAttributes() {
     return { referenceId: { default: null } };
   },
@@ -162,6 +162,68 @@ const ReferenceAnchor = Mark.create({
       mergeAttributes(HTMLAttributes, {
         'data-scriptr-reference': '',
         class: 'scriptr-editor__reference-anchor',
+      }),
+      0,
+    ];
+  },
+  addKeyboardShortcuts() {
+    const endReference = () => {
+      if (!this.editor.isActive(this.name)) return false;
+      this.editor.commands.unsetMark(this.name);
+      return false;
+    };
+    return {
+      Enter: endReference,
+      '.': endReference,
+      ',': endReference,
+      ';': endReference,
+      ':': endReference,
+      '!': endReference,
+      '?': endReference,
+      ' ': () => {
+        const { $from } = this.editor.state.selection;
+        return $from.parent.textBetween(0, $from.parentOffset).endsWith(' ')
+          ? endReference()
+          : false;
+      },
+    };
+  },
+});
+
+const TextColour = Mark.create({
+  name: 'textColour',
+  addAttributes() {
+    return { colour: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: 'span[data-scriptr-text-colour]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-text-colour': '',
+        style: `color: ${String(HTMLAttributes.colour)}`,
+      }),
+      0,
+    ];
+  },
+});
+
+const HighlightColour = Mark.create({
+  name: 'highlightColour',
+  addAttributes() {
+    return { colour: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: 'mark[data-scriptr-highlight-colour]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'mark',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-highlight-colour': '',
+        style: `background-color: ${String(HTMLAttributes.colour)}`,
       }),
       0,
     ];
@@ -211,6 +273,8 @@ export function createEditorExtensions(
     createImageBlockNode(imageHost),
     InternalDocumentLink,
     ReferenceAnchor,
+    TextColour,
+    HighlightColour,
     UniqueID.configure({ types: idTypes }),
     Placeholder.configure({ placeholder }),
   ];

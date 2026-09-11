@@ -30,7 +30,7 @@ export function findScriptureBooks(
   const normalizedQuery = normalize(query);
   if (!normalizedQuery) return structure.books;
   return structure.books.filter((book) =>
-    bookNames(book).some((name) => normalize(name).startsWith(normalizedQuery)),
+    bookNames(book).some((name) => normalize(name).includes(normalizedQuery)),
   );
 }
 
@@ -60,13 +60,19 @@ export function validateScriptureAddress(
   if (!verseCount) return { valid: false, reason: 'Choose a valid chapter.' };
   if (address.verseStart === undefined) return { valid: true, address };
   if (address.verseStart < 1 || address.verseStart > verseCount) {
-    return { valid: false, reason: 'Choose a valid starting verse.' };
+    return {
+      valid: false,
+      reason: `Cannot select this verse range. There is no available ${book.name} ${address.chapter}:${address.verseStart}.`,
+    };
   }
   if (
     address.verseEnd !== undefined &&
     (address.verseEnd < address.verseStart || address.verseEnd > verseCount)
   ) {
-    return { valid: false, reason: 'Choose a valid ending verse.' };
+    return {
+      valid: false,
+      reason: `Cannot select this verse range. There is no available ${book.name} ${address.chapter}:${address.verseEnd}.`,
+    };
   }
   return { valid: true, address };
 }
@@ -100,6 +106,8 @@ export function parseReferenceQuery(
     exactBook(bookQuery, structure) ??
     (books.length === 1 ? books[0] : undefined);
   if (!book) return { query, stage: 'book', books };
+  if (chapterText === undefined && books.length > 1)
+    return { query, stage: 'book', books };
   if (chapterText === undefined)
     return { query, stage: 'chapter', books: [book] };
 
@@ -115,7 +123,12 @@ export function parseReferenceQuery(
   if (!validation.valid) {
     return {
       query,
-      stage: 'chapter',
+      stage:
+        verseEndText !== undefined
+          ? 'complete'
+          : verseStartText !== undefined
+            ? 'range'
+            : 'chapter',
       books: [book],
       address,
       error: validation.reason,
