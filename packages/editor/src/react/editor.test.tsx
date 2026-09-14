@@ -281,4 +281,100 @@ describe('ScriptrEditor', () => {
     ).toBeDisabled();
     expect(onCommand).not.toHaveBeenCalled();
   });
+
+  it('inserts editable columns and heading toggles from slash commands', async () => {
+    const { unmount } = render(<ScriptrEditor value={document} />);
+    let editor = screen.getByLabelText('Document editor');
+    fireEvent.input(editor, { target: { textContent: '/' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Columns/ }));
+
+    await waitFor(() => {
+      expect(editor.querySelectorAll('[data-scriptr-column]')).toHaveLength(2);
+    });
+    unmount();
+
+    render(<ScriptrEditor value={document} />);
+    editor = screen.getByLabelText('Document editor');
+    fireEvent.input(editor, { target: { textContent: '/' } });
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Toggle heading 2/ }),
+    );
+
+    await waitFor(() => {
+      expect(
+        editor.querySelector('[data-scriptr-toggle][data-heading-level="2"]'),
+      ).toHaveAttribute('open');
+    });
+  });
+
+  it('persists a toggle disclosure state change', async () => {
+    const onChange = vi.fn<(value: CanonicalDocument) => void>();
+    render(
+      <ScriptrEditor
+        onChange={onChange}
+        value={{
+          version: 2,
+          content: [
+            {
+              id: 'toggle',
+              type: 'toggle',
+              defaultOpen: true,
+              summary: [{ type: 'text', text: 'More context' }],
+              content: [
+                {
+                  id: 'inside',
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'Inside' }],
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    const summary = await screen.findByText('More context');
+    const details = summary.closest('details');
+    if (!details) throw new Error('Expected toggle details element.');
+    fireEvent.click(summary);
+
+    await waitFor(() => {
+      expect(details.open).toBe(false);
+      const changes = onChange.mock.calls.map(([changed]) => changed);
+      expect(
+        changes.some(
+          (changed) =>
+            changed.content[0]?.type === 'toggle' &&
+            changed.content[0].defaultOpen !== true,
+        ),
+      ).toBe(true);
+    });
+  });
+
+  it('turns a selected block into a nested layout from its action menu', async () => {
+    const { unmount } = render(<ScriptrEditor value={document} />);
+    fireEvent.click(await screen.findByLabelText('Drag block to reorder'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Turn into toggle' }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByLabelText('Document editor')
+          .querySelector('[data-scriptr-toggle]'),
+      ).not.toBeNull(),
+    );
+    unmount();
+
+    render(<ScriptrEditor value={document} />);
+    fireEvent.click(await screen.findByLabelText('Drag block to reorder'));
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: 'Turn into columns' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen
+          .getByLabelText('Document editor')
+          .querySelectorAll('[data-scriptr-column]'),
+      ).toHaveLength(2),
+    );
+  });
 });

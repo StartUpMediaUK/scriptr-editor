@@ -408,6 +408,43 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
           key={block.id}
         />
       );
+    case 'columns':
+      return (
+        <section
+          className="scriptr-renderer__columns"
+          data-scriptr-columns=""
+          key={block.id}
+        >
+          {block.columns.map((column) => (
+            <div data-scriptr-column="" key={column.id}>
+              {column.content.map((child) => renderBlock(child, props))}
+            </div>
+          ))}
+        </section>
+      );
+    case 'toggle':
+      return (
+        <details
+          className="scriptr-renderer__toggle"
+          data-heading-level={block.headingLevel}
+          data-scriptr-toggle=""
+          key={block.id}
+          open={block.defaultOpen}
+        >
+          <summary data-scriptr-toggle-summary="">
+            {block.headingLevel ? (
+              <span aria-level={block.headingLevel} role="heading">
+                {inline(block.summary)}
+              </span>
+            ) : (
+              inline(block.summary)
+            )}
+          </summary>
+          <div data-scriptr-toggle-content="">
+            {block.content.map((child) => renderBlock(child, props))}
+          </div>
+        </details>
+      );
     case 'extension': {
       const extension = props.extensions?.find(
         (item) => item.name === block.name,

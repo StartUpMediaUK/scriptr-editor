@@ -79,6 +79,63 @@ const initialDocument: CanonicalDocument = {
       ],
     },
     {
+      id: 'study-columns',
+      type: 'columns',
+      columns: [
+        {
+          id: 'study-column-observation',
+          content: [
+            {
+              id: 'study-column-observation-heading',
+              type: 'heading',
+              level: 3,
+              content: [{ type: 'text', text: 'Observation' }],
+            },
+            {
+              id: 'study-column-observation-body',
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'What does the passage say?' }],
+            },
+          ],
+        },
+        {
+          id: 'study-column-application',
+          content: [
+            {
+              id: 'study-column-application-heading',
+              type: 'heading',
+              level: 3,
+              content: [{ type: 'text', text: 'Application' }],
+            },
+            {
+              id: 'study-column-application-body',
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'How should this shape today?' }],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: 'study-toggle',
+      type: 'toggle',
+      headingLevel: 2,
+      defaultOpen: true,
+      summary: [{ type: 'text', text: 'Study notes' }],
+      content: [
+        {
+          id: 'study-toggle-body',
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'This disclosure keeps supporting detail close without interrupting the main reading flow.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       id: 'scripture-romans',
       type: 'scripture',
       address: { book: 'ROM', chapter: 8, verseStart: 28 },

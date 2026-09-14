@@ -175,6 +175,32 @@ function blockToEditor(block: Block): EditorNode {
         content: block.items.map((item) => listItemToEditor(item, block.kind)),
       };
     }
+    case 'columns':
+      return {
+        type: 'columns',
+        attrs: { id: block.id },
+        content: block.columns.map((column) => ({
+          type: 'column',
+          attrs: { id: column.id },
+          content: column.content.map(blockToEditor),
+        })),
+      };
+    case 'toggle':
+      return {
+        type: 'toggle',
+        attrs: {
+          id: block.id,
+          headingLevel: block.headingLevel ?? null,
+          defaultOpen: block.defaultOpen ?? false,
+        },
+        content: [
+          { type: 'toggleSummary', content: inline(block.summary) },
+          {
+            type: 'toggleContent',
+            content: block.content.map(blockToEditor),
+          },
+        ],
+      };
     default:
       return opaqueBlockToEditor(block);
   }
@@ -371,6 +397,51 @@ function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
         ? { id, type: 'list', kind, start, items }
         : { id, type: 'list', kind, items };
     }
+    case 'columns': {
+      const columns = (node.content ?? []).flatMap((column, columnIndex) => {
+        if (column.type !== 'column') return [];
+        const content = (column.content ?? []).flatMap((child, childIndex) => {
+          const block = editorNodeToBlock(child, childIndex);
+          return block ? [block] : [];
+        });
+        return content.length
+          ? [
+              {
+                id:
+                  stringAttr(column, 'id') ?? `${id}-column-${columnIndex + 1}`,
+                content,
+              },
+            ]
+          : [];
+      });
+      return columns.length >= 2 && columns.length <= 4
+        ? { id, type: 'columns', columns }
+        : undefined;
+    }
+    case 'toggle': {
+      const summary = node.content?.find(
+        (child) => child.type === 'toggleSummary',
+      );
+      const body = node.content?.find(
+        (child) => child.type === 'toggleContent',
+      );
+      const content = (body?.content ?? []).flatMap((child, childIndex) => {
+        const block = editorNodeToBlock(child, childIndex);
+        return block ? [block] : [];
+      });
+      if (!content.length) return undefined;
+      const headingLevel = numberAttr(node, 'headingLevel');
+      return {
+        id,
+        type: 'toggle',
+        summary: editorInlineToCanonical(summary?.content ?? []),
+        ...(headingLevel === 1 || headingLevel === 2 || headingLevel === 3
+          ? { headingLevel }
+          : {}),
+        ...(node.attrs?.defaultOpen === true ? { defaultOpen: true } : {}),
+        content,
+      };
+    }
     case 'portableBlock':
     case 'scriptureBlock':
     case 'imageBlock': {
@@ -391,8 +462,8 @@ function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
 function reconcileReferenceData(
   blocks: readonly Block[],
   references: Readonly<Record<string, Reference>> | undefined,
+  anchored = new Set<string>(),
 ) {
-  const anchored = new Set<string>();
   const inline = (content: readonly InlineContent[]): InlineContent[] =>
     content.map((item) => {
       if (item.type !== 'text' || !item.marks) return item;
@@ -425,6 +496,25 @@ function reconcileReferenceData(
         return block.caption
           ? { ...block, caption: inline(block.caption) }
           : block;
+      case 'columns':
+        return {
+          ...block,
+          columns: block.columns.map((column) => ({
+            ...column,
+            content: reconcileReferenceData(
+              column.content,
+              references,
+              anchored,
+            ).content,
+          })),
+        };
+      case 'toggle':
+        return {
+          ...block,
+          summary: inline(block.summary),
+          content: reconcileReferenceData(block.content, references, anchored)
+            .content,
+        };
       default:
         return block;
     }

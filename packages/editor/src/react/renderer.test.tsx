@@ -148,6 +148,62 @@ describe('ScriptrRenderer', () => {
     expect(link).toHaveTextContent('The Day of the Lord');
   });
 
+  it('renders responsive columns and accessible heading toggles', () => {
+    const layoutDocument: CanonicalDocument = {
+      version: 2,
+      content: [
+        {
+          id: 'columns',
+          type: 'columns',
+          columns: [
+            {
+              id: 'left',
+              content: [
+                {
+                  id: 'left-text',
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'Left column' }],
+                },
+              ],
+            },
+            {
+              id: 'right',
+              content: [
+                {
+                  id: 'right-text',
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'Right column' }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'toggle',
+          type: 'toggle',
+          headingLevel: 2,
+          defaultOpen: true,
+          summary: [{ type: 'text', text: 'Heading toggle' }],
+          content: [
+            {
+              id: 'inside',
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Inside the toggle' }],
+            },
+          ],
+        },
+      ],
+    };
+    const { container } = render(<ScriptrRenderer document={layoutDocument} />);
+
+    expect(container.querySelectorAll('[data-scriptr-column]')).toHaveLength(2);
+    expect(
+      screen.getByRole('heading', { name: 'Heading toggle', level: 2 }),
+    ).toBeInTheDocument();
+    expect(container.querySelector('details')).toHaveAttribute('open');
+    expect(screen.getByText('Inside the toggle')).toBeInTheDocument();
+  });
+
   it('renders registered extension blocks and isolates extension failures', () => {
     const onRenderError = vi.fn();
     const consoleError = vi

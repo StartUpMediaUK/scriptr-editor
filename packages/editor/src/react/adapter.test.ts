@@ -129,6 +129,65 @@ describe('canonical editor adapter', () => {
     );
   });
 
+  it('round-trips nested columns and heading toggles as editable nodes', () => {
+    const layouts: CanonicalDocument = {
+      version: 2,
+      content: [
+        {
+          id: 'columns',
+          type: 'columns',
+          columns: [
+            {
+              id: 'left',
+              content: [
+                {
+                  id: 'left-text',
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'Left column' }],
+                },
+              ],
+            },
+            {
+              id: 'right',
+              content: [
+                {
+                  id: 'right-text',
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'Right column' }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'toggle',
+          type: 'toggle',
+          headingLevel: 2,
+          defaultOpen: true,
+          summary: [{ type: 'text', text: 'A heading toggle' }],
+          content: [
+            {
+              id: 'toggle-text',
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Toggle content' }],
+            },
+          ],
+        },
+      ],
+    };
+
+    const editorJson = canonicalToEditorJson(layouts);
+    expect(editorJson.content?.[0]).toMatchObject({
+      type: 'columns',
+      content: [{ type: 'column' }, { type: 'column' }],
+    });
+    expect(editorJson.content?.[1]).toMatchObject({
+      type: 'toggle',
+      attrs: { headingLevel: 2, defaultOpen: true },
+    });
+    expect(editorJsonToCanonical(editorJson)).toEqual(layouts);
+  });
+
   it('rejects malformed editor JSON', () => {
     expect(() => editorJsonToCanonical({ type: 'page', content: [] })).toThrow(
       'doc root',

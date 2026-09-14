@@ -230,6 +230,182 @@ const HighlightColour = Mark.create({
   },
 });
 
+const ColumnLayout = Node.create({
+  name: 'columns',
+  group: 'block',
+  content: 'column{2,4}',
+  draggable: true,
+  defining: true,
+  addAttributes() {
+    return { id: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: 'section[data-scriptr-columns]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'section',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-columns': '',
+        class: 'scriptr-editor__columns',
+      }),
+      0,
+    ];
+  },
+});
+
+const Column = Node.create({
+  name: 'column',
+  content: 'block+',
+  defining: true,
+  addAttributes() {
+    return { id: { default: null } };
+  },
+  parseHTML() {
+    return [{ tag: 'div[data-scriptr-column]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-column': '',
+        class: 'scriptr-editor__column',
+      }),
+      0,
+    ];
+  },
+});
+
+const Toggle = Node.create({
+  name: 'toggle',
+  group: 'block',
+  content: 'toggleSummary toggleContent',
+  draggable: true,
+  defining: true,
+  addAttributes() {
+    return {
+      id: { default: null },
+      headingLevel: { default: null },
+      defaultOpen: { default: false },
+    };
+  },
+  parseHTML() {
+    return [{ tag: 'details[data-scriptr-toggle]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    const { defaultOpen, headingLevel, ...attributes } = HTMLAttributes;
+    return [
+      'details',
+      mergeAttributes(attributes, {
+        'data-scriptr-toggle': '',
+        ...(headingLevel ? { 'data-heading-level': String(headingLevel) } : {}),
+        ...(defaultOpen ? { open: '' } : {}),
+        class: 'scriptr-editor__toggle',
+      }),
+      0,
+    ];
+  },
+  addNodeView() {
+    return ({ editor, getPos, node }) => {
+      let currentNode = node;
+      const dom = document.createElement('details');
+      dom.className = 'scriptr-editor__toggle';
+      dom.dataset.scriptrToggle = '';
+
+      const syncAttributes = () => {
+        const headingLevel: unknown = currentNode.attrs.headingLevel;
+        if (headingLevel === 1 || headingLevel === 2 || headingLevel === 3) {
+          dom.dataset.headingLevel = String(headingLevel);
+        } else {
+          delete dom.dataset.headingLevel;
+        }
+        dom.open = currentNode.attrs.defaultOpen === true;
+      };
+
+      const persistOpenState = () => {
+        if (!editor.isEditable || currentNode.attrs.defaultOpen === dom.open)
+          return;
+        const position = getPos();
+        if (typeof position !== 'number') return;
+        editor.view.dispatch(
+          editor.state.tr.setNodeMarkup(position, undefined, {
+            ...currentNode.attrs,
+            defaultOpen: dom.open,
+          }),
+        );
+      };
+
+      const toggleFromSummary = (event: MouseEvent) => {
+        const target = event.target;
+        if (!(target instanceof Element) || !target.closest('summary')) return;
+        const nextOpen = !dom.open;
+        event.preventDefault();
+        globalThis.setTimeout(() => {
+          dom.open = nextOpen;
+          persistOpenState();
+        }, 0);
+      };
+
+      dom.addEventListener('toggle', persistOpenState);
+      dom.addEventListener('click', toggleFromSummary, true);
+      syncAttributes();
+
+      return {
+        dom,
+        contentDOM: dom,
+        update(updatedNode) {
+          if (updatedNode.type !== currentNode.type) return false;
+          currentNode = updatedNode;
+          syncAttributes();
+          return true;
+        },
+        destroy() {
+          dom.removeEventListener('toggle', persistOpenState);
+          dom.removeEventListener('click', toggleFromSummary, true);
+        },
+      };
+    };
+  },
+});
+
+const ToggleSummary = Node.create({
+  name: 'toggleSummary',
+  content: 'inline*',
+  defining: true,
+  parseHTML() {
+    return [{ tag: 'summary[data-scriptr-toggle-summary]' }];
+  },
+  renderHTML() {
+    return [
+      'summary',
+      {
+        'data-scriptr-toggle-summary': '',
+        class: 'scriptr-editor__toggle-summary',
+      },
+      0,
+    ];
+  },
+});
+
+const ToggleContent = Node.create({
+  name: 'toggleContent',
+  content: 'block+',
+  defining: true,
+  parseHTML() {
+    return [{ tag: 'div[data-scriptr-toggle-content]' }];
+  },
+  renderHTML() {
+    return [
+      'div',
+      {
+        'data-scriptr-toggle-content': '',
+        class: 'scriptr-editor__toggle-content',
+      },
+      0,
+    ];
+  },
+});
+
 const idTypes = [
   'paragraph',
   'heading',
@@ -245,6 +421,9 @@ const idTypes = [
   'portableBlock',
   'scriptureBlock',
   'imageBlock',
+  'columns',
+  'column',
+  'toggle',
 ];
 
 export function createEditorExtensions(
@@ -268,6 +447,11 @@ export function createEditorExtensions(
     }),
     TaskList,
     TaskItem.configure({ nested: true }),
+    ColumnLayout,
+    Column,
+    Toggle,
+    ToggleSummary,
+    ToggleContent,
     Callout,
     createPortableBlock(extensions),
     createScriptureBlockNode(scriptureProvider),

@@ -219,6 +219,11 @@ const editorCommandIds = new Set([
   'code',
   'callout',
   'divider',
+  'columns',
+  'toggle',
+  'toggle-heading-1',
+  'toggle-heading-2',
+  'toggle-heading-3',
 ]);
 
 const runEditorCommand = (id: string, editor: Editor): void => {
@@ -258,6 +263,45 @@ const runEditorCommand = (id: string, editor: Editor): void => {
       return;
     case 'divider':
       void chain.setHorizontalRule().run();
+      return;
+    case 'columns':
+      void chain
+        .insertContent({
+          type: 'columns',
+          content: [
+            { type: 'column', content: [{ type: 'paragraph' }] },
+            { type: 'column', content: [{ type: 'paragraph' }] },
+          ],
+        })
+        .run();
+      return;
+    case 'toggle':
+    case 'toggle-heading-1':
+    case 'toggle-heading-2':
+    case 'toggle-heading-3': {
+      const headingLevel =
+        id === 'toggle-heading-1'
+          ? 1
+          : id === 'toggle-heading-2'
+            ? 2
+            : id === 'toggle-heading-3'
+              ? 3
+              : null;
+      void chain
+        .insertContent({
+          type: 'toggle',
+          attrs: { headingLevel, defaultOpen: true },
+          content: [
+            { type: 'toggleSummary' },
+            {
+              type: 'toggleContent',
+              content: [{ type: 'paragraph' }],
+            },
+          ],
+        })
+        .run();
+      return;
+    }
   }
 };
 
@@ -309,6 +353,79 @@ function moveCurrentBlockView(view: EditorView, direction: -1 | 1) {
     transaction.insert(currentStart + nextNode.nodeSize, currentNode);
   }
   view.dispatch(transaction.scrollIntoView());
+}
+
+function replaceSelectedBlockWithColumns(editor: Editor) {
+  const { selection, schema } = editor.state;
+  if (!(selection instanceof NodeSelection)) return false;
+  const columnsType = schema.nodes.columns;
+  const columnType = schema.nodes.column;
+  const paragraphType = schema.nodes.paragraph;
+  if (!columnsType || !columnType || !paragraphType) return false;
+  const emptyParagraph = paragraphType.createAndFill();
+  if (!emptyParagraph) return false;
+  const columns = columnsType.create(null, [
+    columnType.create(null, selection.node),
+    columnType.create(null, emptyParagraph),
+  ]);
+  const transaction = editor.state.tr.replaceSelectionWith(columns);
+  transaction.setSelection(
+    TextSelection.near(transaction.doc.resolve(selection.from + 2)),
+  );
+  editor.view.dispatch(transaction.scrollIntoView());
+  return true;
+}
+
+function selectBlockForAction(editor: Editor, preferredPosition: number) {
+  if (editor.state.selection instanceof NodeSelection) return true;
+  const fallbackPosition =
+    editor.state.selection.$from.depth > 0
+      ? editor.state.selection.$from.before(1)
+      : 0;
+  const position =
+    preferredPosition >= 0 ? preferredPosition : fallbackPosition;
+  const node = editor.state.doc.nodeAt(position);
+  if (!node?.isBlock) return false;
+  editor.commands.setNodeSelection(position);
+  return editor.state.selection instanceof NodeSelection;
+}
+
+function replaceSelectedBlockWithToggle(editor: Editor) {
+  const { selection, schema } = editor.state;
+  if (!(selection instanceof NodeSelection)) return false;
+  const toggleType = schema.nodes.toggle;
+  const summaryType = schema.nodes.toggleSummary;
+  const contentType = schema.nodes.toggleContent;
+  const paragraphType = schema.nodes.paragraph;
+  if (!toggleType || !summaryType || !contentType || !paragraphType)
+    return false;
+
+  const textBlock = selection.node.isTextblock;
+  const summary = summaryType.create(
+    null,
+    textBlock ? selection.node.content : undefined,
+  );
+  const emptyParagraph = paragraphType.createAndFill();
+  if (!emptyParagraph) return false;
+  const body = contentType.create(
+    null,
+    textBlock ? emptyParagraph : selection.node,
+  );
+  const level: unknown =
+    selection.node.type.name === 'heading' ? selection.node.attrs.level : null;
+  const toggle = toggleType.create(
+    {
+      defaultOpen: true,
+      headingLevel: level === 1 || level === 2 || level === 3 ? level : null,
+    },
+    [summary, body],
+  );
+  const transaction = editor.state.tr.replaceSelectionWith(toggle);
+  transaction.setSelection(
+    TextSelection.near(transaction.doc.resolve(selection.from + 2)),
+  );
+  editor.view.dispatch(transaction.scrollIntoView());
+  return true;
 }
 
 function moveCurrentBlock(editor: Editor, direction: -1 | 1) {
@@ -1337,6 +1454,44 @@ export const ScriptrEditor = forwardRef<
                   variant="ghost"
                 >
                   Turn into heading 1
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (
+                      selectBlockForAction(
+                        editor,
+                        activeBlockPositionRef.current,
+                      )
+                    )
+                      replaceSelectedBlockWithColumns(editor);
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Columns2 data-icon="inline-start" />
+                  Turn into columns
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (
+                      selectBlockForAction(
+                        editor,
+                        activeBlockPositionRef.current,
+                      )
+                    )
+                      replaceSelectedBlockWithToggle(editor);
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <ListCollapse data-icon="inline-start" />
+                  Turn into toggle
                 </Button>
                 <Popover>
                   <PopoverTrigger
