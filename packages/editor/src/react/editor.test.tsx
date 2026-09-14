@@ -50,7 +50,7 @@ describe('ScriptrEditor', () => {
     fireEvent.click(handle);
     expect(screen.getByText('Turn into text')).toBeInTheDocument();
 
-    fireEvent.pointerDown(screen.getByLabelText('Document editor'));
+    fireEvent.click(screen.getByLabelText('Document editor'));
     await waitFor(() =>
       expect(screen.queryByText('Turn into text')).toBeNull(),
     );
@@ -262,17 +262,17 @@ describe('ScriptrEditor', () => {
     expect(screen.getByText('Layout')).toBeInTheDocument();
     expect(screen.getByText('#')).toBeInTheDocument();
     expect(
-      screen.getAllByRole('menuitem')[0]?.querySelector('svg'),
+      screen.getAllByRole('option')[0]?.querySelector('svg'),
     ).not.toBeNull();
     expect(screen.queryByText('Large heading')).not.toBeInTheDocument();
 
     fireEvent.keyDown(editor, { key: 'ArrowDown' });
-    expect(screen.getByRole('menuitem', { name: /Heading 1/ })).toHaveAttribute(
+    expect(screen.getByRole('option', { name: /Heading 1/ })).toHaveAttribute(
       'data-selected',
       'true',
     );
 
-    fireEvent.click(screen.getByRole('menuitem', { name: /Reference/ }));
+    fireEvent.click(screen.getByRole('option', { name: /Reference/ }));
     expect(
       screen.getByRole('dialog', { name: 'Add Reference' }),
     ).toHaveTextContent('Reference name');

@@ -1,7 +1,31 @@
 import type { NodeViewProps } from '@tiptap/react';
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Columns2,
+  Plus,
+  RectangleHorizontal,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { Button } from '../components/ui/button.js';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '../components/ui/popover.js';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select.js';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
 import type {
   ScriptureAddress,
   ScriptureBlock,
@@ -308,6 +332,14 @@ export function ScriptureBlockContent({
       new Map(translations.map((translation) => [translation.id, translation])),
     [translations],
   );
+  const translationItems = useMemo(
+    () =>
+      translations.map((translation) => ({
+        label: translation.abbreviation,
+        value: translation.id,
+      })),
+    [translations],
+  );
   const label = structure
     ? formatScriptureAddress(block.address, structure)
     : `${block.address.book} ${block.address.chapter}${
@@ -341,59 +373,81 @@ export function ScriptureBlockContent({
         )}
         {editable && translations.length ? (
           block.type === 'scripture' ? (
-            <select
-              aria-label="Scripture translation"
+            <Select
+              items={translationItems}
               value={block.translationId}
-              onChange={(event) =>
-                onChange?.({
-                  ...block,
-                  translationId: event.currentTarget.value,
-                })
-              }
+              onValueChange={(translationId) => {
+                if (
+                  translationId === null ||
+                  translationId === block.translationId
+                )
+                  return;
+                onChange?.({ ...block, translationId });
+              }}
             >
-              {translations.map((translation) => (
-                <option key={translation.id} value={translation.id}>
-                  {translation.abbreviation}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger aria-label="Scripture translation" size="sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {translations.map((translation) => (
+                    <SelectItem key={translation.id} value={translation.id}>
+                      {translation.abbreviation}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           ) : (
             <div className="scriptr-scripture__layout">
-              <button
-                aria-label="One column"
-                aria-pressed={block.layout === 'oneColumn'}
-                onClick={() => onChange?.({ ...block, layout: 'oneColumn' })}
-                type="button"
+              <ToggleGroup
+                aria-label="Scripture comparison layout"
+                onValueChange={(layouts) => {
+                  const layout = layouts[0];
+                  if (layout === 'oneColumn' || layout === 'twoColumn') {
+                    onChange?.({ ...block, layout });
+                  }
+                }}
+                size="icon"
+                value={[block.layout]}
               >
-                ▰
-              </button>
-              <button
-                aria-label="Two columns"
-                aria-pressed={block.layout === 'twoColumn'}
-                onClick={() => onChange?.({ ...block, layout: 'twoColumn' })}
-                type="button"
+                <ToggleGroupItem aria-label="One column" value="oneColumn">
+                  <RectangleHorizontal />
+                </ToggleGroupItem>
+                <ToggleGroupItem aria-label="Two columns" value="twoColumn">
+                  <Columns2 />
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Popover
+                onOpenChange={setTranslationMenuOpen}
+                open={translationMenuOpen}
               >
-                ▥
-              </button>
-              <button
-                aria-expanded={translationMenuOpen}
-                aria-label="Add translation"
-                onClick={() => setTranslationMenuOpen((open) => !open)}
-                type="button"
-              >
-                ＋
-              </button>
-              {translationMenuOpen ? (
-                <div
-                  className="scriptr-scripture__translation-menu"
-                  role="menu"
+                <PopoverTrigger
+                  render={
+                    <Button
+                      aria-label="Add translation"
+                      disabled={translationIds.length === translations.length}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    />
+                  }
                 >
+                  <Plus />
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  className="scriptr-scripture__translation-menu"
+                >
+                  <PopoverTitle className="sr-only">
+                    Add translation
+                  </PopoverTitle>
                   {translations
                     .filter(
                       (translation) => !translationIds.includes(translation.id),
                     )
                     .map((translation) => (
-                      <button
+                      <Button
                         key={translation.id}
                         onClick={() => {
                           replaceTranslations([
@@ -403,13 +457,15 @@ export function ScriptureBlockContent({
                           setTranslationMenuOpen(false);
                         }}
                         role="menuitem"
+                        size="sm"
                         type="button"
+                        variant="ghost"
                       >
                         {translation.name}
-                      </button>
+                      </Button>
                     ))}
-                </div>
-              ) : null}
+                </PopoverContent>
+              </Popover>
             </div>
           )
         ) : null}
@@ -424,7 +480,7 @@ export function ScriptureBlockContent({
             />
             {editable && block.type === 'translationComparison' ? (
               <div className="scriptr-scripture__translation-controls">
-                <button
+                <Button
                   aria-label={`Move ${translationId} earlier`}
                   disabled={index === 0}
                   onClick={() =>
@@ -432,11 +488,13 @@ export function ScriptureBlockContent({
                       moveTranslation(translationIds, index, index - 1),
                     )
                   }
+                  size="icon-sm"
                   type="button"
+                  variant="ghost"
                 >
-                  ↑
-                </button>
-                <button
+                  <ArrowUp />
+                </Button>
+                <Button
                   aria-label={`Move ${translationId} later`}
                   disabled={index === translationIds.length - 1}
                   onClick={() =>
@@ -444,11 +502,13 @@ export function ScriptureBlockContent({
                       moveTranslation(translationIds, index, index + 1),
                     )
                   }
+                  size="icon-sm"
                   type="button"
+                  variant="ghost"
                 >
-                  ↓
-                </button>
-                <button
+                  <ArrowDown />
+                </Button>
+                <Button
                   aria-label={`Remove ${translationId}`}
                   disabled={translationIds.length === 1}
                   onClick={() =>
@@ -456,10 +516,12 @@ export function ScriptureBlockContent({
                       translationIds.filter((id) => id !== translationId),
                     )
                   }
+                  size="icon-sm"
                   type="button"
+                  variant="ghost"
                 >
-                  ×
-                </button>
+                  <X />
+                </Button>
               </div>
             ) : null}
           </div>

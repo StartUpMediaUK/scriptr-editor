@@ -349,7 +349,7 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
       return <blockquote key={block.id}>{inline(block.content)}</blockquote>;
     case 'codeBlock':
       return (
-        <pre key={block.id}>
+        <pre className="native-scrollbar" key={block.id}>
           <code data-language={block.language}>{block.code}</code>
         </pre>
       );

@@ -13,6 +13,8 @@ import {
 import StarterKit from '@tiptap/starter-kit';
 import { useState } from 'react';
 
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import type {
   Mark,
   Reference,
@@ -184,41 +186,49 @@ export function ReferenceEditor({
         .join(' ')}
     >
       <BubbleMenu editor={editor} className="scriptr-reference-editor__toolbar">
-        <button
+        <Button
           aria-label="Bold"
           aria-pressed={editor.isActive('bold')}
           onClick={() => void editor.chain().focus().toggleBold().run()}
+          size="icon-sm"
           type="button"
+          variant="ghost"
         >
           <Bold aria-hidden="true" />
-        </button>
-        <button
+        </Button>
+        <Button
           aria-label="Italic"
           aria-pressed={editor.isActive('italic')}
           onClick={() => void editor.chain().focus().toggleItalic().run()}
+          size="icon-sm"
           type="button"
+          variant="ghost"
         >
           <Italic aria-hidden="true" />
-        </button>
-        <button
+        </Button>
+        <Button
           aria-label="Underline"
           aria-pressed={editor.isActive('underline')}
           onClick={() => void editor.chain().focus().toggleUnderline().run()}
+          size="icon-sm"
           type="button"
+          variant="ghost"
         >
           <UnderlineIcon aria-hidden="true" />
-        </button>
-        <button
+        </Button>
+        <Button
           aria-label="Link"
           aria-pressed={editor.isActive('link')}
           onClick={() => {
             setLinkHref(String(editor.getAttributes('link').href ?? ''));
             setLinkEditorOpen((open) => !open);
           }}
+          size="icon-sm"
           type="button"
+          variant="ghost"
         >
           <LinkIcon aria-hidden="true" />
-        </button>
+        </Button>
         {linkEditorOpen ? (
           <form
             className="scriptr-reference-editor__link"
@@ -230,7 +240,7 @@ export function ReferenceEditor({
               setLinkEditorOpen(false);
             }}
           >
-            <input
+            <Input
               aria-label="Link URL"
               autoFocus
               onChange={(event) => setLinkHref(event.currentTarget.value)}
@@ -238,7 +248,9 @@ export function ReferenceEditor({
               type="url"
               value={linkHref}
             />
-            <button type="submit">Apply</button>
+            <Button size="sm" type="submit">
+              Apply
+            </Button>
           </form>
         ) : null}
       </BubbleMenu>
@@ -273,7 +285,7 @@ export function ReferenceEditor({
           ]
             .filter((item) => item.label.toLowerCase().includes(slashQuery))
             .map((item) => (
-              <button
+              <Button
                 key={item.id}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => {
@@ -288,10 +300,12 @@ export function ReferenceEditor({
                   setSlashQuery(undefined);
                 }}
                 role="menuitem"
+                size="sm"
                 type="button"
+                variant="ghost"
               >
                 {item.label}
-              </button>
+              </Button>
             ))}
         </div>
       ) : null}

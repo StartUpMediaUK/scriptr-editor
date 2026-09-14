@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { Button } from '../components/ui/button.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import type { ScriptureAddress } from '../document/types.js';
 import type {
   ScriptureProvider,
@@ -51,61 +53,73 @@ export function ScriptureCommandDialog({
     return () => controller.abort();
   }, [attempt, provider]);
 
+  const title =
+    mode === 'scripture' ? 'Insert Scripture' : 'Insert translation comparison';
   return (
-    <div
-      aria-label={
-        mode === 'scripture'
-          ? 'Insert Scripture'
-          : 'Insert translation comparison'
-      }
-      aria-modal="true"
-      className="scriptr-editor__workflow-dialog"
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') onCancel();
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open) onCancel();
       }}
-      role="dialog"
+      open
     >
-      {state.status === 'loading' ? (
-        <p role="status">Loading Scripture data…</p>
-      ) : state.status === 'error' ? (
-        <div className="scriptr-editor__workflow-status" role="alert">
-          <p>Scripture is unavailable right now.</p>
-          <button
-            onClick={() => setAttempt((value) => value + 1)}
-            type="button"
-          >
-            Try again
-          </button>
-          <button onClick={onCancel} type="button">
-            Cancel
-          </button>
-        </div>
-      ) : state.translations.length < (mode === 'comparison' ? 2 : 1) ? (
-        <div className="scriptr-editor__workflow-status" role="alert">
-          <p>
-            {mode === 'comparison'
-              ? 'At least two translations are required.'
-              : 'No Scripture translations are available.'}
-          </p>
-          <button onClick={onCancel} type="button">
-            Close
-          </button>
-        </div>
-      ) : (
-        <ScripturePicker
-          onCancel={onCancel}
-          onSelect={(address) =>
-            onSelect(
-              address,
-              state.translations
-                .slice(0, mode === 'comparison' ? 2 : 1)
-                .map((translation) => translation.id),
-            )
-          }
-          structure={state.structure}
-          translationId={state.translations[0]?.id}
-        />
-      )}
-    </div>
+      <DialogContent
+        aria-label={title}
+        className="scriptr-editor__workflow-dialog--scripture"
+      >
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        {state.status === 'loading' ? (
+          <p role="status">Loading Scripture data…</p>
+        ) : state.status === 'error' ? (
+          <div className="scriptr-editor__workflow-status" role="alert">
+            <p>Scripture is unavailable right now.</p>
+            <Button
+              onClick={() => setAttempt((value) => value + 1)}
+              size="sm"
+              type="button"
+            >
+              Try again
+            </Button>
+            <Button
+              onClick={onCancel}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+          </div>
+        ) : state.translations.length < (mode === 'comparison' ? 2 : 1) ? (
+          <div className="scriptr-editor__workflow-status" role="alert">
+            <p>
+              {mode === 'comparison'
+                ? 'At least two translations are required.'
+                : 'No Scripture translations are available.'}
+            </p>
+            <Button
+              onClick={onCancel}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Close
+            </Button>
+          </div>
+        ) : (
+          <ScripturePicker
+            onCancel={onCancel}
+            onSelect={(address) =>
+              onSelect(
+                address,
+                state.translations
+                  .slice(0, mode === 'comparison' ? 2 : 1)
+                  .map((translation) => translation.id),
+              )
+            }
+            structure={state.structure}
+            translationId={state.translations[0]?.id}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

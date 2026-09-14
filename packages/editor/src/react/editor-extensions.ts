@@ -255,6 +255,7 @@ export function createEditorExtensions(
 ) {
   return [
     StarterKit.configure({
+      codeBlock: { HTMLAttributes: { class: 'native-scrollbar' } },
       link: false,
       underline: false,
       trailingNode: false,

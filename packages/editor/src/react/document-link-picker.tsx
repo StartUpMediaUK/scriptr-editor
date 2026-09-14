@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 
+import { Button } from '../components/ui/button.js';
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from '../components/ui/combobox.js';
 import type {
   DocumentTarget,
   DocumentTargetProvider,
@@ -17,8 +28,10 @@ export function DocumentLinkPicker({
   onCancel,
 }: DocumentLinkPickerProps) {
   const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
   const [targets, setTargets] = useState<readonly DocumentTarget[]>([]);
   const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
+
   useEffect(() => {
     const controller = new AbortController();
     setState('loading');
@@ -26,6 +39,7 @@ export function DocumentLinkPicker({
       (results) => {
         setTargets(results);
         setState('idle');
+        if (query && results.length) setOpen(true);
       },
       () => {
         if (!controller.signal.aborted) setState('error');
@@ -33,44 +47,65 @@ export function DocumentLinkPicker({
     );
     return () => controller.abort();
   }, [provider, query]);
+
   return (
     <section aria-label="Link to document" className="scriptr-document-picker">
       <header>
         <strong>Link to document</strong>
         {onCancel ? (
-          <button
+          <Button
             aria-label="Close document picker"
             onClick={onCancel}
+            size="icon-sm"
             type="button"
+            variant="ghost"
           >
-            ×
-          </button>
+            <X />
+          </Button>
         ) : null}
       </header>
-      <input
-        aria-label="Search documents"
-        autoFocus
-        placeholder="Find a document…"
-        value={query}
-        onChange={(event) => setQuery(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') onCancel?.();
-          if (event.key === 'Enter' && targets[0]) onSelect(targets[0]);
+      <Combobox<DocumentTarget>
+        inputValue={query}
+        itemToStringLabel={(target) => target.label}
+        items={targets}
+        onInputValueChange={(value) => {
+          setQuery(value);
+          setOpen(true);
         }}
-      />
-      <div role="listbox">
-        {targets.map((target) => (
-          <button
-            key={target.id}
-            onClick={() => onSelect(target)}
-            role="option"
-            type="button"
-          >
-            <span>{target.label}</span>
-            {target.description ? <small>{target.description}</small> : null}
-          </button>
-        ))}
-      </div>
+        onOpenChange={setOpen}
+        onValueChange={(target) => {
+          if (target) {
+            setOpen(false);
+            onSelect(target);
+          }
+        }}
+        open={open}
+      >
+        <ComboboxInput
+          aria-label="Search documents"
+          autoFocus
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') onCancel?.();
+          }}
+          placeholder="Find a document…"
+          showClear
+        />
+        <ComboboxContent>
+          <ComboboxList>
+            <ComboboxGroup>
+              {targets.map((target) => (
+                <ComboboxItem key={target.id} value={target}>
+                  <span>{target.label}</span>
+                  {target.description ? (
+                    <small>{target.description}</small>
+                  ) : null}
+                </ComboboxItem>
+              ))}
+            </ComboboxGroup>
+            <ComboboxEmpty>No documents found.</ComboboxEmpty>
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
       <p role="status">
         {state === 'loading'
           ? 'Searching…'

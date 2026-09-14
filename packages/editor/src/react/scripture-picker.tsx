@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { ScrollArea } from '../components/ui/scroll-area.js';
 import type { ScriptureAddress } from '../document/types.js';
 import {
   formatScriptureAddress,
@@ -97,18 +101,20 @@ export function ScripturePicker({
           <h2>Choose a reference</h2>
         </div>
         {onCancel ? (
-          <button
+          <Button
             aria-label="Close Scripture picker"
             onClick={onCancel}
+            size="icon-sm"
             type="button"
+            variant="ghost"
           >
-            ×
-          </button>
+            <X />
+          </Button>
         ) : null}
       </header>
       <label className="scriptr-scripture-picker__search">
         <span className="sr-only">Bible reference</span>
-        <input
+        <Input
           autoFocus
           autoComplete="off"
           placeholder="Romans 8:28-30"
@@ -152,73 +158,87 @@ export function ScripturePicker({
           }[result.stage]}
       </p>
       {!book && result.books.length ? (
-        <div className="scriptr-scripture-picker__book-groups" role="listbox">
-          {(['old', 'new', 'other'] as const).map((testament) => {
-            const books = result.books.filter((candidate) =>
-              testament === 'other'
-                ? !candidate.testament
-                : candidate.testament === testament,
-            );
-            if (!books.length) return null;
-            return (
-              <section key={testament}>
-                <p>
-                  {testament === 'old'
-                    ? 'Old Testament'
-                    : testament === 'new'
-                      ? 'New Testament'
-                      : 'Books'}
-                </p>
-                {books.map((candidate) => (
-                  <button
-                    key={candidate.id}
-                    onClick={() => {
-                      setSelectedBookId(candidate.id);
-                      chooseQuery(nameOf(candidate));
-                    }}
-                    role="option"
-                    type="button"
-                  >
-                    {nameOf(candidate)}
-                  </button>
-                ))}
-              </section>
-            );
-          })}
-        </div>
+        <ScrollArea className="scriptr-scripture-picker__book-groups">
+          <div
+            className="scriptr-scripture-picker__book-groups-content"
+            role="listbox"
+          >
+            {(['old', 'new', 'other'] as const).map((testament) => {
+              const books = result.books.filter((candidate) =>
+                testament === 'other'
+                  ? !candidate.testament
+                  : candidate.testament === testament,
+              );
+              if (!books.length) return null;
+              return (
+                <section key={testament}>
+                  <p>
+                    {testament === 'old'
+                      ? 'Old Testament'
+                      : testament === 'new'
+                        ? 'New Testament'
+                        : 'Books'}
+                  </p>
+                  {books.map((candidate) => (
+                    <Button
+                      key={candidate.id}
+                      onClick={() => {
+                        setSelectedBookId(candidate.id);
+                        chooseQuery(nameOf(candidate));
+                      }}
+                      role="option"
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      {nameOf(candidate)}
+                    </Button>
+                  ))}
+                </section>
+              );
+            })}
+          </div>
+        </ScrollArea>
       ) : options.length ? (
-        <div className="scriptr-scripture-picker__options" role="listbox">
-          {options.map((option, index) => {
-            const verse = Number(option.label);
-            const start = result.address?.verseStart;
-            const end = result.address?.verseEnd ?? start;
-            const selected = Boolean(
-              start && end && verse >= start && verse <= end,
-            );
-            return (
-              <button
-                aria-selected={selected || index === activeIndex}
-                data-active={index === activeIndex || undefined}
-                data-selected={selected || undefined}
-                key={option.query}
-                onClick={() =>
-                  result.stage === 'chapter'
-                    ? chooseQuery(option.query)
-                    : chooseVerse(verse, option.query)
-                }
-                onMouseEnter={() => {
-                  const preview = rangeQuery(verse);
-                  if (preview) setPreviewQuery(preview);
-                }}
-                onMouseLeave={() => setPreviewQuery(undefined)}
-                role="option"
-                type="button"
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        <ScrollArea className="scriptr-scripture-picker__options">
+          <div
+            className="scriptr-scripture-picker__options-content"
+            role="listbox"
+          >
+            {options.map((option, index) => {
+              const verse = Number(option.label);
+              const start = result.address?.verseStart;
+              const end = result.address?.verseEnd ?? start;
+              const selected = Boolean(
+                start && end && verse >= start && verse <= end,
+              );
+              return (
+                <Button
+                  aria-selected={selected || index === activeIndex}
+                  data-active={index === activeIndex || undefined}
+                  data-selected={selected || undefined}
+                  key={option.query}
+                  onClick={() =>
+                    result.stage === 'chapter'
+                      ? chooseQuery(option.query)
+                      : chooseVerse(verse, option.query)
+                  }
+                  onMouseEnter={() => {
+                    const preview = rangeQuery(verse);
+                    if (preview) setPreviewQuery(preview);
+                  }}
+                  onMouseLeave={() => setPreviewQuery(undefined)}
+                  role="option"
+                  size="icon-sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  {option.label}
+                </Button>
+              );
+            })}
+          </div>
+        </ScrollArea>
       ) : null}
       <footer className="scriptr-scripture-picker__footer">
         <span>
@@ -226,14 +246,15 @@ export function ScripturePicker({
             ? formatScriptureAddress(result.address, structure)
             : 'Type a book name or abbreviation'}
         </span>
-        <button
+        <Button
           className="scriptr-scripture-picker__insert"
           disabled={!result.address || Boolean(result.error)}
           onClick={submit}
+          size="sm"
           type="button"
         >
           Insert reference
-        </button>
+        </Button>
       </footer>
     </section>
   );

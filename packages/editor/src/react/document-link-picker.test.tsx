@@ -2,13 +2,7 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { DocumentTargetProvider } from '../host/documents.js';
@@ -31,7 +25,7 @@ describe('DocumentLinkPicker', () => {
     const onSelect = vi.fn();
     render(<DocumentLinkPicker onSelect={onSelect} provider={provider} />);
     fireEvent.change(
-      screen.getByRole('textbox', { name: 'Search documents' }),
+      screen.getByRole('combobox', { name: 'Search documents' }),
       {
         target: { value: 'day' },
       },
@@ -45,8 +39,5 @@ describe('DocumentLinkPicker', () => {
       label: 'The Day of the Lord',
       description: 'Study',
     });
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent(''),
-    );
   });
 });

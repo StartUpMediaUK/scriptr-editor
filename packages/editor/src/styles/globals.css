@@ -1,6 +1,4 @@
 @import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
 @import '../react/styles.css';
 
 @custom-variant dark (&:is(.dark *));
@@ -15,6 +13,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
   --radius-sm: 2px;
   --radius-md: 4px;
   --radius-lg: 7px;
@@ -30,6 +35,13 @@
   --border: #d9d3c8;
   --input: #d9d3c8;
   --ring: #a56f2b;
+  --primary: #7f501d;
+  --primary-foreground: #f7f5f0;
+  --secondary: #efede7;
+  --secondary-foreground: #201f1d;
+  --accent: #e7e1d7;
+  --accent-foreground: #201f1d;
+  --destructive: #9b3f38;
 }
 
 .dark {
@@ -42,4 +54,47 @@
   --border: #47433d;
   --input: #47433d;
   --ring: #cfa15f;
+  --primary: #cfa15f;
+  --primary-foreground: #201f1d;
+  --secondary: #2a2825;
+  --secondary-foreground: #eee9df;
+  --accent: #35322e;
+  --accent-foreground: #eee9df;
+  --destructive: #d66c63;
+}
+
+/* Native overflow regions match the slim shadcn ScrollArea treatment. */
+.native-scrollbar {
+  scrollbar-color: color-mix(in oklab, currentColor 24%, transparent)
+    transparent;
+  scrollbar-width: thin;
+}
+
+.native-scrollbar::-webkit-scrollbar {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.native-scrollbar::-webkit-scrollbar-track,
+.native-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.native-scrollbar::-webkit-scrollbar-thumb {
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-color: color-mix(in oklab, currentColor 24%, transparent);
+  background-clip: content-box;
+}
+
+.native-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, currentColor 40%, transparent);
+}
+
+.native-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }

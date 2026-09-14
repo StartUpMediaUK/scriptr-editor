@@ -4,7 +4,35 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { EditorView } from '@tiptap/pm/view';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
-import { Link2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  AudioLines,
+  Blocks,
+  BookOpenText,
+  Bookmark,
+  CheckSquare,
+  Code2,
+  Columns2,
+  Heading,
+  GripVertical,
+  Image,
+  Link2,
+  List,
+  ListCollapse,
+  MessageSquareText,
+  Minus,
+  NotebookPen,
+  Quote,
+  Redo2,
+  Rows3,
+  Trash2,
+  Type,
+  Undo2,
+  Video,
+  X,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   forwardRef,
   useEffect,
@@ -16,6 +44,35 @@ import {
 import type { ReactNode } from 'react';
 
 import { createCommandCatalogue } from '../commands/catalogue.js';
+import { Button } from '../components/ui/button.js';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from '../components/ui/command.js';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog.js';
+import { Input } from '../components/ui/input.js';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '../components/ui/popover.js';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../components/ui/tooltip.js';
 import type { CommandIcon, ScriptrCommand } from '../commands/catalogue.js';
 import { defineScriptr } from '../config.js';
 import type { ScriptrConfiguration } from '../config.js';
@@ -339,58 +396,97 @@ function ToolbarButton({
   readonly children: ReactNode;
 }) {
   return (
-    <button
-      aria-label={label}
-      aria-pressed={active || undefined}
-      className="scriptr-editor__tool"
-      disabled={disabled}
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={onPress}
-      type="button"
-    >
-      {children}
-    </button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              aria-label={label}
+              aria-pressed={active || undefined}
+              className="scriptr-editor__tool"
+              disabled={disabled}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={onPress}
+              size="icon-sm"
+              type="button"
+              variant="ghost"
+            />
+          }
+        >
+          {children}
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
 function CommandIconView({ icon }: { readonly icon: CommandIcon }) {
+  let Icon: LucideIcon;
+  switch (icon) {
+    case 'text':
+      Icon = Type;
+      break;
+    case 'heading':
+      Icon = Heading;
+      break;
+    case 'list':
+      Icon = List;
+      break;
+    case 'checklist':
+      Icon = CheckSquare;
+      break;
+    case 'quote':
+      Icon = Quote;
+      break;
+    case 'code':
+      Icon = Code2;
+      break;
+    case 'callout':
+      Icon = MessageSquareText;
+      break;
+    case 'divider':
+      Icon = Minus;
+      break;
+    case 'scripture':
+      Icon = BookOpenText;
+      break;
+    case 'compare':
+      Icon = Rows3;
+      break;
+    case 'reference':
+      Icon = NotebookPen;
+      break;
+    case 'link':
+      Icon = Link2;
+      break;
+    case 'columns':
+      Icon = Columns2;
+      break;
+    case 'toggle':
+      Icon = ListCollapse;
+      break;
+    case 'image':
+      Icon = Image;
+      break;
+    case 'video':
+      Icon = Video;
+      break;
+    case 'audio':
+      Icon = AudioLines;
+      break;
+    case 'bookmark':
+      Icon = Bookmark;
+      break;
+    case 'extension':
+      Icon = Blocks;
+  }
   return (
-    <svg
+    <Icon
       aria-hidden="true"
       className="scriptr-editor__command-icon"
-      data-icon={icon}
-      viewBox="0 0 20 20"
-    >
-      <rect x="3" y="3" width="14" height="14" rx="2" />
-      {icon === 'columns' ? <path d="M10 3v14" /> : null}
-      {icon === 'toggle' ? <path d="m8 6 5 4-5 4Z" /> : null}
-      {icon === 'image' || icon === 'video' ? (
-        <path d="m5 14 3-4 2 2 2-3 3 5M7 7h.01" />
-      ) : null}
-      {icon === 'audio' ? (
-        <path d="M8 13V6l6-1v7M8 13c0 2-4 2-4 0s4-2 4 0Zm6-1c0 2-4 2-4 0s4-2 4 0Z" />
-      ) : null}
-      {icon === 'link' || icon === 'bookmark' ? (
-        <path d="M8 12 12 8M7 6H5a3 3 0 0 0 0 6h2m6-6h2a3 3 0 0 1 0 6h-2" />
-      ) : null}
-      {icon === 'scripture' || icon === 'compare' ? (
-        <path d="M6 5h8M6 8h8M6 11h5" />
-      ) : null}
-      {icon === 'reference' ? <path d="M7 6h6M7 10h6M7 14h4" /> : null}
-      {[
-        'text',
-        'heading',
-        'list',
-        'checklist',
-        'quote',
-        'code',
-        'callout',
-        'divider',
-        'extension',
-      ].includes(icon) ? (
-        <path d="M6 7h8M6 10h8M6 13h6" />
-      ) : null}
-    </svg>
+      data-command-icon={icon}
+    />
   );
 }
 
@@ -528,7 +624,6 @@ export const ScriptrEditor = forwardRef<
   const [slashIndex, setSlashIndex] = useState(0);
   const [blockMenuOpen, setBlockMenuOpen] = useState(false);
   const [customColourOpen, setCustomColourOpen] = useState(false);
-  const blockMenuRef = useRef<HTMLDivElement | null>(null);
   const activeBlockPositionRef = useRef(-1);
   const tiptapEditorRef = useRef<Editor | null>(null);
   const slashQueryRef = useRef<string | undefined>(undefined);
@@ -642,20 +737,10 @@ export const ScriptrEditor = forwardRef<
   useEffect(() => {
     if (!blockMenuOpen) return;
 
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        blockMenuRef.current?.contains(event.target)
-      )
-        return;
-      setBlockMenuOpen(false);
-    };
     const closeOnScroll = () => setBlockMenuOpen(false);
 
-    document.addEventListener('pointerdown', closeOnOutsidePointer, true);
     window.addEventListener('scroll', closeOnScroll, true);
     return () => {
-      document.removeEventListener('pointerdown', closeOnOutsidePointer, true);
       window.removeEventListener('scroll', closeOnScroll, true);
     };
   }, [blockMenuOpen]);
@@ -872,27 +957,27 @@ export const ScriptrEditor = forwardRef<
             disabled={!editor.can().undo()}
             onPress={() => void editor.chain().focus().undo().run()}
           >
-            ↶
+            <Undo2 />
           </ToolbarButton>
           <ToolbarButton
             label="Redo"
             disabled={!editor.can().redo()}
             onPress={() => void editor.chain().focus().redo().run()}
           >
-            ↷
+            <Redo2 />
           </ToolbarButton>
           <span className="scriptr-editor__history-divider" />
           <ToolbarButton
             label="Move block up"
             onPress={() => moveCurrentBlock(editor, -1)}
           >
-            ↑
+            <ArrowUp />
           </ToolbarButton>
           <ToolbarButton
             label="Move block down"
             onPress={() => moveCurrentBlock(editor, 1)}
           >
-            ↓
+            <ArrowDown />
           </ToolbarButton>
         </div>
       ) : null}
@@ -903,44 +988,73 @@ export const ScriptrEditor = forwardRef<
           className="scriptr-editor__bubble"
           options={{ placement: 'top' }}
         >
-          <details className="scriptr-editor__bubble-menu">
-            <summary>Normal text</summary>
-            <div className="scriptr-editor__bubble-panel">
-              <button
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button size="sm" type="button" variant="ghost">
+                  Normal text
+                </Button>
+              }
+            />
+            <PopoverContent className="scriptr-editor__bubble-panel">
+              <PopoverTitle className="sr-only">Turn text into</PopoverTitle>
+              <Button
                 onClick={() => void editor.chain().focus().setParagraph().run()}
+                size="sm"
                 type="button"
+                variant="ghost"
               >
                 Normal text
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() =>
                   void editor.chain().focus().toggleHeading({ level: 1 }).run()
                 }
+                size="sm"
                 type="button"
+                variant="ghost"
               >
                 Heading 1
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() =>
                   void editor.chain().focus().toggleHeading({ level: 2 }).run()
                 }
+                size="sm"
                 type="button"
+                variant="ghost"
               >
                 Heading 2
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() =>
                   void editor.chain().focus().toggleBlockquote().run()
                 }
+                size="sm"
                 type="button"
+                variant="ghost"
               >
                 Quote
-              </button>
-            </div>
-          </details>
-          <details className="scriptr-editor__bubble-menu">
-            <summary aria-label="Text and highlight colour">A</summary>
-            <div className="scriptr-editor__colour-panel">
+              </Button>
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button
+                  aria-label="Text and highlight colour"
+                  size="icon-sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  A
+                </Button>
+              }
+            />
+            <PopoverContent className="scriptr-editor__colour-panel">
+              <PopoverTitle className="sr-only">
+                Text and highlight colour
+              </PopoverTitle>
               <p>Text colour</p>
               <div className="scriptr-editor__swatches">
                 {[
@@ -955,7 +1069,7 @@ export const ScriptrEditor = forwardRef<
                   '#b84e7a',
                   '#b74d43',
                 ].map((colour) => (
-                  <button
+                  <Button
                     aria-label={`Set text colour ${colour}`}
                     key={colour}
                     onClick={() =>
@@ -969,12 +1083,12 @@ export const ScriptrEditor = forwardRef<
                     type="button"
                   >
                     A
-                  </button>
+                  </Button>
                 ))}
               </div>
               <p>Highlight colour</p>
               <div className="scriptr-editor__swatches">
-                <button
+                <Button
                   aria-label="Remove highlight colour"
                   onClick={() =>
                     void editor
@@ -986,7 +1100,7 @@ export const ScriptrEditor = forwardRef<
                   type="button"
                 >
                   ∅
-                </button>
+                </Button>
                 {[
                   '#f4eee3',
                   '#eee9df',
@@ -999,7 +1113,7 @@ export const ScriptrEditor = forwardRef<
                   '#f2dce7',
                   '#f4dcda',
                 ].map((colour) => (
-                  <button
+                  <Button
                     aria-label={`Set highlight colour ${colour}`}
                     key={colour}
                     onClick={() =>
@@ -1014,32 +1128,42 @@ export const ScriptrEditor = forwardRef<
                   />
                 ))}
               </div>
-              <details
-                onToggle={(event) =>
-                  setCustomColourOpen(event.currentTarget.open)
-                }
+              <Popover
+                onOpenChange={setCustomColourOpen}
+                open={customColourOpen}
               >
-                <summary>Custom colour</summary>
+                <PopoverTrigger
+                  render={
+                    <Button size="sm" type="button" variant="ghost">
+                      Custom colour
+                    </Button>
+                  }
+                />
                 {customColourOpen ? (
-                  <ColorPicker
-                    onChange={(value) => {
-                      if (Array.isArray(value))
-                        void editor
-                          .chain()
-                          .focus()
-                          .setMark('textColour', {
-                            colour: `rgba(${value.join(',')})`,
-                          })
-                          .run();
-                    }}
-                  >
-                    <ColorPickerSelection className="h-28" />
-                    <ColorPickerHue />
-                  </ColorPicker>
+                  <PopoverContent>
+                    <PopoverTitle className="sr-only">
+                      Custom text colour
+                    </PopoverTitle>
+                    <ColorPicker
+                      onChange={(value) => {
+                        if (Array.isArray(value))
+                          void editor
+                            .chain()
+                            .focus()
+                            .setMark('textColour', {
+                              colour: `rgba(${value.join(',')})`,
+                            })
+                            .run();
+                      }}
+                    >
+                      <ColorPickerSelection className="h-28" />
+                      <ColorPickerHue />
+                    </ColorPicker>
+                  </PopoverContent>
                 ) : null}
-              </details>
-            </div>
-          </details>
+              </Popover>
+            </PopoverContent>
+          </Popover>
           <ToolbarButton
             label="Bold"
             active={editor.isActive('bold')}
@@ -1115,15 +1239,17 @@ export const ScriptrEditor = forwardRef<
             state.selection.empty && editor.isActive('referenceAnchor')
           }
         >
-          <button
+          <Button
             onMouseDown={(event) => event.preventDefault()}
             onClick={() =>
               void editor.chain().focus().unsetMark('referenceAnchor').run()
             }
+            size="inline"
             type="button"
+            variant="muted-link"
           >
             End reference here
-          </button>
+          </Button>
         </BubbleMenu>
       ) : null}
 
@@ -1136,13 +1262,15 @@ export const ScriptrEditor = forwardRef<
             state.selection.empty && editor.isActive('link')
           }
         >
-          <button
+          <Button
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => void editor.chain().focus().unsetLink().run()}
+            size="inline"
             type="button"
+            variant="muted-link"
           >
             End link here
-          </button>
+          </Button>
         </BubbleMenu>
       ) : null}
 
@@ -1154,35 +1282,47 @@ export const ScriptrEditor = forwardRef<
             activeBlockPositionRef.current = pos;
           }}
         >
-          <div ref={blockMenuRef}>
-            <button
-              aria-expanded={blockMenuOpen}
-              aria-label="Drag block to reorder"
-              onClick={() => {
-                if (!blockMenuOpen && activeBlockPositionRef.current >= 0)
-                  editor.commands.setNodeSelection(
-                    activeBlockPositionRef.current,
-                  );
-                setBlockMenuOpen((open) => !open);
-              }}
-              type="button"
+          <Popover onOpenChange={setBlockMenuOpen} open={blockMenuOpen}>
+            <PopoverTrigger
+              render={
+                <Button
+                  aria-label="Drag block to reorder"
+                  onClick={() => {
+                    if (!blockMenuOpen && activeBlockPositionRef.current >= 0)
+                      editor.commands.setNodeSelection(
+                        activeBlockPositionRef.current,
+                      );
+                  }}
+                  size="icon-sm"
+                  type="button"
+                  variant="ghost"
+                />
+              }
             >
-              ⋮⋮
-            </button>
+              <GripVertical />
+            </PopoverTrigger>
             {blockMenuOpen ? (
-              <div className="scriptr-editor__block-menu" role="menu">
+              <PopoverContent
+                align="start"
+                className="scriptr-editor__block-menu"
+                role="menu"
+                side="right"
+              >
+                <PopoverTitle className="sr-only">Block actions</PopoverTitle>
                 <p>Block</p>
-                <button
+                <Button
                   onClick={() => {
                     void editor.chain().focus().setParagraph().run();
                     setBlockMenuOpen(false);
                   }}
                   role="menuitem"
+                  size="sm"
                   type="button"
+                  variant="ghost"
                 >
                   Turn into text
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
                     void editor
                       .chain()
@@ -1192,98 +1332,111 @@ export const ScriptrEditor = forwardRef<
                     setBlockMenuOpen(false);
                   }}
                   role="menuitem"
+                  size="sm"
                   type="button"
+                  variant="ghost"
                 >
                   Turn into heading 1
-                </button>
-                <details>
-                  <summary>Colour</summary>
-                  <p>Text colour</p>
-                  <div className="scriptr-editor__swatches">
-                    <button
-                      aria-label="Remove block text colour"
-                      onClick={() =>
-                        void editor
-                          .chain()
-                          .focus()
-                          .unsetMark('textColour')
-                          .run()
-                      }
-                      type="button"
-                    >
-                      A
-                    </button>
-                    {[
-                      '#6f6a63',
-                      '#9b5e3c',
-                      '#b56b24',
-                      '#a98520',
-                      '#398363',
-                      '#3978b9',
-                      '#8056aa',
-                      '#b84e7a',
-                      '#b74d43',
-                    ].map((colour) => (
-                      <button
-                        aria-label={`Set block text colour ${colour}`}
-                        key={colour}
+                </Button>
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button size="sm" type="button" variant="ghost">
+                        Colour
+                      </Button>
+                    }
+                  />
+                  <PopoverContent className="scriptr-editor__colour-panel">
+                    <PopoverTitle className="sr-only">
+                      Block colour
+                    </PopoverTitle>
+                    <p>Text colour</p>
+                    <div className="scriptr-editor__swatches">
+                      <Button
+                        aria-label="Remove block text colour"
                         onClick={() =>
                           void editor
                             .chain()
                             .focus()
-                            .setMark('textColour', { colour })
+                            .unsetMark('textColour')
                             .run()
                         }
-                        style={{ color: colour }}
                         type="button"
                       >
                         A
-                      </button>
-                    ))}
-                  </div>
-                  <p>Highlight colour</p>
-                  <div className="scriptr-editor__swatches">
-                    <button
-                      aria-label="Remove block highlight colour"
-                      onClick={() =>
-                        void editor
-                          .chain()
-                          .focus()
-                          .unsetMark('highlightColour')
-                          .run()
-                      }
-                      type="button"
-                    >
-                      ⊘
-                    </button>
-                    {[
-                      '#ece9e4',
-                      '#f1e6df',
-                      '#f5e2cf',
-                      '#f4ebcc',
-                      '#dfece5',
-                      '#dceaf5',
-                      '#e8e0f2',
-                      '#f2dfe7',
-                      '#f3dfdc',
-                    ].map((colour) => (
-                      <button
-                        aria-label={`Set block highlight colour ${colour}`}
-                        key={colour}
+                      </Button>
+                      {[
+                        '#6f6a63',
+                        '#9b5e3c',
+                        '#b56b24',
+                        '#a98520',
+                        '#398363',
+                        '#3978b9',
+                        '#8056aa',
+                        '#b84e7a',
+                        '#b74d43',
+                      ].map((colour) => (
+                        <Button
+                          aria-label={`Set block text colour ${colour}`}
+                          key={colour}
+                          onClick={() =>
+                            void editor
+                              .chain()
+                              .focus()
+                              .setMark('textColour', { colour })
+                              .run()
+                          }
+                          style={{ color: colour }}
+                          type="button"
+                        >
+                          A
+                        </Button>
+                      ))}
+                    </div>
+                    <p>Highlight colour</p>
+                    <div className="scriptr-editor__swatches">
+                      <Button
+                        aria-label="Remove block highlight colour"
                         onClick={() =>
                           void editor
                             .chain()
                             .focus()
-                            .setMark('highlightColour', { colour })
+                            .unsetMark('highlightColour')
                             .run()
                         }
-                        style={{ backgroundColor: colour }}
                         type="button"
-                      />
-                    ))}
-                  </div>
-                </details>
-                <button
+                      >
+                        ⊘
+                      </Button>
+                      {[
+                        '#ece9e4',
+                        '#f1e6df',
+                        '#f5e2cf',
+                        '#f4ebcc',
+                        '#dfece5',
+                        '#dceaf5',
+                        '#e8e0f2',
+                        '#f2dfe7',
+                        '#f3dfdc',
+                      ].map((colour) => (
+                        <Button
+                          aria-label={`Set block highlight colour ${colour}`}
+                          key={colour}
+                          onClick={() =>
+                            void editor
+                              .chain()
+                              .focus()
+                              .setMark('highlightColour', { colour })
+                              .run()
+                          }
+                          style={{ backgroundColor: colour }}
+                          type="button"
+                        />
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button
                   onClick={() => {
                     editor.commands.deleteNode(
                       editor.state.selection.$from.parent.type.name,
@@ -1291,121 +1444,122 @@ export const ScriptrEditor = forwardRef<
                     setBlockMenuOpen(false);
                   }}
                   role="menuitem"
+                  size="sm"
                   type="button"
+                  variant="ghost"
                 >
+                  <Trash2 data-icon="inline-start" />
                   Delete
-                </button>
-              </div>
+                </Button>
+              </PopoverContent>
             ) : null}
-          </div>
+          </Popover>
         </DragHandle>
       ) : null}
 
       <EditorContent editor={editor} />
 
       {editable && slashQuery !== undefined ? (
-        <div
+        <Command
+          aria-label="Insert block"
           className="scriptr-editor__slash"
           role="menu"
-          aria-label="Insert block"
+          shouldFilter={false}
+          {...(filteredSlashItems[slashIndex]
+            ? { value: filteredSlashItems[slashIndex].id }
+            : {})}
         >
-          {filteredSlashItems.length ? (
-            slashGroups.map((group) => (
-              <div
+          <CommandList>
+            {slashGroups.map((group) => (
+              <CommandGroup
                 className="scriptr-editor__command-group"
+                heading={group.label}
                 key={group.category}
               >
-                <p className="scriptr-editor__menu-label">{group.label}</p>
                 {group.commands.map((item) => {
                   const index = filteredSlashItems.findIndex(
                     (candidate) => candidate.id === item.id,
                   );
                   return (
-                    <button
+                    <CommandItem
                       className="scriptr-editor__slash-item"
                       data-selected={index === slashIndex || undefined}
                       key={item.id}
                       onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
+                      onSelect={() => {
                         removeSlashQuery(editor);
                         item.run(editor);
                         setSlashState(undefined);
                       }}
-                      role="menuitem"
-                      type="button"
+                      value={item.id}
                     >
                       <CommandIconView icon={item.icon} />
                       <span>{item.label}</span>
                       <small>{item.notation}</small>
-                    </button>
+                    </CommandItem>
                   );
                 })}
-              </div>
-            ))
-          ) : (
-            <p className="scriptr-editor__empty-menu">No matching blocks</p>
-          )}
-        </div>
+              </CommandGroup>
+            ))}
+            <CommandEmpty className="scriptr-editor__empty-menu">
+              No matching blocks
+            </CommandEmpty>
+          </CommandList>
+        </Command>
       ) : null}
 
       {commandWorkflow?.type === 'scripture' ||
       commandWorkflow?.type === 'comparison' ? (
         resolvedScriptureProvider ? (
-          <div className="scriptr-editor__workflow-backdrop">
-            <ScriptureCommandDialog
-              mode={commandWorkflow.type}
-              onCancel={() => setCommandWorkflow(undefined)}
-              onSelect={(address, translationIds) => {
-                const block =
-                  commandWorkflow.type === 'scripture'
-                    ? {
-                        id: createAuthoredId('scripture'),
-                        type: 'scripture' as const,
-                        address,
-                        translationId: translationIds[0] ?? '',
-                      }
-                    : {
-                        id: createAuthoredId('comparison'),
-                        type: 'translationComparison' as const,
-                        address,
-                        translationIds,
-                        layout: 'twoColumn' as const,
-                      };
-                const content = canonicalToEditorJson({
-                  version: 2,
-                  content: [block],
-                }).content?.[0];
-                if (content)
-                  void editor.chain().focus().insertContent(content).run();
-                setCommandWorkflow(undefined);
-              }}
-              provider={resolvedScriptureProvider}
-            />
-          </div>
+          <ScriptureCommandDialog
+            mode={commandWorkflow.type}
+            onCancel={() => setCommandWorkflow(undefined)}
+            onSelect={(address, translationIds) => {
+              const block =
+                commandWorkflow.type === 'scripture'
+                  ? {
+                      id: createAuthoredId('scripture'),
+                      type: 'scripture' as const,
+                      address,
+                      translationId: translationIds[0] ?? '',
+                    }
+                  : {
+                      id: createAuthoredId('comparison'),
+                      type: 'translationComparison' as const,
+                      address,
+                      translationIds,
+                      layout: 'twoColumn' as const,
+                    };
+              const content = canonicalToEditorJson({
+                version: 2,
+                content: [block],
+              }).content?.[0];
+              if (content)
+                void editor.chain().focus().insertContent(content).run();
+              setCommandWorkflow(undefined);
+            }}
+            provider={resolvedScriptureProvider}
+          />
         ) : null
       ) : null}
 
       {commandWorkflow?.type === 'reference' ? (
-        <div className="scriptr-editor__workflow-backdrop">
-          <section
-            aria-label="Add Reference"
-            aria-modal="true"
-            className="scriptr-editor__workflow-dialog"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setCommandWorkflow(undefined);
-            }}
-            role="dialog"
-          >
-            <header className="scriptr-editor__workflow-header">
-              <h2>Add Reference</h2>
-              <button
+        <Dialog
+          onOpenChange={(open) => {
+            if (!open) setCommandWorkflow(undefined);
+          }}
+          open
+        >
+          <DialogContent aria-label="Add Reference">
+            <DialogHeader>
+              <DialogTitle>Add Reference</DialogTitle>
+              <DialogClose
                 aria-label="Close Reference editor"
-                onClick={() => setCommandWorkflow(undefined)}
-                type="button"
+                render={<Button size="icon-sm" variant="ghost" />}
               >
-                ×
-              </button>
-            </header>
+                <X />
+              </DialogClose>
+            </DialogHeader>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -1431,8 +1585,8 @@ export const ScriptrEditor = forwardRef<
             >
               <label className="scriptr-editor__workflow-field">
                 <span className="sr-only">Reference name</span>
-                <input
-                  aria-label="Link label"
+                <Input
+                  aria-label="Reference name"
                   autoFocus
                   onChange={(event) =>
                     setCommandWorkflow({
@@ -1456,37 +1610,38 @@ export const ScriptrEditor = forwardRef<
                   reference={commandWorkflow.reference}
                 />
               </label>
-              <footer className="scriptr-editor__workflow-actions">
-                <button
+              <DialogFooter>
+                <Button
                   onClick={() => setCommandWorkflow(undefined)}
+                  size="sm"
                   type="button"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   disabled={!commandWorkflow.reference.title?.trim()}
+                  size="sm"
                   type="submit"
                 >
                   Add Reference
-                </button>
-              </footer>
+                </Button>
+              </DialogFooter>
             </form>
-          </section>
-        </div>
+          </DialogContent>
+        </Dialog>
       ) : null}
 
       {commandWorkflow?.type === 'internal-link' &&
       resolvedDocumentTargetProvider ? (
-        <div className="scriptr-editor__workflow-backdrop">
-          <div
-            aria-label="Link to document"
-            aria-modal="true"
-            className="scriptr-editor__workflow-dialog"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setCommandWorkflow(undefined);
-            }}
-            role="dialog"
-          >
+        <Dialog
+          onOpenChange={(open) => {
+            if (!open) setCommandWorkflow(undefined);
+          }}
+          open
+        >
+          <DialogContent aria-label="Link to document">
+            <DialogTitle className="sr-only">Link to document</DialogTitle>
             <DocumentLinkPicker
               onCancel={() => setCommandWorkflow(undefined)}
               onSelect={(target) => {
@@ -1500,31 +1655,27 @@ export const ScriptrEditor = forwardRef<
               }}
               provider={resolvedDocumentTargetProvider}
             />
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       ) : null}
 
       {commandWorkflow?.type === 'link' ? (
-        <div className="scriptr-editor__workflow-backdrop">
-          <section
-            aria-label="Add or edit link"
-            aria-modal="true"
-            className="scriptr-editor__workflow-dialog"
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setCommandWorkflow(undefined);
-            }}
-            role="dialog"
-          >
-            <header className="scriptr-editor__workflow-header">
-              <h2>Link</h2>
-              <button
+        <Dialog
+          onOpenChange={(open) => {
+            if (!open) setCommandWorkflow(undefined);
+          }}
+          open
+        >
+          <DialogContent aria-label="Add or edit link">
+            <DialogHeader>
+              <DialogTitle>Link</DialogTitle>
+              <DialogClose
                 aria-label="Close link editor"
-                onClick={() => setCommandWorkflow(undefined)}
-                type="button"
+                render={<Button size="icon-sm" variant="ghost" />}
               >
-                ×
-              </button>
-            </header>
+                <X />
+              </DialogClose>
+            </DialogHeader>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -1557,7 +1708,8 @@ export const ScriptrEditor = forwardRef<
             >
               <label className="scriptr-editor__workflow-field">
                 <span className="sr-only">Link label</span>
-                <input
+                <Input
+                  aria-label="Link label"
                   autoFocus
                   onChange={(event) =>
                     setCommandWorkflow({
@@ -1571,7 +1723,7 @@ export const ScriptrEditor = forwardRef<
               </label>
               <label className="scriptr-editor__workflow-field">
                 <span className="sr-only">Link URL</span>
-                <input
+                <Input
                   aria-label="Link URL"
                   aria-invalid={
                     commandWorkflow.url && !normalizedLinkUrl ? true : undefined
@@ -1587,8 +1739,8 @@ export const ScriptrEditor = forwardRef<
                   value={commandWorkflow.url}
                 />
               </label>
-              <footer className="scriptr-editor__workflow-actions">
-                <button
+              <DialogFooter>
+                <Button
                   onClick={() => {
                     const { from, to } = commandWorkflow.range;
                     void editor
@@ -1599,17 +1751,19 @@ export const ScriptrEditor = forwardRef<
                       .run();
                     setCommandWorkflow(undefined);
                   }}
+                  size="sm"
                   type="button"
+                  variant="outline"
                 >
                   Remove link
-                </button>
-                <button disabled={!normalizedLinkUrl} type="submit">
+                </Button>
+                <Button disabled={!normalizedLinkUrl} size="sm" type="submit">
                   Add link
-                </button>
-              </footer>
+                </Button>
+              </DialogFooter>
             </form>
-          </section>
-        </div>
+          </DialogContent>
+        </Dialog>
       ) : null}
     </div>
   );

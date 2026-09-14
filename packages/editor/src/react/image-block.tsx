@@ -2,7 +2,13 @@ import type { NodeViewProps } from '@tiptap/react';
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { Trash2 } from 'lucide-react';
 
+import { Button } from '../components/ui/button.js';
+import { Field, FieldLabel } from '../components/ui/field.js';
+import { Input } from '../components/ui/input.js';
+import { Slider } from '../components/ui/slider.js';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
 import { createDocumentCodec } from '../document/codec.js';
 import type { ImageAlignment, ImageBlock } from '../document/types.js';
 import type { HostedImage, ImageHost } from '../host/images.js';
@@ -91,39 +97,47 @@ export function ImageBlockContent({
       )}
       {editable ? (
         <div className="scriptr-image__controls">
-          <label>
-            <span>Alt text</span>
-            <input
+          <Field>
+            <FieldLabel htmlFor={`image-alt-${block.id}`}>Alt text</FieldLabel>
+            <Input
+              id={`image-alt-${block.id}`}
               aria-label="Image alt text"
               value={block.alt}
               onChange={(event) =>
                 onChange?.({ ...block, alt: event.currentTarget.value })
               }
             />
-          </label>
-          <div
+          </Field>
+          <ToggleGroup
             aria-label="Image alignment"
             className="scriptr-image__alignment"
+            onValueChange={(values) => {
+              const alignment = values[0];
+              if (
+                alignment === 'start' ||
+                alignment === 'center' ||
+                alignment === 'end' ||
+                alignment === 'wide'
+              ) {
+                onChange?.({ ...block, alignment });
+              }
+            }}
+            size="sm"
+            value={[block.alignment]}
           >
             {alignments.map((alignment) => (
-              <button
-                aria-pressed={block.alignment === alignment}
-                key={alignment}
-                onClick={() => onChange?.({ ...block, alignment })}
-                type="button"
-              >
+              <ToggleGroupItem key={alignment} value={alignment}>
                 {alignment}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </div>
-          <label>
-            <span>Image width</span>
-            <input
+          </ToggleGroup>
+          <Field>
+            <FieldLabel>Image width</FieldLabel>
+            <Slider
               aria-label="Image width"
               max={1600}
               min={160}
-              onChange={(event) => {
-                const width = Number(event.currentTarget.value);
+              onValueChange={(width) => {
                 const height =
                   block.width && block.height
                     ? Math.max(
@@ -133,21 +147,23 @@ export function ImageBlockContent({
                     : block.height;
                 onChange?.({ ...block, width, ...(height ? { height } : {}) });
               }}
-              type="range"
               value={block.width ?? resolved?.width ?? 686}
             />
-          </label>
-          <button
+          </Field>
+          <Button
             className="scriptr-image__remove"
             onClick={onRemove}
+            size="sm"
             type="button"
+            variant="ghost"
           >
+            <Trash2 data-icon="inline-start" />
             Remove image
-          </button>
+          </Button>
         </div>
       ) : null}
       {editable ? (
-        <input
+        <Input
           aria-label="Image caption"
           className="scriptr-image__caption-input"
           onChange={(event) =>
@@ -227,7 +243,7 @@ export function ImageUploader({
   };
   return (
     <section aria-label="Upload image" className="scriptr-image-uploader">
-      <input
+      <Input
         accept="image/*"
         aria-label="Choose image"
         disabled={uploading}
@@ -248,21 +264,23 @@ export function ImageUploader({
       ) : null}
       {error ? <p role="alert">{error}</p> : null}
       {error && file ? (
-        <button onClick={() => void upload(file)} type="button">
+        <Button onClick={() => void upload(file)} size="sm" type="button">
           Retry upload
-        </button>
+        </Button>
       ) : null}
       {onCancel ? (
-        <button
+        <Button
           onClick={() => {
             uploadController.current?.abort();
             setUploading(false);
             onCancel();
           }}
+          size="sm"
           type="button"
+          variant="outline"
         >
           Cancel
-        </button>
+        </Button>
       ) : null}
     </section>
   );
