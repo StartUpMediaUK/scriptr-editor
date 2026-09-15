@@ -136,6 +136,30 @@ const initialDocument: CanonicalDocument = {
       ],
     },
     {
+      id: 'teaching-video',
+      type: 'video',
+      src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+      title: 'Teaching video',
+      caption: [{ type: 'text', text: 'A responsive video block.' }],
+      width: 960,
+      height: 540,
+    },
+    {
+      id: 'teaching-audio',
+      type: 'audio',
+      src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3',
+      title: 'Teaching audio',
+      transcript: [{ type: 'text', text: 'An optional transcript.' }],
+    },
+    {
+      id: 'further-reading',
+      type: 'webBookmark',
+      url: 'https://example.com/study',
+      title: 'Further reading',
+      description: 'A host-resolved web bookmark fixture.',
+      siteName: 'Example',
+    },
+    {
       id: 'scripture-romans',
       type: 'scripture',
       address: { book: 'ROM', chapter: 8, verseStart: 28 },
@@ -310,6 +334,23 @@ const demoImageHost = {
   onRemoved: () => undefined,
 };
 
+const demoMediaHost = {
+  upload: () =>
+    Promise.reject(new Error('Uploads are disabled in this fixture.')),
+  resolve: () => Promise.resolve(undefined),
+  onRemoved: () => undefined,
+};
+
+const demoBookmarkProvider = {
+  resolve: (url: string) =>
+    Promise.resolve({
+      url,
+      title: 'Resolved development bookmark',
+      description: 'Metadata supplied by the development host.',
+      siteName: new URL(url).hostname,
+    }),
+};
+
 function DevelopmentHarness() {
   const [document, setDocument] = useState(initialDocument);
   const [preview, setPreview] = useState(false);
@@ -339,6 +380,7 @@ function DevelopmentHarness() {
             document={document}
             documentTargetProvider={demoDocumentProvider}
             imageHost={demoImageHost}
+            mediaHost={demoMediaHost}
             scriptureProvider={demoProvider}
           />
         ) : (
@@ -346,7 +388,10 @@ function DevelopmentHarness() {
             value={document}
             onChange={setDocument}
             scriptureProvider={demoProvider}
+            bookmarkProvider={demoBookmarkProvider}
+            documentTargetProvider={demoDocumentProvider}
             imageHost={demoImageHost}
+            mediaHost={demoMediaHost}
             autofocus
           />
         )}

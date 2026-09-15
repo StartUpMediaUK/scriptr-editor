@@ -307,6 +307,49 @@ describe('ScriptrEditor', () => {
     });
   });
 
+  it('opens package-owned media and bookmark workflows from slash commands', async () => {
+    const mediaHost = {
+      upload: vi.fn(),
+      resolve: vi.fn(),
+      onRemoved: vi.fn(),
+    };
+    const bookmarkProvider = {
+      resolve: vi.fn(() =>
+        Promise.resolve({ url: 'https://example.com', title: 'Example' }),
+      ),
+    };
+    const { unmount } = render(
+      <ScriptrEditor
+        bookmarkProvider={bookmarkProvider}
+        mediaHost={mediaHost}
+        value={document}
+      />,
+    );
+    let editor = screen.getByLabelText('Document editor');
+    fireEvent.input(editor, { target: { textContent: '/' } });
+    fireEvent.click(await screen.findByRole('option', { name: /Video/ }));
+    expect(
+      screen.getByRole('dialog', { name: 'Add video' }),
+    ).toBeInTheDocument();
+    unmount();
+
+    render(
+      <ScriptrEditor
+        bookmarkProvider={bookmarkProvider}
+        mediaHost={mediaHost}
+        value={document}
+      />,
+    );
+    editor = screen.getByLabelText('Document editor');
+    fireEvent.input(editor, { target: { textContent: '/' } });
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Web bookmark/ }),
+    );
+    expect(
+      screen.getByRole('dialog', { name: 'Add web bookmark' }),
+    ).toBeInTheDocument();
+  });
+
   it('persists a toggle disclosure state change', async () => {
     const onChange = vi.fn<(value: CanonicalDocument) => void>();
     render(

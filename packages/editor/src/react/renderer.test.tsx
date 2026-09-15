@@ -204,6 +204,45 @@ describe('ScriptrRenderer', () => {
     expect(screen.getByText('Inside the toggle')).toBeInTheDocument();
   });
 
+  it('renders safe media controls and bookmark metadata', () => {
+    const mediaDocument: CanonicalDocument = {
+      version: 2,
+      content: [
+        {
+          id: 'video',
+          type: 'video',
+          src: 'https://example.com/teaching.mp4',
+          title: 'Teaching video',
+          caption: [{ type: 'text', text: 'Video caption' }],
+        },
+        {
+          id: 'audio',
+          type: 'audio',
+          src: 'https://example.com/message.mp3',
+          title: 'Audio message',
+          transcript: [{ type: 'text', text: 'Audio transcript' }],
+        },
+        {
+          id: 'bookmark',
+          type: 'webBookmark',
+          url: 'https://example.com/article',
+          title: 'Further reading',
+          description: 'A useful article.',
+          siteName: 'Example',
+        },
+      ],
+    };
+    const { container } = render(<ScriptrRenderer document={mediaDocument} />);
+
+    expect(container.querySelector('video')).toHaveAttribute('controls');
+    expect(container.querySelector('audio')).toHaveAttribute('controls');
+    expect(screen.getByText('Video caption')).toBeInTheDocument();
+    expect(screen.getByText('Audio transcript')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Further reading/ }),
+    ).toHaveAttribute('rel', 'noreferrer noopener');
+  });
+
   it('renders registered extension blocks and isolates extension failures', () => {
     const onRenderError = vi.fn();
     const consoleError = vi

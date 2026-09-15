@@ -6,7 +6,7 @@ The package is under active development. It provides Canonical Document v2 contr
 
 ## Boundary
 
-`scriptr-editor` owns rich-text editing, canonical documents and migrations, provider-neutral Scripture references, translation comparisons, lightweight References, internal-document-link primitives, image primitives, extensions, and read-only rendering.
+`scriptr-editor` owns rich-text editing, canonical documents and migrations, provider-neutral Scripture references, translation comparisons, lightweight References, internal-document-link primitives, image, video, audio and web-bookmark primitives, extensions, and read-only rendering.
 
 Consuming applications own accounts, Pages, workspaces, storage, search, synchronization, sharing, and preferences. Host capabilities are injected through typed APIs. The package does not depend directly on YouVersion or another Scripture provider.
 
@@ -36,6 +36,7 @@ export const scriptr = defineScriptr({
   capabilities: {
     scripture: remoteScriptureProvider,
     media: applicationMediaHost,
+    bookmarks: applicationBookmarkProvider,
   },
 });
 
@@ -68,7 +69,7 @@ import 'scriptr-editor/styles.css';
 
 The editor includes contextual formatting, categorized slash commands with icons, written notation and keyboard navigation, Markdown shortcuts, external-link creation/editing, block reordering, undo/redo, mobile interactions, and read-only mode. Its visual variables can be scoped through the documented `--scriptr-*` custom properties without replacing the package's layout hierarchy.
 
-Configured Scripture and document-lookup capabilities automatically enable package-owned Scripture, translation-comparison, and internal-link command workflows. References need no external capability: select text, run `/reference`, and author the lightweight annotation in the supplied dialog. External links likewise need no Host capability: use the selection toolbar or `/link`, enter a URL with or without its scheme, and optionally supply the visible label. Clicking an authored link while editing reopens the same link editor.
+Configured Scripture, document-lookup, media and bookmark capabilities automatically enable their package-owned slash-command workflows. References need no external capability: select text, run `/reference`, and author the lightweight annotation in the supplied dialog. External links likewise need no Host capability: use the selection toolbar or `/link`, enter a URL with or without its scheme, and optionally supply the visible label. Clicking an authored link while editing reopens the same link editor.
 
 The stylesheet never fetches fonts or other remote assets. To match the prototype exactly, a host may self-host Cormorant Garamond and Lora; otherwise the declared Georgia/serif fallbacks preserve the hierarchy. Theme overrides should remain limited to the documented `--scriptr-color-*`, `--scriptr-font-*`, `--scriptr-editor-font-size`, and `--scriptr-editor-measure` tokens.
 
@@ -112,9 +113,11 @@ After deliberate picker selection, call `editorRef.current.insertScripture(block
 
 Internal links use opaque host-owned target IDs. `DocumentLinkPicker` searches a supplied `DocumentTargetProvider`, while `setInternalDocumentLink` applies the selected target to the current editor selection. `extractInternalDocumentLinks` returns the target, containing block, inline path, surrounding context, and character offsets so consuming applications can build backlink and exact-navigation features without putting those concerns in the editor package.
 
-## Images
+## Media and bookmarks
 
-Images remain host-managed. Pass an `ImageHost` to `ImageUploader`, `ScriptrEditor`, and `ScriptrRenderer`; the host can validate file type, size and quota, report upload progress, resolve durable asset IDs, replace an asset, and decide what removal notifications mean for storage cleanup. `insertImage` adds the returned canonical block. The editor stores only portable identity, presentation metadata, alt text and caption—never credentials or quota state.
+Media remains host-managed. Pass one `MediaHost` through `defineScriptr` to enable `/image`, `/video`, and `/audio`; the host validates file type, size and quota, reports upload progress, resolves durable asset IDs and decides what removal notifications mean for storage cleanup. The legacy `ImageHost` remains supported for image-only integrations. `ScriptrEditorHandle` also exposes `insertImage`, `insertVideo`, and `insertAudio` for custom host surfaces.
+
+Pass a `BookmarkProvider` to enable `/web bookmark`. It receives a normalized HTTP(S) URL and returns safe portable metadata; fetching, sanitizing, caching, authentication and rate limits remain host responsibilities. `BookmarkComposer`, `MediaUploader`, and their block-content components are exported for hosts that want to compose different surrounding UI. Persisted blocks contain only portable identity, source and presentation metadata—never credentials or quota state.
 
 ## Releases
 

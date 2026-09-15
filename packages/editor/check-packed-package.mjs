@@ -101,21 +101,21 @@ try {
     [
       '--input-type=module',
       '--eval',
-      "import { PACKAGE_NAME, defineScriptr } from 'scriptr-editor'; import { createCommandCatalogue } from 'scriptr-editor/commands'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { ScriptrRenderer } from 'scriptr-editor/react'; import { parseReferenceQuery } from 'scriptr-editor/scripture'; import { createScriptrServer } from 'scriptr-editor/server'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineScriptr}:${typeof createCommandCatalogue}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof parseReferenceQuery}:${typeof createScriptrServer}`);",
+      "import { PACKAGE_NAME, defineScriptr } from 'scriptr-editor'; import { createCommandCatalogue } from 'scriptr-editor/commands'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { BookmarkComposer, MediaUploader, ScriptrRenderer } from 'scriptr-editor/react'; import { parseReferenceQuery } from 'scriptr-editor/scripture'; import { createScriptrServer } from 'scriptr-editor/server'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineScriptr}:${typeof createCommandCatalogue}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof MediaUploader}:${typeof BookmarkComposer}:${typeof parseReferenceQuery}:${typeof createScriptrServer}`);",
     ],
     { cwd: fixtureDirectory, encoding: 'utf8' },
   );
 
   if (
     importedName !==
-    'scriptr-editor:2:function:function:function:function:function:function'
+    'scriptr-editor:2:function:function:function:function:function:function:function:function'
   ) {
     throw new Error(`Unexpected package import result: ${importedName}`);
   }
 
   writeFileSync(
     join(fixtureDirectory, 'consumer.ts'),
-    "import { defineScriptr } from 'scriptr-editor';\nimport type { CanonicalDocument, ScriptureProvider } from 'scriptr-editor';\nimport type { ScriptrEditorHandle } from 'scriptr-editor/react';\nimport { createScriptrServer } from 'scriptr-editor/server';\nconst document: CanonicalDocument = { version: 2, content: [] };\nconst provider: ScriptureProvider | undefined = undefined;\nconst handle: ScriptrEditorHandle | undefined = undefined;\nconst client = defineScriptr();\nconst server = createScriptrServer({});\nvoid [document, provider, handle, client, server];\n",
+    "import { defineScriptr } from 'scriptr-editor';\nimport type { CanonicalDocument, ScriptureProvider } from 'scriptr-editor';\nimport type { BookmarkProvider, MediaHost } from 'scriptr-editor/host';\nimport type { ScriptrEditorHandle } from 'scriptr-editor/react';\nimport { createScriptrServer } from 'scriptr-editor/server';\nconst document: CanonicalDocument = { version: 2, content: [] };\nconst provider: ScriptureProvider | undefined = undefined;\nconst media: MediaHost | undefined = undefined;\nconst bookmarks: BookmarkProvider | undefined = undefined;\nconst handle: ScriptrEditorHandle | undefined = undefined;\nconst client = defineScriptr();\nconst server = createScriptrServer({});\nvoid [document, provider, media, bookmarks, handle, client, server];\n",
   );
   writeFileSync(
     join(fixtureDirectory, 'tsconfig.json'),

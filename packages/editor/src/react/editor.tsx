@@ -79,9 +79,12 @@ import type { ScriptrConfiguration } from '../config.js';
 import { createDocumentCodec } from '../document/codec.js';
 import type { CanonicalLocation } from '../document/locations.js';
 import type {
+  AudioBlock,
   CanonicalDocument,
   ExtensionBlock,
   ImageBlock,
+  VideoBlock,
+  WebBookmarkBlock,
 } from '../document/types.js';
 import type {
   Reference,
@@ -90,10 +93,15 @@ import type {
 } from '../document/types.js';
 import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
+import type { MediaHost } from '../host/media.js';
+import type { BookmarkProvider } from '../host/bookmarks.js';
 import type { DocumentTargetProvider } from '../host/documents.js';
 import { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
+import { BookmarkComposer } from './bookmark-block.js';
 import { DocumentLinkPicker } from './document-link-picker.js';
 import { createEditorExtensions } from './editor-extensions.js';
+import { ImageUploader } from './image-block.js';
+import { MediaUploader } from './media-block.js';
 import { ReferenceEditor } from './reference-editor.js';
 import type { ReactExtensionRenderer } from './renderer.js';
 import { ScriptureCommandDialog } from './scripture-command-dialog.js';
@@ -121,6 +129,8 @@ export type ScriptrEditorProps = {
   readonly className?: string | undefined;
   readonly scriptureProvider?: ScriptureProvider | undefined;
   readonly imageHost?: ImageHost | undefined;
+  readonly mediaHost?: MediaHost | undefined;
+  readonly bookmarkProvider?: BookmarkProvider | undefined;
   readonly documentTargetProvider?: DocumentTargetProvider | undefined;
   readonly extensions?: readonly ReactExtensionRenderer[] | undefined;
   readonly configuration?: ScriptrConfiguration | undefined;
@@ -139,6 +149,9 @@ export type ScriptrEditorHandle = {
     block: TranslationComparisonBlock,
   ) => void;
   readonly insertImage: (block: ImageBlock) => void;
+  readonly insertVideo: (block: VideoBlock) => void;
+  readonly insertAudio: (block: AudioBlock) => void;
+  readonly insertBookmark: (block: WebBookmarkBlock) => void;
   readonly insertExtension: (block: ExtensionBlock) => void;
   readonly navigateTo: (
     location: CanonicalLocation,
@@ -159,6 +172,7 @@ const noExtensions: readonly ReactExtensionRenderer[] = [];
 
 type CommandWorkflow =
   | { readonly type: 'scripture' | 'comparison' | 'internal-link' }
+  | { readonly type: 'image' | 'video' | 'audio' | 'bookmark' }
   | {
       readonly type: 'link';
       readonly label: string;
@@ -622,6 +636,8 @@ export const ScriptrEditor = forwardRef<
     className,
     scriptureProvider,
     imageHost,
+    mediaHost,
+    bookmarkProvider,
     documentTargetProvider,
     extensions: extensionRenderers = noExtensions,
     configuration,
@@ -637,7 +653,49 @@ export const ScriptrEditor = forwardRef<
   documentRef.current = currentDocument;
   const resolvedScriptureProvider =
     scriptureProvider ?? configuration?.capabilities.scripture;
-  const resolvedImageHost = imageHost ?? configuration?.capabilities.images;
+  const resolvedMediaHost = mediaHost ?? configuration?.capabilities.media;
+  const configuredImageHost = imageHost ?? configuration?.capabilities.images;
+  const resolvedImageHost = useMemo<ImageHost | undefined>(() => {
+    if (configuredImageHost) return configuredImageHost;
+    if (!resolvedMediaHost) return undefined;
+    return {
+      validate: (file) => resolvedMediaHost.validate?.({ kind: 'image', file }),
+      upload: async ({ file, signal, onProgress }) => {
+        const media = await resolvedMediaHost.upload({
+          kind: 'image',
+          file,
+          signal,
+          onProgress,
+        });
+        if (media.kind !== 'image')
+          throw new Error('The media host did not return an image.');
+        if (media.width === undefined || media.height === undefined)
+          throw new Error('The media host did not return image dimensions.');
+        return {
+          assetId: media.assetId,
+          src: media.src,
+          width: media.width,
+          height: media.height,
+        };
+      },
+      resolve: async (assetId, signal) => {
+        const media = await resolvedMediaHost.resolve(assetId, signal);
+        return media?.kind === 'image' &&
+          media.width !== undefined &&
+          media.height !== undefined
+          ? {
+              assetId: media.assetId,
+              src: media.src,
+              width: media.width,
+              height: media.height,
+            }
+          : undefined;
+      },
+      onRemoved: resolvedMediaHost.onRemoved,
+    };
+  }, [configuredImageHost, resolvedMediaHost]);
+  const resolvedBookmarkProvider =
+    bookmarkProvider ?? configuration?.capabilities.bookmarks;
   const resolvedDocumentTargetProvider =
     documentTargetProvider ?? configuration?.capabilities.documents;
   const [commandWorkflow, setCommandWorkflow] = useState<CommandWorkflow>();
@@ -648,12 +706,14 @@ export const ScriptrEditor = forwardRef<
         placeholder,
         resolvedScriptureProvider,
         resolvedImageHost,
+        resolvedMediaHost,
         extensionRenderers,
       ),
     [
       placeholder,
       resolvedScriptureProvider,
       resolvedImageHost,
+      resolvedMediaHost,
       extensionRenderers,
     ],
   );
@@ -664,6 +724,8 @@ export const ScriptrEditor = forwardRef<
         capabilities: {
           scripture: resolvedScriptureProvider,
           images: resolvedImageHost,
+          media: resolvedMediaHost,
+          bookmarks: resolvedBookmarkProvider,
           documents: resolvedDocumentTargetProvider,
         },
       }).features;
@@ -684,6 +746,8 @@ export const ScriptrEditor = forwardRef<
     configuration,
     extensionRenderers,
     resolvedImageHost,
+    resolvedMediaHost,
+    resolvedBookmarkProvider,
     resolvedScriptureProvider,
   ]);
   const availableSlashItems = useMemo(
@@ -731,6 +795,14 @@ export const ScriptrEditor = forwardRef<
               });
             } else if (command.id === 'internal-link')
               setCommandWorkflow({ type: 'internal-link' });
+            else if (command.id === 'image')
+              setCommandWorkflow({ type: 'image' });
+            else if (command.id === 'video')
+              setCommandWorkflow({ type: 'video' });
+            else if (command.id === 'audio')
+              setCommandWorkflow({ type: 'audio' });
+            else if (command.id === 'web-bookmark')
+              setCommandWorkflow({ type: 'bookmark' });
             else onCommand?.(command);
           },
         }),
@@ -938,6 +1010,21 @@ export const ScriptrEditor = forwardRef<
         if (content) void editor?.chain().focus().insertContent(content).run();
       },
       insertImage: (block) => {
+        const content = canonicalToEditorJson({ version: 2, content: [block] })
+          .content?.[0];
+        if (content) void editor?.chain().focus().insertContent(content).run();
+      },
+      insertVideo: (block) => {
+        const content = canonicalToEditorJson({ version: 2, content: [block] })
+          .content?.[0];
+        if (content) void editor?.chain().focus().insertContent(content).run();
+      },
+      insertAudio: (block) => {
+        const content = canonicalToEditorJson({ version: 2, content: [block] })
+          .content?.[0];
+        if (content) void editor?.chain().focus().insertContent(content).run();
+      },
+      insertBookmark: (block) => {
         const content = canonicalToEditorJson({ version: 2, content: [block] })
           .content?.[0];
         if (content) void editor?.chain().focus().insertContent(content).run();
@@ -1696,6 +1783,96 @@ export const ScriptrEditor = forwardRef<
             provider={resolvedScriptureProvider}
           />
         ) : null
+      ) : null}
+
+      {commandWorkflow?.type === 'image' && resolvedImageHost ? (
+        <Dialog
+          onOpenChange={(open) => {
+            if (!open) setCommandWorkflow(undefined);
+          }}
+          open
+        >
+          <DialogContent aria-label="Add image">
+            <DialogHeader>
+              <DialogTitle>Add image</DialogTitle>
+            </DialogHeader>
+            <ImageUploader
+              createBlockId={() => createAuthoredId('image')}
+              imageHost={resolvedImageHost}
+              onCancel={() => setCommandWorkflow(undefined)}
+              onUploaded={(block) => {
+                const content = canonicalToEditorJson({
+                  version: 2,
+                  content: [block],
+                }).content?.[0];
+                if (content)
+                  void editor.chain().focus().insertContent(content).run();
+                setCommandWorkflow(undefined);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
+      {(commandWorkflow?.type === 'video' ||
+        commandWorkflow?.type === 'audio') &&
+      resolvedMediaHost ? (
+        <Dialog
+          onOpenChange={(open) => {
+            if (!open) setCommandWorkflow(undefined);
+          }}
+          open
+        >
+          <DialogContent aria-label={`Add ${commandWorkflow.type}`}>
+            <DialogHeader>
+              <DialogTitle>Add {commandWorkflow.type}</DialogTitle>
+            </DialogHeader>
+            <MediaUploader
+              createBlockId={() => createAuthoredId(commandWorkflow.type)}
+              kind={commandWorkflow.type}
+              mediaHost={resolvedMediaHost}
+              onCancel={() => setCommandWorkflow(undefined)}
+              onUploaded={(block) => {
+                const content = canonicalToEditorJson({
+                  version: 2,
+                  content: [block],
+                }).content?.[0];
+                if (content)
+                  void editor.chain().focus().insertContent(content).run();
+                setCommandWorkflow(undefined);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
+      {commandWorkflow?.type === 'bookmark' && resolvedBookmarkProvider ? (
+        <Dialog
+          onOpenChange={(open) => {
+            if (!open) setCommandWorkflow(undefined);
+          }}
+          open
+        >
+          <DialogContent aria-label="Add web bookmark">
+            <DialogHeader>
+              <DialogTitle>Add web bookmark</DialogTitle>
+            </DialogHeader>
+            <BookmarkComposer
+              createBlockId={() => createAuthoredId('bookmark')}
+              onAdd={(block) => {
+                const content = canonicalToEditorJson({
+                  version: 2,
+                  content: [block],
+                }).content?.[0];
+                if (content)
+                  void editor.chain().focus().insertContent(content).run();
+                setCommandWorkflow(undefined);
+              }}
+              onCancel={() => setCommandWorkflow(undefined)}
+              provider={resolvedBookmarkProvider}
+            />
+          </DialogContent>
+        </Dialog>
       ) : null}
 
       {commandWorkflow?.type === 'reference' ? (

@@ -8,7 +8,10 @@ import UniqueID from '@tiptap/extension-unique-id';
 import StarterKit from '@tiptap/starter-kit';
 import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
+import type { MediaHost } from '../host/media.js';
+import { createBookmarkNodeViewRenderer } from './bookmark-block.js';
 import { createImageNodeViewRenderer } from './image-block.js';
+import { createMediaNodeViewRenderer } from './media-block.js';
 import { createExtensionNodeViewRenderer } from './extension-block.js';
 import type { ReactExtensionRenderer } from './renderer.js';
 import { createScriptureNodeViewRenderer } from './scripture-blocks.js';
@@ -123,6 +126,60 @@ const createImageBlockNode = (imageHost: ImageHost | undefined) =>
     },
     addNodeView() {
       return createImageNodeViewRenderer(imageHost);
+    },
+  });
+
+const createMediaBlockNode = (mediaHost: MediaHost | undefined) =>
+  Node.create({
+    name: 'mediaBlock',
+    group: 'block',
+    atom: true,
+    draggable: true,
+    addAttributes() {
+      return {
+        id: { default: null },
+        blockType: { default: 'video' },
+        payload: { default: '{}' },
+      };
+    },
+    parseHTML() {
+      return [{ tag: 'div[data-scriptr-media-block]' }];
+    },
+    renderHTML({ HTMLAttributes }) {
+      return [
+        'div',
+        mergeAttributes(HTMLAttributes, { 'data-scriptr-media-block': '' }),
+      ];
+    },
+    addNodeView() {
+      return createMediaNodeViewRenderer(mediaHost);
+    },
+  });
+
+const createBookmarkBlockNode = (mediaHost: MediaHost | undefined) =>
+  Node.create({
+    name: 'bookmarkBlock',
+    group: 'block',
+    atom: true,
+    draggable: true,
+    addAttributes() {
+      return {
+        id: { default: null },
+        blockType: { default: 'webBookmark' },
+        payload: { default: '{}' },
+      };
+    },
+    parseHTML() {
+      return [{ tag: 'div[data-scriptr-bookmark-block]' }];
+    },
+    renderHTML({ HTMLAttributes }) {
+      return [
+        'div',
+        mergeAttributes(HTMLAttributes, { 'data-scriptr-bookmark-block': '' }),
+      ];
+    },
+    addNodeView() {
+      return createBookmarkNodeViewRenderer(mediaHost);
     },
   });
 
@@ -421,6 +478,8 @@ const idTypes = [
   'portableBlock',
   'scriptureBlock',
   'imageBlock',
+  'mediaBlock',
+  'bookmarkBlock',
   'columns',
   'column',
   'toggle',
@@ -430,6 +489,7 @@ export function createEditorExtensions(
   placeholder: string,
   scriptureProvider?: ScriptureProvider,
   imageHost?: ImageHost,
+  mediaHost?: MediaHost,
   extensions: readonly ReactExtensionRenderer[] = [],
 ) {
   return [
@@ -456,6 +516,8 @@ export function createEditorExtensions(
     createPortableBlock(extensions),
     createScriptureBlockNode(scriptureProvider),
     createImageBlockNode(imageHost),
+    createMediaBlockNode(mediaHost),
+    createBookmarkBlockNode(mediaHost),
     InternalDocumentLink,
     ReferenceAnchor,
     TextColour,

@@ -115,9 +115,14 @@ function opaqueBlockToEditor(block: Block): EditorNode {
     type:
       block.type === 'image'
         ? 'imageBlock'
-        : block.type === 'scripture' || block.type === 'translationComparison'
-          ? 'scriptureBlock'
-          : 'portableBlock',
+        : block.type === 'video' || block.type === 'audio'
+          ? 'mediaBlock'
+          : block.type === 'webBookmark'
+            ? 'bookmarkBlock'
+            : block.type === 'scripture' ||
+                block.type === 'translationComparison'
+              ? 'scriptureBlock'
+              : 'portableBlock',
     attrs: {
       id: block.id,
       blockType: block.type,
@@ -444,7 +449,9 @@ function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
     }
     case 'portableBlock':
     case 'scriptureBlock':
-    case 'imageBlock': {
+    case 'imageBlock':
+    case 'mediaBlock':
+    case 'bookmarkBlock': {
       const payload = stringAttr(node, 'payload');
       if (!payload) return undefined;
       const parsed: unknown = JSON.parse(payload);
@@ -495,6 +502,14 @@ function reconcileReferenceData(
       case 'image':
         return block.caption
           ? { ...block, caption: inline(block.caption) }
+          : block;
+      case 'video':
+        return block.caption
+          ? { ...block, caption: inline(block.caption) }
+          : block;
+      case 'audio':
+        return block.transcript
+          ? { ...block, transcript: inline(block.transcript) }
           : block;
       case 'columns':
         return {

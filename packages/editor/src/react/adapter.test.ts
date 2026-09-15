@@ -188,6 +188,43 @@ describe('canonical editor adapter', () => {
     expect(editorJsonToCanonical(editorJson)).toEqual(layouts);
   });
 
+  it('round-trips video, audio, and bookmark blocks through dedicated nodes', () => {
+    const media: CanonicalDocument = {
+      version: 2,
+      content: [
+        {
+          id: 'video',
+          type: 'video',
+          assetId: 'video-asset',
+          title: 'Teaching',
+          caption: [{ type: 'text', text: 'A short teaching.' }],
+        },
+        {
+          id: 'audio',
+          type: 'audio',
+          src: 'https://example.com/message.mp3',
+          title: 'Message',
+          transcript: [{ type: 'text', text: 'Transcript' }],
+        },
+        {
+          id: 'bookmark',
+          type: 'webBookmark',
+          url: 'https://example.com/article',
+          title: 'Further reading',
+          siteName: 'Example',
+        },
+      ],
+    };
+
+    const editorJson = canonicalToEditorJson(media);
+    expect(editorJson.content?.map((node) => node.type)).toEqual([
+      'mediaBlock',
+      'mediaBlock',
+      'bookmarkBlock',
+    ]);
+    expect(editorJsonToCanonical(editorJson)).toEqual(media);
+  });
+
   it('rejects malformed editor JSON', () => {
     expect(() => editorJsonToCanonical({ type: 'page', content: [] })).toThrow(
       'doc root',

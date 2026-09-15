@@ -14,9 +14,12 @@ import type {
 } from '../document/types.js';
 import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
+import type { MediaHost } from '../host/media.js';
 import type { DocumentTargetProvider } from '../host/documents.js';
 import { ScriptureBlockContent } from './scripture-blocks.js';
 import { ImageBlockContent } from './image-block.js';
+import { BookmarkBlockContent } from './bookmark-block.js';
+import { MediaBlockContent } from './media-block.js';
 
 export type ScriptrRendererProps = {
   readonly document: CanonicalDocument;
@@ -28,6 +31,7 @@ export type ScriptrRendererProps = {
   readonly scriptureProvider?: ScriptureProvider | undefined;
   readonly documentTargetProvider?: DocumentTargetProvider | undefined;
   readonly imageHost?: ImageHost | undefined;
+  readonly mediaHost?: MediaHost | undefined;
   readonly extensions?: readonly ReactExtensionRenderer[] | undefined;
   readonly onRenderError?:
     | ((error: Error, block: ExtensionBlock) => void)
@@ -406,6 +410,23 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
           captionContent={block.caption ? inline(block.caption) : undefined}
           imageHost={props.imageHost}
           key={block.id}
+        />
+      );
+    case 'video':
+    case 'audio':
+      return (
+        <MediaBlockContent
+          block={block}
+          key={block.id}
+          mediaHost={props.mediaHost}
+        />
+      );
+    case 'webBookmark':
+      return (
+        <BookmarkBlockContent
+          block={block}
+          key={block.id}
+          mediaHost={props.mediaHost}
         />
       );
     case 'columns':

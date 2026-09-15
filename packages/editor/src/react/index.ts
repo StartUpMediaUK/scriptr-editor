@@ -26,3 +26,13 @@ export type {
   ImageBlockContentProps,
   ImageUploaderProps,
 } from './image-block.js';
+export { MediaBlockContent, MediaUploader } from './media-block.js';
+export type {
+  MediaBlockContentProps,
+  MediaUploaderProps,
+} from './media-block.js';
+export { BookmarkBlockContent, BookmarkComposer } from './bookmark-block.js';
+export type {
+  BookmarkBlockContentProps,
+  BookmarkComposerProps,
+} from './bookmark-block.js';
