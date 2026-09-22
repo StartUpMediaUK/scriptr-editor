@@ -17,6 +17,15 @@ import {
   parseLocalScriptureDataset,
   type ScriptureStructure,
 } from 'scriptr-editor/scripture';
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from 'scriptr-editor/ui';
 import './styles.css';
 import 'scriptr-editor/styles.css';
 import { SettingsPanel } from './settings-panel';
@@ -208,6 +217,212 @@ const initialDocument: CanonicalDocument = {
   },
 };
 
+type WorkbenchScenario = {
+  readonly id: string;
+  readonly label: string;
+  readonly description: string;
+  readonly document: CanonicalDocument;
+};
+
+const workbenchScenarios: readonly WorkbenchScenario[] = [
+  {
+    id: 'integrated-study',
+    label: 'Integrated study',
+    description: 'A realistic long document containing every domain block.',
+    document: initialDocument,
+  },
+  {
+    id: 'writing-primitives',
+    label: 'Writing primitives',
+    description: 'Headings, marks, lists, callouts, code, and dividers.',
+    document: {
+      version: 2,
+      content: [
+        {
+          id: 'writing-title',
+          type: 'heading',
+          level: 1,
+          content: [{ type: 'text', text: 'Writing primitives' }],
+        },
+        {
+          id: 'writing-marks',
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Bold', marks: [{ type: 'bold' }] },
+            { type: 'text', text: ', ' },
+            { type: 'text', text: 'italic', marks: [{ type: 'italic' }] },
+            { type: 'text', text: ', ' },
+            {
+              type: 'text',
+              text: 'underlined',
+              marks: [{ type: 'underline' }],
+            },
+            { type: 'text', text: ', ' },
+            {
+              type: 'text',
+              text: 'struck through',
+              marks: [{ type: 'strikethrough' }],
+            },
+            { type: 'text', text: ', ' },
+            {
+              type: 'text',
+              text: 'inline code',
+              marks: [{ type: 'inlineCode' }],
+            },
+            { type: 'text', text: ', and ' },
+            {
+              type: 'text',
+              text: 'accent text',
+              marks: [{ type: 'accent' }],
+            },
+            { type: 'text', text: ' in one paragraph.' },
+          ],
+        },
+        {
+          id: 'writing-h2',
+          type: 'heading',
+          level: 2,
+          content: [{ type: 'text', text: 'Lists and structure' }],
+        },
+        {
+          id: 'writing-bullets',
+          type: 'list',
+          kind: 'bullet',
+          items: [
+            {
+              id: 'writing-bullet-1',
+              content: [{ type: 'text', text: 'A bulleted thought' }],
+            },
+            {
+              id: 'writing-bullet-2',
+              content: [{ type: 'text', text: 'A nested thought' }],
+              children: [
+                {
+                  id: 'writing-bullet-2-1',
+                  content: [{ type: 'text', text: 'Nested list content' }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'writing-numbered',
+          type: 'list',
+          kind: 'numbered',
+          start: 3,
+          items: [
+            {
+              id: 'writing-number-1',
+              content: [{ type: 'text', text: 'A numbered item' }],
+            },
+            {
+              id: 'writing-number-2',
+              content: [{ type: 'text', text: 'Another numbered item' }],
+            },
+          ],
+        },
+        {
+          id: 'writing-checks',
+          type: 'list',
+          kind: 'check',
+          items: [
+            {
+              id: 'writing-check-1',
+              content: [{ type: 'text', text: 'Completed item' }],
+              checked: true,
+            },
+            {
+              id: 'writing-check-2',
+              content: [{ type: 'text', text: 'Incomplete item' }],
+              checked: false,
+            },
+          ],
+        },
+        {
+          id: 'writing-quote',
+          type: 'blockquote',
+          content: [{ type: 'text', text: 'A restrained quotation.' }],
+        },
+        {
+          id: 'writing-callout-info',
+          type: 'callout',
+          tone: 'info',
+          content: [{ type: 'text', text: 'An informational callout.' }],
+        },
+        {
+          id: 'writing-callout-warning',
+          type: 'callout',
+          tone: 'warning',
+          content: [{ type: 'text', text: 'A warning callout.' }],
+        },
+        {
+          id: 'writing-code',
+          type: 'codeBlock',
+          language: 'text',
+          code: 'Type / on an empty line to open the command palette.',
+        },
+        { id: 'writing-divider', type: 'divider' },
+        {
+          id: 'writing-final',
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Content after a divider.' }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'scripture',
+    label: 'Scripture',
+    description: 'Real local passages, comparison, and address editing.',
+    document: {
+      version: 2,
+      content: [
+        {
+          id: 'scripture-title',
+          type: 'heading',
+          level: 1,
+          content: [{ type: 'text', text: 'Scripture blocks' }],
+        },
+        {
+          id: 'scripture-single',
+          type: 'scripture',
+          address: { book: 'JHN', chapter: 3, verseStart: 16, verseEnd: 17 },
+          translationId: 'BSB',
+        },
+        {
+          id: 'scripture-comparison',
+          type: 'translationComparison',
+          address: { book: 'PSA', chapter: 23, verseStart: 1, verseEnd: 4 },
+          translationIds: ['KJV', 'BSB', 'WEBBE'],
+          layout: 'twoColumn',
+        },
+      ],
+    },
+  },
+  {
+    id: 'empty',
+    label: 'Empty document',
+    description: 'The initial writing state and insertion affordances.',
+    document: {
+      version: 2,
+      content: [{ id: 'empty-paragraph', type: 'paragraph', content: [] }],
+    },
+  },
+];
+
+function firstScenario(
+  scenarios: readonly WorkbenchScenario[],
+): WorkbenchScenario {
+  const scenario = scenarios[0];
+  if (!scenario) throw new Error('Workbench requires a default scenario.');
+  return scenario;
+}
+
+const defaultScenario = firstScenario(workbenchScenarios);
+
+const cloneDocument = (document: CanonicalDocument) =>
+  structuredClone(document);
+
 const demoDocumentProvider = {
   search: () =>
     Promise.resolve([
@@ -260,7 +475,10 @@ const demoBookmarkProvider = {
 };
 
 function DevelopmentHarness() {
-  const [document, setDocument] = useState(initialDocument);
+  const [scenarioId, setScenarioId] = useState(defaultScenario.id);
+  const [document, setDocument] = useState(() =>
+    cloneDocument(defaultScenario.document),
+  );
   const [preview, setPreview] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedReference, setSelectedReference] = useState<string>();
@@ -269,6 +487,18 @@ function DevelopmentHarness() {
   const [scriptureStructure, setScriptureStructure] =
     useState<ScriptureStructure>();
   const [scriptureError, setScriptureError] = useState<string>();
+  const activeScenario =
+    workbenchScenarios.find((scenario) => scenario.id === scenarioId) ??
+    defaultScenario;
+
+  const chooseScenario = (nextId: string | null) => {
+    const scenario = workbenchScenarios.find(({ id }) => id === nextId);
+    if (!scenario) return;
+    setScenarioId(scenario.id);
+    setDocument(cloneDocument(scenario.document));
+    setPreview(false);
+    setSelectedReference(undefined);
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -310,17 +540,57 @@ function DevelopmentHarness() {
           <span id="page-title">{PACKAGE_NAME}</span>
           <div className="harness-actions">
             <SettingsPanel />
-            <button type="button" onClick={() => setPickerOpen(true)}>
-              Scripture
-            </button>
-            <button
+            <Button
+              size="sm"
               type="button"
+              variant="outline"
+              onClick={() => setPickerOpen(true)}
+            >
+              Scripture
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
               onClick={() => setPreview((current) => !current)}
             >
               {preview ? 'Edit' : 'Read-only preview'}
-            </button>
+            </Button>
           </div>
         </div>
+        <section className="workbench-controls" aria-label="Workbench controls">
+          <div>
+            <span className="workbench-controls__label">Scenario</span>
+            <Select value={scenarioId} onValueChange={chooseScenario}>
+              <SelectTrigger aria-label="Workbench scenario">
+                <SelectValue>
+                  {(value: string) =>
+                    workbenchScenarios.find(({ id }) => id === value)?.label ??
+                    value
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {workbenchScenarios.map((scenario) => (
+                    <SelectItem key={scenario.id} value={scenario.id}>
+                      {scenario.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <p>{activeScenario.description}</p>
+          <Button
+            size="sm"
+            type="button"
+            variant="ghost"
+            onClick={() => setDocument(cloneDocument(activeScenario.document))}
+          >
+            Reset scenario
+          </Button>
+        </section>
         {scriptureError ? (
           <p role="alert">{scriptureError}</p>
         ) : !scriptureProvider ? (

@@ -59,20 +59,43 @@ body {
   font-size: 18px;
 }
 
-.harness-header button {
-  padding: 7px 10px;
-  border: 1px solid var(--color-divider);
-  border-radius: 2px;
-  color: inherit;
-  background: transparent;
-  font: inherit;
-  font-size: 11px;
-  cursor: pointer;
-}
-
 .harness-actions {
   display: flex;
   gap: 8px;
+}
+
+.workbench-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr auto;
+  align-items: end;
+  gap: 12px 16px;
+  margin-bottom: 36px;
+  padding: 14px;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 92%, var(--color-text));
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.workbench-controls > div {
+  display: grid;
+  gap: 6px;
+}
+
+.workbench-controls__label {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workbench-controls p {
+  align-self: center;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .picker-backdrop {
@@ -232,6 +255,19 @@ body {
   padding: 0 20px 16px;
 }
 @media (max-width: 640px) {
+  .harness-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .harness-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .workbench-controls {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
   .settings-schemes,
   .settings-themes {
     grid-template-columns: 1fr;

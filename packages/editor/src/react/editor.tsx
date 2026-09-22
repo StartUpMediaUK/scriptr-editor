@@ -1125,11 +1125,21 @@ export const ScriptrEditor = forwardRef<
   useEffect(() => {
     if (!editor || !value || serializedValue === undefined) return;
     const current = editorJsonToCanonical(editor.getJSON(), value.references);
-    if (codec.serialize(current) !== serializedValue) {
+    if (codec.serialize(current) === serializedValue) return;
+
+    // Tiptap node views may synchronously render React portals while content is
+    // replaced. Deferring the replacement keeps that work outside React's
+    // effect lifecycle and lets rapid controlled updates cancel stale writes.
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled || editor.isDestroyed) return;
       editor.commands.setContent(canonicalToEditorJson(value), {
         emitUpdate: false,
       });
-    }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [codec, editor, serializedValue, value]);
 
   if (!editor)

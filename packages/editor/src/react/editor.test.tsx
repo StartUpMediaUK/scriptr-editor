@@ -43,6 +43,45 @@ describe('ScriptrEditor', () => {
     expect(screen.getByLabelText('Drag block to reorder')).toBeInTheDocument();
   });
 
+  it('applies controlled document replacements outside the React effect lifecycle', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const replacement: CanonicalDocument = {
+      version: 2,
+      content: [
+        {
+          id: 'replacement',
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Replacement content.' }],
+        },
+      ],
+    };
+    const { rerender } = render(
+      <StrictMode>
+        <ScriptrEditor value={document} />
+      </StrictMode>,
+    );
+
+    rerender(
+      <StrictMode>
+        <ScriptrEditor value={replacement} />
+      </StrictMode>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Document editor')).toHaveTextContent(
+        'Replacement content.',
+      ),
+    );
+    expect(
+      consoleError.mock.calls.some(([message]) =>
+        String(message).includes('flushSync was called'),
+      ),
+    ).toBe(false);
+    consoleError.mockRestore();
+  });
+
   it('dismisses the block action menu when focus moves elsewhere or the page scrolls', async () => {
     render(<ScriptrEditor value={document} />);
     const handle = await screen.findByLabelText('Drag block to reorder');
