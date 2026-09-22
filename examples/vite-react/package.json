@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "scripture:data": "node ../../scripts/build-development-scripture-data.mjs",
+    "prebuild": "pnpm scripture:data",
+    "predev": "pnpm scripture:data",
+    "pretypecheck": "pnpm scripture:data",
     "build": "tsc --noEmit && vite build",
     "dev": "vite",
     "test": "vitest run --passWithNoTests",

@@ -7,6 +7,8 @@ coverage/
 .turbo/
 *.tsbuildinfo
 *.tgz
+examples/vite-react/public/generated/
+examples/vite-react/generated/
 .DS_Store
 .env
 .env.*

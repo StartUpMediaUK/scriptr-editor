@@ -22,6 +22,15 @@ export type {
 export { assertScriptureProviderConformance } from './provider-contract.js';
 export type { ProviderConformanceOptions } from './provider-contract.js';
 export {
+  createLocalScriptureProvider,
+  localScriptureDatasetSchema,
+  parseLocalScriptureDataset,
+} from './local-dataset.js';
+export type {
+  LocalScriptureDataset,
+  LocalScriptureTranslation,
+} from './local-dataset.js';
+export {
   createRemoteScriptureProvider,
   createScriptureTransportHandler,
 } from './transport.js';

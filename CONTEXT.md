@@ -28,6 +28,14 @@ _Avoid_: Passage, verse text
 An authored Block containing a Scripture Address and one deliberately selected translation identifier.
 _Avoid_: Bible quote, auto-reference
 
+**Scripture Dataset**:
+A versioned, provider-neutral collection of translation metadata and verse text keyed by canonical Scripture addresses. It is already normalized for consumption and does not describe its source file or conversion process.
+_Avoid_: Bible dictionary, CSV dataset, provider response
+
+**Dataset Scripture Provider**:
+A Scripture provider backed by a validated Scripture Dataset supplied by the Host.
+_Avoid_: CSV provider, local Bible database
+
 **Translation Comparison**:
 An authored Block containing one Scripture Address and an ordered set of translation identifiers plus its layout.
 _Avoid_: Scripture Block group

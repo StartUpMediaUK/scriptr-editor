@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["vite/client"]
   },
-  "include": ["main.tsx", "vite.config.ts"]
+  "include": ["*.ts", "*.tsx"]
 }

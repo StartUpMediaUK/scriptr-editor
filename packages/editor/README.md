@@ -89,6 +89,22 @@ import {
 
 The picker accepts progressive input such as `Ro`, `Romans 8`, `Romans 8:28`, and `Romans 8:28-30`. Ordinary editor text is never automatically converted into Scripture content. The included fake provider and conformance assertion support deterministic consumer tests without YouVersion or network access.
 
+For private or local text, normalize the data to the documented versioned JSON shape and use the included provider. Source conversion remains entirely host-owned:
+
+```ts
+import datasetJson from './private-scripture.json';
+import {
+  createLocalScriptureProvider,
+  parseLocalScriptureDataset,
+} from 'scriptr-editor/scripture';
+
+const scriptureProvider = createLocalScriptureProvider(
+  parseLocalScriptureDataset(datasetJson),
+);
+```
+
+The provider ignores JSON property order and exposes canonical books from Genesis through Revelation. See `docs/api.md` in the repository for the normalized dataset fields, coverage rules, canonical identifiers, and validation behavior.
+
 Pass the same provider to editable and read-only contexts so Scripture and Translation Comparison blocks resolve identically and always retain their address when passage text is unavailable:
 
 ```tsx

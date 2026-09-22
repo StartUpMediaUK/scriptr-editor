@@ -1,8 +1,9 @@
-import { StrictMode, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { PACKAGE_NAME } from 'scriptr-editor';
 import type { CanonicalDocument } from 'scriptr-editor/document';
+import type { ScriptureProvider } from 'scriptr-editor/host';
 import {
   ScriptrPresentationProvider,
   ScriptrPresentationSurface,
@@ -11,8 +12,9 @@ import {
   ScriptrRenderer,
 } from 'scriptr-editor/react';
 import {
-  createFakeScriptureProvider,
+  createLocalScriptureProvider,
   formatScriptureAddress,
+  parseLocalScriptureDataset,
   type ScriptureStructure,
 } from 'scriptr-editor/scripture';
 import './styles.css';
@@ -172,7 +174,7 @@ const initialDocument: CanonicalDocument = {
       id: 'comparison-romans',
       type: 'translationComparison',
       address: { book: 'ROM', chapter: 8, verseStart: 28 },
-      translationIds: ['KJV', 'WEB'],
+      translationIds: ['KJV', 'BSB', 'WEBBE'],
       layout: 'twoColumn',
     },
     {
@@ -205,103 +207,6 @@ const initialDocument: CanonicalDocument = {
     },
   },
 };
-
-const demoStructure: ScriptureStructure = {
-  books: [
-    {
-      id: 'GEN',
-      name: 'Genesis',
-      aliases: ['Ge', 'Gen'],
-      testament: 'old',
-      chapters: [
-        31, 25, 24, 26, 32, 22, 24, 22, 29, 32, 32, 20, 18, 24, 21, 16, 27, 33,
-        38, 18, 34, 24, 20, 67, 34, 35, 46, 22, 35, 43, 55, 32, 20, 31, 29, 43,
-        36, 30, 23, 23, 57, 38, 34, 34, 28, 34, 31, 22, 33, 26,
-      ],
-    },
-    {
-      id: 'ROM',
-      name: 'Romans',
-      aliases: ['Ro', 'Rom'],
-      testament: 'new',
-      chapters: [
-        32, 29, 31, 25, 21, 23, 25, 39, 33, 21, 36, 21, 14, 23, 33, 27,
-      ],
-    },
-    {
-      id: 'JHN',
-      name: 'John',
-      aliases: ['Jn'],
-      testament: 'new',
-      chapters: [
-        51, 25, 36, 54, 47, 71, 53, 59, 41, 42, 57, 50, 38, 31, 27, 33, 26, 40,
-        42, 31, 25,
-      ],
-    },
-  ],
-};
-
-const demoProvider = createFakeScriptureProvider({
-  structure: demoStructure,
-  translations: [
-    {
-      id: 'KJV',
-      name: 'King James Version',
-      abbreviation: 'KJV',
-      languageTag: 'en',
-    },
-    {
-      id: 'WEB',
-      name: 'World English Bible',
-      abbreviation: 'WEB',
-      languageTag: 'en',
-    },
-  ],
-  passages: [
-    {
-      address: { book: 'ROM', chapter: 8, verseStart: 28 },
-      translationId: 'KJV',
-      text: 'And we know that all things work together for good to them that love God.',
-      attribution: 'King James Version — development fixture',
-      cache: 'persistent',
-    },
-    {
-      address: { book: 'JHN', chapter: 3, verseStart: 16 },
-      translationId: 'KJV',
-      text: 'For God so loved the world, that he gave his only begotten Son.',
-      attribution: 'King James Version — development fixture',
-      cache: 'persistent',
-    },
-    {
-      address: { book: 'JHN', chapter: 3, verseStart: 16 },
-      translationId: 'WEB',
-      text: 'For God so loved the world, that he gave his one and only Son.',
-      attribution: 'World English Bible — development fixture',
-      cache: 'persistent',
-    },
-    {
-      address: { book: 'JHN', chapter: 1, verseStart: 1, verseEnd: 10 },
-      translationId: 'KJV',
-      text: 'In the beginning was the Word, and the Word was with God, and the Word was God. The true Light lighteth every man that cometh into the world.',
-      attribution: 'King James Version — development fixture',
-      cache: 'persistent',
-    },
-    {
-      address: { book: 'JHN', chapter: 1, verseStart: 1, verseEnd: 10 },
-      translationId: 'WEB',
-      text: 'In the beginning was the Word, and the Word was with God, and the Word was God. The true light enlightens everyone coming into the world.',
-      attribution: 'World English Bible — development fixture',
-      cache: 'persistent',
-    },
-    {
-      address: { book: 'ROM', chapter: 8, verseStart: 28 },
-      translationId: 'WEB',
-      text: 'We know that all things work together for good for those who love God.',
-      attribution: 'World English Bible — development fixture',
-      cache: 'persistent',
-    },
-  ],
-});
 
 const demoDocumentProvider = {
   search: () =>
@@ -359,6 +264,43 @@ function DevelopmentHarness() {
   const [preview, setPreview] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedReference, setSelectedReference] = useState<string>();
+  const [scriptureProvider, setScriptureProvider] =
+    useState<ScriptureProvider>();
+  const [scriptureStructure, setScriptureStructure] =
+    useState<ScriptureStructure>();
+  const [scriptureError, setScriptureError] = useState<string>();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let current = true;
+    void fetch('/generated/scripture-dataset.json', {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Scripture fixture request failed.');
+        const provider = createLocalScriptureProvider(
+          parseLocalScriptureDataset(await response.json()),
+        );
+        const structure = await provider.getStructure(controller.signal);
+        if (current) {
+          setScriptureProvider(provider);
+          setScriptureStructure(structure);
+        }
+      })
+      .catch((error: unknown) => {
+        if (current && !controller.signal.aborted) {
+          setScriptureError(
+            error instanceof Error
+              ? error.message
+              : 'Scripture fixtures could not be loaded.',
+          );
+        }
+      });
+    return () => {
+      current = false;
+      controller.abort();
+    };
+  }, []);
 
   return (
     <main className="page-shell">
@@ -379,19 +321,23 @@ function DevelopmentHarness() {
             </button>
           </div>
         </div>
-        {preview ? (
+        {scriptureError ? (
+          <p role="alert">{scriptureError}</p>
+        ) : !scriptureProvider ? (
+          <p role="status">Loading Scripture fixtures…</p>
+        ) : preview ? (
           <ScriptrRenderer
             document={document}
             documentTargetProvider={demoDocumentProvider}
             imageHost={demoImageHost}
             mediaHost={demoMediaHost}
-            scriptureProvider={demoProvider}
+            scriptureProvider={scriptureProvider}
           />
         ) : (
           <ScriptrEditor
             value={document}
             onChange={setDocument}
-            scriptureProvider={demoProvider}
+            scriptureProvider={scriptureProvider}
             bookmarkProvider={demoBookmarkProvider}
             documentTargetProvider={demoDocumentProvider}
             imageHost={demoImageHost}
@@ -403,14 +349,14 @@ function DevelopmentHarness() {
           <p className="selected-reference">Selected: {selectedReference}</p>
         ) : null}
       </article>
-      {pickerOpen ? (
+      {pickerOpen && scriptureStructure ? (
         <div className="picker-backdrop">
           <ScripturePicker
             offline
             onCancel={() => setPickerOpen(false)}
             onSelect={(address) => {
               setSelectedReference(
-                formatScriptureAddress(address, demoStructure),
+                formatScriptureAddress(address, scriptureStructure),
               );
               setDocument((current) => ({
                 ...current,
@@ -426,7 +372,7 @@ function DevelopmentHarness() {
               }));
               setPickerOpen(false);
             }}
-            structure={demoStructure}
+            structure={scriptureStructure}
           />
         </div>
       ) : null}
