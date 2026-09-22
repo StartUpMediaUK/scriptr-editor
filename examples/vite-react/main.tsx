@@ -13,6 +13,7 @@ import {
   ScripturePicker,
   ScriptrEditor,
   ScriptrRenderer,
+  defineReactExtension,
 } from 'scriptr-editor/react';
 import {
   createLocalScriptureProvider,
@@ -155,7 +156,7 @@ const initialDocument: CanonicalDocument = {
     {
       id: 'teaching-video',
       type: 'video',
-      src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+      src: new URL('/generated/study-video.mp4', window.location.href).href,
       title: 'Teaching video',
       caption: [{ type: 'text', text: 'A responsive video block.' }],
       width: 960,
@@ -164,7 +165,7 @@ const initialDocument: CanonicalDocument = {
     {
       id: 'teaching-audio',
       type: 'audio',
-      src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3',
+      src: new URL('/generated/study-audio.wav', window.location.href).href,
       title: 'Teaching audio',
       transcript: [{ type: 'text', text: 'An optional transcript.' }],
     },
@@ -295,7 +296,20 @@ const workbenchScenarios: readonly WorkbenchScenario[] = [
               text: 'accent text',
               marks: [{ type: 'accent' }],
             },
-            { type: 'text', text: ' in one paragraph.' },
+            { type: 'text', text: ', ' },
+            {
+              type: 'text',
+              text: 'coloured text',
+              marks: [{ type: 'textColour', colour: '#7c3aed' }],
+            },
+            { type: 'text', text: ', and ' },
+            {
+              type: 'text',
+              text: 'highlighted text',
+              marks: [{ type: 'highlightColour', colour: '#fde68a' }],
+            },
+            { type: 'hardBreak' },
+            { type: 'text', text: 'A deliberate hard break in one paragraph.' },
           ],
         },
         {
@@ -468,6 +482,74 @@ const workbenchScenarios: readonly WorkbenchScenario[] = [
     },
   },
   {
+    id: 'links-extensions',
+    label: 'Links and extensions',
+    description:
+      'External links, References, document links, and extension seams.',
+    document: {
+      version: 2,
+      content: [
+        {
+          id: 'links-title',
+          type: 'heading',
+          level: 1,
+          content: [{ type: 'text', text: 'Links and extensions' }],
+        },
+        {
+          id: 'links-paragraph',
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Open an ' },
+            {
+              type: 'text',
+              text: 'external resource',
+              marks: [{ type: 'link', href: 'https://example.com/resource' }],
+            },
+            { type: 'text', text: ', inspect a ' },
+            {
+              type: 'text',
+              text: 'Reference',
+              marks: [{ type: 'reference', referenceId: 'fixture-reference' }],
+            },
+            { type: 'text', text: ', or visit ' },
+            {
+              type: 'text',
+              text: 'another document',
+              marks: [
+                { type: 'internalDocumentLink', targetId: 'day-of-the-lord' },
+              ],
+            },
+            { type: 'text', text: '.' },
+          ],
+        },
+        {
+          id: 'extension-fixture',
+          type: 'extension',
+          name: 'workbench-note',
+          version: 1,
+          data: { label: 'Host extension content' },
+        },
+      ],
+      references: {
+        'fixture-reference': {
+          id: 'fixture-reference',
+          title: 'Workbench Reference',
+          content: [
+            {
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Reference content for interaction review.',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
     id: 'empty',
     label: 'Empty document',
     description: 'The initial writing state and insertion affordances.',
@@ -487,6 +569,16 @@ function firstScenario(
 }
 
 const defaultScenario = firstScenario(workbenchScenarios);
+
+const workbenchParameters = new URLSearchParams(window.location.search);
+const initialScenario =
+  workbenchScenarios.find(
+    (scenario) => scenario.id === workbenchParameters.get('scenario'),
+  ) ?? defaultScenario;
+const requestedFixtureState = workbenchParameters.get('state');
+const initialFixtureState = isFixtureState(requestedFixtureState)
+  ? requestedFixtureState
+  : 'ready';
 
 const cloneDocument = (document: CanonicalDocument) =>
   structuredClone(document);
@@ -542,15 +634,51 @@ const demoBookmarkProvider = {
     }),
 };
 
-function DevelopmentHarness() {
-  const [scenarioId, setScenarioId] = useState(defaultScenario.id);
+const workbenchExtension = defineReactExtension({
+  name: 'workbench-note',
+  version: 1,
+  parseData: (input) =>
+    typeof input === 'object' && input !== null && 'label' in input
+      ? { label: String(input.label) }
+      : { label: 'Host extension content' },
+  renderEditable: (data) => (
+    <aside className="workbench-extension">Editable: {data.label}</aside>
+  ),
+  renderReadonly: (data) => (
+    <aside className="workbench-extension">Read only: {data.label}</aside>
+  ),
+  slashItems: [
+    {
+      id: 'note',
+      label: 'Host extension note',
+      hint: 'Insert a development extension block',
+      notation: '/host-note',
+      createBlock: () => ({
+        id: `extension-${Date.now()}`,
+        type: 'extension',
+        name: 'workbench-note',
+        version: 1,
+        data: { label: 'Inserted host extension content' },
+      }),
+    },
+  ],
+});
+
+function DevelopmentHarness({
+  embedded = false,
+}: {
+  readonly embedded?: boolean;
+}) {
+  const [scenarioId, setScenarioId] = useState(initialScenario.id);
   const [document, setDocument] = useState(() =>
-    cloneDocument(defaultScenario.document),
+    cloneDocument(initialScenario.document),
   );
   const [preview, setPreview] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedReference, setSelectedReference] = useState<string>();
-  const [fixtureState, setFixtureState] = useState<FixtureState>('ready');
+  const [fixtureState, setFixtureState] =
+    useState<FixtureState>(initialFixtureState);
+  const [narrowReview, setNarrowReview] = useState(false);
   const [scriptureProvider, setScriptureProvider] =
     useState<ScriptureProvider>();
   const [scriptureStructure, setScriptureStructure] =
@@ -648,6 +776,16 @@ function DevelopmentHarness() {
             >
               {preview ? 'Edit' : 'Read-only preview'}
             </Button>
+            {!embedded ? (
+              <Button
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={() => setNarrowReview(true)}
+              >
+                Narrow review
+              </Button>
+            ) : null}
           </div>
         </div>
         <section className="workbench-controls" aria-label="Workbench controls">
@@ -730,7 +868,9 @@ function DevelopmentHarness() {
           <p role="status">Loading Scripture fixtures…</p>
         ) : preview ? (
           <ScriptrRenderer
+            key={`${scenarioId}-${fixtureState}-preview`}
             document={document}
+            extensions={[workbenchExtension]}
             documentTargetProvider={
               fixtureState === 'unavailable' ? undefined : demoDocumentProvider
             }
@@ -744,7 +884,9 @@ function DevelopmentHarness() {
           />
         ) : (
           <ScriptrEditor
+            key={`${scenarioId}-${fixtureState}-editor`}
             value={document}
+            extensions={[workbenchExtension]}
             onChange={setDocument}
             scriptureProvider={activeScriptureProvider}
             bookmarkProvider={
@@ -793,6 +935,29 @@ function DevelopmentHarness() {
           />
         </div>
       ) : null}
+      {narrowReview ? (
+        <div
+          className="review-backdrop"
+          role="dialog"
+          aria-label="Narrow review"
+        >
+          <div className="review-device">
+            <div className="review-device__toolbar">
+              <span>390 × 700 touch review</span>
+              <Button
+                aria-label="Close narrow review"
+                size="sm"
+                type="button"
+                variant="ghost"
+                onClick={() => setNarrowReview(false)}
+              >
+                Close
+              </Button>
+            </div>
+            <iframe title="Narrow editor review" src="/?review=embedded" />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -803,11 +968,14 @@ if (!(root instanceof HTMLElement)) {
   throw new Error('Development harness root is missing.');
 }
 
+const embeddedReview =
+  new URLSearchParams(window.location.search).get('review') === 'embedded';
+
 createRoot(root).render(
   <StrictMode>
     <ScriptrPresentationProvider>
       <ScriptrPresentationSurface>
-        <DevelopmentHarness />
+        <DevelopmentHarness embedded={embeddedReview} />
       </ScriptrPresentationSurface>
     </ScriptrPresentationProvider>
   </StrictMode>,
