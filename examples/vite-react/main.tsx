@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client';
 import { PACKAGE_NAME } from 'scriptr-editor';
 import type { CanonicalDocument } from 'scriptr-editor/document';
 import {
+  ScriptrPresentationProvider,
+  ScriptrPresentationSurface,
   ScripturePicker,
   ScriptrEditor,
   ScriptrRenderer,
@@ -15,6 +17,7 @@ import {
 } from 'scriptr-editor/scripture';
 import './styles.css';
 import 'scriptr-editor/styles.css';
+import { SettingsPanel } from './settings-panel';
 
 const initialDocument: CanonicalDocument = {
   version: 2,
@@ -364,6 +367,7 @@ function DevelopmentHarness() {
         <div className="harness-header">
           <span id="page-title">{PACKAGE_NAME}</span>
           <div className="harness-actions">
+            <SettingsPanel />
             <button type="button" onClick={() => setPickerOpen(true)}>
               Scripture
             </button>
@@ -438,6 +442,10 @@ if (!(root instanceof HTMLElement)) {
 
 createRoot(root).render(
   <StrictMode>
-    <DevelopmentHarness />
+    <ScriptrPresentationProvider>
+      <ScriptrPresentationSurface>
+        <DevelopmentHarness />
+      </ScriptrPresentationSurface>
+    </ScriptrPresentationProvider>
   </StrictMode>,
 );

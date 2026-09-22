@@ -16,6 +16,7 @@ export * from './commands/index.js';
 
 export * from './document/index.js';
 export * from './extensions/index.js';
+export * from './presentation/index.js';
 export type * from './host/index.js';
 export * from './scripture/index.js';
 export * from './react/index.js';

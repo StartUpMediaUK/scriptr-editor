@@ -55,7 +55,7 @@ describe('media blocks', () => {
     );
   });
 
-  it('resolves hosted audio and exposes editable metadata controls', async () => {
+  it('resolves hosted audio and exposes compact player and hover actions', async () => {
     const onChange = vi.fn();
     render(
       <MediaBlockContent
@@ -87,7 +87,29 @@ describe('media blocks', () => {
         'https://example.com/message.mp3',
       ),
     );
-    fireEvent.change(screen.getByLabelText('Transcript'), {
+    expect(
+      screen.getByRole('button', { name: 'Seek audio' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Back 5 seconds' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Rename audio' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Rename audio' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Rename audio' }), {
+      target: { value: 'Edited message' },
+    });
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Rename audio' }));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Edited message' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Playback speed' }));
+    expect(
+      screen.getByRole('button', { name: 'Playback speed' }),
+    ).toHaveTextContent('1.25×');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit caption' }));
+    fireEvent.change(screen.getByLabelText('audio caption'), {
       target: { value: 'A transcript.' },
     });
     expect(onChange).toHaveBeenCalledWith(

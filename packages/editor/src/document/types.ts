@@ -11,6 +11,7 @@ export type JsonValue =
 
 export type TextStyleMark =
   | { readonly type: 'bold' }
+  | { readonly type: 'accent' }
   | { readonly type: 'italic' }
   | { readonly type: 'underline' }
   | { readonly type: 'strikethrough' }
@@ -124,6 +125,7 @@ export type TranslationComparisonBlock = BlockBase & {
 };
 
 export type ImageAlignment = 'start' | 'center' | 'end' | 'wide';
+export type ImageCropRatio = 'original' | 'square' | 'landscape' | 'portrait';
 
 export type ImageBlock = BlockBase & {
   readonly type: 'image';
@@ -132,6 +134,7 @@ export type ImageBlock = BlockBase & {
   readonly alt: string;
   readonly caption?: readonly InlineContent[] | undefined;
   readonly alignment: ImageAlignment;
+  readonly cropRatio?: ImageCropRatio | undefined;
   readonly width?: number | undefined;
   readonly height?: number | undefined;
 };
@@ -155,6 +158,7 @@ export type AudioBlock = BlockBase &
   MediaSource & {
     readonly type: 'audio';
     readonly title: string;
+    readonly coverAssetId?: string | undefined;
     readonly transcript?: readonly InlineContent[] | undefined;
   };
 

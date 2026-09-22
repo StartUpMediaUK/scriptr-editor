@@ -11,6 +11,7 @@ import {
   Blocks,
   BookOpenText,
   Bookmark,
+  CaseSensitive,
   CheckSquare,
   Code2,
   Columns2,
@@ -223,6 +224,7 @@ type SlashItem = ScriptrCommand & {
 
 const editorCommandIds = new Set([
   'text',
+  'accent',
   'heading-1',
   'heading-2',
   'heading-3',
@@ -245,6 +247,9 @@ const runEditorCommand = (id: string, editor: Editor): void => {
   switch (id) {
     case 'text':
       void chain.setParagraph().run();
+      return;
+    case 'accent':
+      void chain.toggleMark('accent').run();
       return;
     case 'heading-1':
       void chain.toggleHeading({ level: 1 }).run();
@@ -557,6 +562,9 @@ function CommandIconView({ icon }: { readonly icon: CommandIcon }) {
   switch (icon) {
     case 'text':
       Icon = Type;
+      break;
+    case 'accent':
+      Icon = CaseSensitive;
       break;
     case 'heading':
       Icon = Heading;
@@ -1191,6 +1199,10 @@ export const ScriptrEditor = forwardRef<
           editor={editor}
           className="scriptr-editor__bubble"
           options={{ placement: 'top' }}
+          shouldShow={({ state }) =>
+            !state.selection.empty &&
+            !(state.selection instanceof NodeSelection)
+          }
         >
           <Popover>
             <PopoverTrigger
@@ -1369,6 +1381,15 @@ export const ScriptrEditor = forwardRef<
             </PopoverContent>
           </Popover>
           <ToolbarButton
+            label="Accent font"
+            active={editor.isActive('accent')}
+            onPress={() =>
+              void editor.chain().focus().toggleMark('accent').run()
+            }
+          >
+            <span className="scriptr-editor__accent-control">Abc</span>
+          </ToolbarButton>
+          <ToolbarButton
             label="Bold"
             active={editor.isActive('bold')}
             onPress={() => void editor.chain().focus().toggleBold().run()}
@@ -1514,6 +1535,36 @@ export const ScriptrEditor = forwardRef<
               >
                 <PopoverTitle className="sr-only">Block actions</PopoverTitle>
                 <p>Block</p>
+                <Button
+                  onClick={() => {
+                    if (
+                      selectBlockForAction(
+                        editor,
+                        activeBlockPositionRef.current,
+                      )
+                    ) {
+                      const selection = editor.state.selection;
+                      if (
+                        selection instanceof NodeSelection &&
+                        selection.node.isTextblock
+                      ) {
+                        editor.commands.setTextSelection({
+                          from: selection.from + 1,
+                          to: selection.from + selection.node.nodeSize - 1,
+                        });
+                        void editor.chain().focus().toggleMark('accent').run();
+                      }
+                    }
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <CaseSensitive data-icon="inline-start" />
+                  Turn into accent
+                </Button>
                 <Button
                   onClick={() => {
                     void editor.chain().focus().setParagraph().run();

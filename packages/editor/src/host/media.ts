@@ -21,6 +21,10 @@ export type HostedMedia = {
 export type MediaHost = {
   readonly validate?: (input: MediaUploadInput) => void | Promise<void>;
   readonly upload: (input: MediaUploadInput) => Promise<HostedMedia>;
+  readonly replace?: (
+    assetId: string,
+    input: MediaUploadInput,
+  ) => Promise<HostedMedia>;
   readonly resolve: (
     assetId: string,
     signal?: AbortSignal,

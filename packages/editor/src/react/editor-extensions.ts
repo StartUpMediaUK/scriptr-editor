@@ -247,6 +247,23 @@ const ReferenceAnchor = Mark.create({
   },
 });
 
+const Accent = Mark.create({
+  name: 'accent',
+  parseHTML() {
+    return [{ tag: 'span[data-scriptr-accent]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      mergeAttributes(HTMLAttributes, {
+        'data-scriptr-accent': '',
+        class: 'scriptr-editor__accent',
+      }),
+      0,
+    ];
+  },
+});
+
 const TextColour = Mark.create({
   name: 'textColour',
   addAttributes() {
@@ -520,6 +537,7 @@ export function createEditorExtensions(
     createBookmarkBlockNode(mediaHost),
     InternalDocumentLink,
     ReferenceAnchor,
+    Accent,
     TextColour,
     HighlightColour,
     UniqueID.configure({ types: idTypes }),

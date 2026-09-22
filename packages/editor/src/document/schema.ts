@@ -22,6 +22,7 @@ export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
 
 const markSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('bold') }).strict(),
+  z.object({ type: z.literal('accent') }).strict(),
   z.object({ type: z.literal('italic') }).strict(),
   z.object({ type: z.literal('underline') }).strict(),
   z.object({ type: z.literal('strikethrough') }).strict(),
@@ -238,6 +239,9 @@ const imageBlockSchema = z
     alt: z.string(),
     caption: inlineArraySchema.optional(),
     alignment: z.enum(['start', 'center', 'end', 'wide']),
+    cropRatio: z
+      .enum(['original', 'square', 'landscape', 'portrait'])
+      .optional(),
     width: positiveInteger.optional(),
     height: positiveInteger.optional(),
   })
@@ -267,6 +271,7 @@ const audioBlockSchema = z
     type: z.literal('audio'),
     ...mediaSourceShape,
     title: z.string().trim().min(1),
+    coverAssetId: nonEmptyId.optional(),
     transcript: inlineArraySchema.optional(),
   })
   .strict()
@@ -344,6 +349,7 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
 
 const referenceTextMarkSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('bold') }).strict(),
+  z.object({ type: z.literal('accent') }).strict(),
   z.object({ type: z.literal('italic') }).strict(),
   z.object({ type: z.literal('underline') }).strict(),
   z

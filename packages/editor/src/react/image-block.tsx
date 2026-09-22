@@ -2,15 +2,28 @@ import type { NodeViewProps } from '@tiptap/react';
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Trash2 } from 'lucide-react';
+import {
+  Captions,
+  Copy,
+  CopyPlus,
+  Crop,
+  Download,
+  Ellipsis,
+  Maximize2,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 
 import { Button } from '../components/ui/button.js';
-import { Field, FieldLabel } from '../components/ui/field.js';
 import { Input } from '../components/ui/input.js';
-import { Slider } from '../components/ui/slider.js';
-import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '../components/ui/popover.js';
 import { createDocumentCodec } from '../document/codec.js';
-import type { ImageAlignment, ImageBlock } from '../document/types.js';
+import type { ImageBlock } from '../document/types.js';
 import type { HostedImage, ImageHost } from '../host/images.js';
 
 function safeImageSource(source: string | undefined) {
@@ -34,6 +47,7 @@ export type ImageBlockContentProps = {
   readonly editable?: boolean | undefined;
   readonly onChange?: ((block: ImageBlock) => void) | undefined;
   readonly onRemove?: (() => void) | undefined;
+  readonly onDuplicate?: (() => void) | undefined;
   readonly captionContent?: ReactNode | undefined;
 };
 
@@ -43,10 +57,14 @@ export function ImageBlockContent({
   editable = false,
   onChange,
   onRemove,
+  onDuplicate,
   captionContent,
 }: ImageBlockContentProps) {
   const [resolved, setResolved] = useState<HostedImage>();
   const [unavailable, setUnavailable] = useState(false);
+  const [captionOpen, setCaptionOpen] = useState(false);
+  const figureRef = useRef<HTMLElement>(null);
+  const replacementRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (block.src || !imageHost) return;
     const controller = new AbortController();
@@ -65,13 +83,6 @@ export function ImageBlockContent({
   const caption = block.caption
     ?.map((inline) => (inline.type === 'text' ? inline.text : '\n'))
     .join('');
-  const alignments: readonly ImageAlignment[] = [
-    'start',
-    'center',
-    'end',
-    'wide',
-  ];
-
   return (
     <figure
       className="scriptr-image"
@@ -82,6 +93,8 @@ export function ImageBlockContent({
           ? undefined
           : { maxWidth: block.width ?? resolved?.width }
       }
+      ref={figureRef}
+      data-crop-ratio={block.cropRatio ?? 'original'}
     >
       {src ? (
         <img
@@ -96,73 +109,138 @@ export function ImageBlockContent({
         </div>
       )}
       {editable ? (
-        <div className="scriptr-image__controls">
-          <Field>
-            <FieldLabel htmlFor={`image-alt-${block.id}`}>Alt text</FieldLabel>
-            <Input
-              id={`image-alt-${block.id}`}
-              aria-label="Image alt text"
-              value={block.alt}
-              onChange={(event) =>
-                onChange?.({ ...block, alt: event.currentTarget.value })
-              }
-            />
-          </Field>
-          <ToggleGroup
-            aria-label="Image alignment"
-            className="scriptr-image__alignment"
-            onValueChange={(values) => {
-              const alignment = values[0];
-              if (
-                alignment === 'start' ||
-                alignment === 'center' ||
-                alignment === 'end' ||
-                alignment === 'wide'
-              ) {
-                onChange?.({ ...block, alignment });
-              }
-            }}
-            size="sm"
-            value={[block.alignment]}
-          >
-            {alignments.map((alignment) => (
-              <ToggleGroupItem key={alignment} value={alignment}>
-                {alignment}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <Field>
-            <FieldLabel>Image width</FieldLabel>
-            <Slider
-              aria-label="Image width"
-              max={1600}
-              min={160}
-              onValueChange={(width) => {
-                const height =
-                  block.width && block.height
-                    ? Math.max(
-                        1,
-                        Math.round((width / block.width) * block.height),
-                      )
-                    : block.height;
-                onChange?.({ ...block, width, ...(height ? { height } : {}) });
-              }}
-              value={block.width ?? resolved?.width ?? 686}
-            />
-          </Field>
+        <div className="scriptr-media__toolbar">
           <Button
-            className="scriptr-image__remove"
-            onClick={onRemove}
-            size="sm"
-            type="button"
+            aria-label="Edit caption"
+            onClick={() => setCaptionOpen((value) => !value)}
+            size="icon-sm"
             variant="ghost"
           >
-            <Trash2 data-icon="inline-start" />
-            Remove image
+            <Captions />
           </Button>
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button
+                  aria-label="Crop image"
+                  size="icon-sm"
+                  variant="ghost"
+                />
+              }
+            >
+              <Crop />
+            </PopoverTrigger>
+            <PopoverContent className="scriptr-media__menu">
+              <PopoverTitle>Crop image</PopoverTitle>
+              {(['original', 'square', 'landscape', 'portrait'] as const).map(
+                (ratio) => (
+                  <Button
+                    aria-pressed={(block.cropRatio ?? 'original') === ratio}
+                    key={ratio}
+                    onClick={() => onChange?.({ ...block, cropRatio: ratio })}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    {ratio[0]!.toUpperCase() + ratio.slice(1)}
+                  </Button>
+                ),
+              )}
+            </PopoverContent>
+          </Popover>
+          <Button
+            aria-label="Expand image"
+            onClick={() => void figureRef.current?.requestFullscreen?.()}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <Maximize2 />
+          </Button>
+          {src ? (
+            <Button
+              aria-label="Download image"
+              nativeButton={false}
+              render={<a download href={src} />}
+              size="icon-sm"
+              variant="ghost"
+            >
+              <Download />
+            </Button>
+          ) : null}
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button
+                  aria-label="More image options"
+                  size="icon-sm"
+                  variant="ghost"
+                />
+              }
+            >
+              <Ellipsis />
+            </PopoverTrigger>
+            <PopoverContent className="scriptr-media__menu">
+              <PopoverTitle className="sr-only">Image options</PopoverTitle>
+              <Button
+                onClick={() =>
+                  void navigator.clipboard?.writeText(src ?? block.assetId)
+                }
+                variant="ghost"
+              >
+                <Copy />
+                Copy
+              </Button>
+              <Button
+                onClick={() => replacementRef.current?.click()}
+                variant="ghost"
+              >
+                <RefreshCw />
+                Replace
+              </Button>
+              <Button onClick={onDuplicate} variant="ghost">
+                <CopyPlus />
+                Duplicate
+              </Button>
+              <Button onClick={onRemove} variant="ghost">
+                <Trash2 />
+                Delete
+              </Button>
+            </PopoverContent>
+          </Popover>
         </div>
       ) : null}
       {editable ? (
+        <input
+          accept="image/*"
+          className="sr-only"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (!file || !imageHost) return;
+            const controller = new AbortController();
+            void Promise.resolve(imageHost.validate?.(file))
+              .then(() =>
+                imageHost.replace
+                  ? imageHost.replace(block.assetId, {
+                      file,
+                      signal: controller.signal,
+                    })
+                  : imageHost.upload({ file, signal: controller.signal }),
+              )
+              .then((image) =>
+                onChange?.({
+                  ...block,
+                  assetId: image.assetId,
+                  src: image.src,
+                  width: image.width,
+                  height: image.height,
+                }),
+              );
+          }}
+          ref={replacementRef}
+          tabIndex={-1}
+          type="file"
+        />
+      ) : null}
+      {editable && captionOpen ? (
         <Input
           aria-label="Image caption"
           className="scriptr-image__caption-input"
@@ -290,6 +368,7 @@ function ImageNodeView({
   node,
   updateAttributes,
   deleteNode,
+  getPos,
   editor,
   imageHost,
 }: NodeViewProps & { readonly imageHost?: ImageHost | undefined }) {
@@ -306,6 +385,18 @@ function ImageNodeView({
         editable={editor.isEditable}
         imageHost={imageHost}
         onChange={(next) => updateAttributes({ payload: JSON.stringify(next) })}
+        onDuplicate={() => {
+          const position = getPos();
+          const id = `image-${Date.now()}`;
+          if (typeof position === 'number')
+            editor.commands.insertContentAt(position + node.nodeSize, {
+              type: 'imageBlock',
+              attrs: {
+                id,
+                payload: JSON.stringify({ ...parsed, id }),
+              },
+            });
+        }}
         onRemove={() => {
           deleteNode();
           void imageHost?.onRemoved(parsed.assetId);

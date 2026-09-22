@@ -36,3 +36,9 @@ export type {
   BookmarkBlockContentProps,
   BookmarkComposerProps,
 } from './bookmark-block.js';
+export {
+  ScriptrPresentationProvider,
+  ScriptrPresentationSurface,
+  useScriptrPresentation,
+} from './presentation.js';
+export type { ScriptrPresentationProviderProps } from './presentation.js';

@@ -235,7 +235,11 @@ describe('ScriptrRenderer', () => {
     const { container } = render(<ScriptrRenderer document={mediaDocument} />);
 
     expect(container.querySelector('video')).toHaveAttribute('controls');
-    expect(container.querySelector('audio')).toHaveAttribute('controls');
+    expect(container.querySelector('audio')).not.toHaveAttribute('controls');
+    expect(
+      screen.getByRole('button', { name: 'Seek audio' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.getByText('Video caption')).toBeInTheDocument();
     expect(screen.getByText('Audio transcript')).toBeInTheDocument();
     expect(

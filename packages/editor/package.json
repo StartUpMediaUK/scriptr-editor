@@ -43,6 +43,10 @@
       "types": "./dist/scripture/index.d.ts",
       "import": "./dist/scripture/index.js"
     },
+    "./ui": {
+      "types": "./dist/ui.d.ts",
+      "import": "./dist/ui.js"
+    },
     "./server": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"

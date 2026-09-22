@@ -13,6 +13,7 @@ export type CommandCategory = (typeof COMMAND_CATEGORIES)[number];
 
 export type CommandIcon =
   | 'text'
+  | 'accent'
   | 'heading'
   | 'list'
   | 'checklist'
@@ -95,6 +96,7 @@ const builtins: readonly BuiltinCommand[] = [
     'h3',
     'subsection',
   ]),
+  command('accent', 'basic', 'Accent', 'Abc', 'accent', ['font', 'typeface']),
   command('bullet-list', 'basic', 'Bulleted list', '-', 'list', [
     'unordered',
     'bullet',

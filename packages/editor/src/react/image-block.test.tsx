@@ -48,7 +48,7 @@ describe('ImageBlockContent', () => {
     expect(screen.getByText('Morning study')).toBeInTheDocument();
   });
 
-  it('exposes accessible editing controls without changing the read-only structure', () => {
+  it('exposes compact media actions and a quiet caption editor', () => {
     const onChange = vi.fn();
     render(
       <ImageBlockContent
@@ -57,15 +57,25 @@ describe('ImageBlockContent', () => {
         onChange={onChange}
       />,
     );
-    fireEvent.change(screen.getByLabelText('Image alt text'), {
-      target: { value: 'Bible and notebook' },
+    expect(
+      screen.getByRole('button', { name: 'Crop image' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand image' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Crop image' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Square' }));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ cropRatio: 'square' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Edit caption' }));
+    fireEvent.change(screen.getByLabelText('Image caption'), {
+      target: { value: 'Updated caption' },
     });
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ alt: 'Bible and notebook' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'wide' }));
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ alignment: 'wide' }),
+      expect.objectContaining({
+        caption: [{ type: 'text', text: 'Updated caption' }],
+      }),
     );
   });
 });

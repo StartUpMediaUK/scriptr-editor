@@ -212,6 +212,12 @@ function applyMark(
   switch (mark.type) {
     case 'bold':
       return <strong key={key}>{child}</strong>;
+    case 'accent':
+      return (
+        <span className="scriptr-renderer__accent" key={key}>
+          {child}
+        </span>
+      );
     case 'italic':
       return <em key={key}>{child}</em>;
     case 'underline':

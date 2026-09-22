@@ -250,6 +250,7 @@ function numberAttr(node: EditorNode, key: string): number | undefined {
 function editorMarkToCanonical(mark: EditorMark): Mark | undefined {
   switch (mark.type) {
     case 'bold':
+    case 'accent':
     case 'italic':
     case 'underline':
       return { type: mark.type };
