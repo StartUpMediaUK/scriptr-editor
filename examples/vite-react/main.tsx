@@ -1,9 +1,12 @@
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { PACKAGE_NAME } from 'scriptr-editor';
 import type { CanonicalDocument } from 'scriptr-editor/document';
-import type { ScriptureProvider } from 'scriptr-editor/host';
+import {
+  ScriptureProviderError,
+  type ScriptureProvider,
+} from 'scriptr-editor/host';
 import {
   ScriptrPresentationProvider,
   ScriptrPresentationSurface,
@@ -224,6 +227,23 @@ type WorkbenchScenario = {
   readonly document: CanonicalDocument;
 };
 
+type FixtureState = 'ready' | 'loading' | 'error' | 'offline' | 'unavailable';
+
+const fixtureStates: readonly {
+  readonly id: FixtureState;
+  readonly label: string;
+}[] = [
+  { id: 'ready', label: 'Ready' },
+  { id: 'loading', label: 'Loading' },
+  { id: 'error', label: 'Error with retry' },
+  { id: 'offline', label: 'Offline' },
+  { id: 'unavailable', label: 'Capabilities unavailable' },
+];
+
+function isFixtureState(value: string | null): value is FixtureState {
+  return fixtureStates.some((state) => state.id === value);
+}
+
 const workbenchScenarios: readonly WorkbenchScenario[] = [
   {
     id: 'integrated-study',
@@ -400,6 +420,54 @@ const workbenchScenarios: readonly WorkbenchScenario[] = [
     },
   },
   {
+    id: 'layout',
+    label: 'Layout blocks',
+    description: 'Columns and disclosure content in editable nested layouts.',
+    document: {
+      version: 2,
+      content: [
+        {
+          id: 'layout-title',
+          type: 'heading',
+          level: 1,
+          content: [{ type: 'text', text: 'Layout blocks' }],
+        },
+        initialDocument.content[4] ?? {
+          id: 'layout-fallback',
+          type: 'paragraph',
+          content: [],
+        },
+        initialDocument.content[5] ?? {
+          id: 'toggle-fallback',
+          type: 'paragraph',
+          content: [],
+        },
+      ],
+    },
+  },
+  {
+    id: 'media',
+    label: 'Media and bookmark',
+    description: 'Image, video, audio, and bookmark blocks with host controls.',
+    document: {
+      version: 2,
+      content: [
+        {
+          id: 'media-title',
+          type: 'heading',
+          level: 1,
+          content: [{ type: 'text', text: 'Media and bookmarks' }],
+        },
+        ...initialDocument.content.slice(6, 9),
+        initialDocument.content[11] ?? {
+          id: 'media-fallback',
+          type: 'paragraph',
+          content: [],
+        },
+      ],
+    },
+  },
+  {
     id: 'empty',
     label: 'Empty document',
     description: 'The initial writing state and insertion affordances.',
@@ -482,6 +550,7 @@ function DevelopmentHarness() {
   const [preview, setPreview] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedReference, setSelectedReference] = useState<string>();
+  const [fixtureState, setFixtureState] = useState<FixtureState>('ready');
   const [scriptureProvider, setScriptureProvider] =
     useState<ScriptureProvider>();
   const [scriptureStructure, setScriptureStructure] =
@@ -490,6 +559,29 @@ function DevelopmentHarness() {
   const activeScenario =
     workbenchScenarios.find((scenario) => scenario.id === scenarioId) ??
     defaultScenario;
+  const offlineScriptureProvider = useMemo<ScriptureProvider | undefined>(
+    () =>
+      scriptureProvider
+        ? {
+            ...scriptureProvider,
+            getPassage: () =>
+              Promise.reject(
+                new ScriptureProviderError(
+                  'offline',
+                  'The development fixture is offline.',
+                  true,
+                ),
+              ),
+          }
+        : undefined,
+    [scriptureProvider],
+  );
+  const activeScriptureProvider =
+    fixtureState === 'offline'
+      ? offlineScriptureProvider
+      : fixtureState === 'unavailable'
+        ? undefined
+        : scriptureProvider;
 
   const chooseScenario = (nextId: string | null) => {
     const scenario = workbenchScenarios.find(({ id }) => id === nextId);
@@ -581,6 +673,32 @@ function DevelopmentHarness() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <span className="workbench-controls__label">Fixture state</span>
+            <Select
+              value={fixtureState}
+              onValueChange={(value) => {
+                if (isFixtureState(value)) setFixtureState(value);
+              }}
+            >
+              <SelectTrigger aria-label="Fixture state">
+                <SelectValue>
+                  {(value: string) =>
+                    fixtureStates.find(({ id }) => id === value)?.label ?? value
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {fixtureStates.map((state) => (
+                    <SelectItem key={state.id} value={state.id}>
+                      {state.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
           <p>{activeScenario.description}</p>
           <Button
             size="sm"
@@ -591,27 +709,56 @@ function DevelopmentHarness() {
             Reset scenario
           </Button>
         </section>
-        {scriptureError ? (
+        {fixtureState === 'error' ? (
+          <div className="workbench-state" role="alert">
+            <p>The selected development fixture could not be loaded.</p>
+            <Button
+              size="sm"
+              type="button"
+              onClick={() => setFixtureState('ready')}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : fixtureState === 'loading' ? (
+          <div className="workbench-state" role="status" aria-busy="true">
+            Loading the selected development fixture…
+          </div>
+        ) : scriptureError ? (
           <p role="alert">{scriptureError}</p>
         ) : !scriptureProvider ? (
           <p role="status">Loading Scripture fixtures…</p>
         ) : preview ? (
           <ScriptrRenderer
             document={document}
-            documentTargetProvider={demoDocumentProvider}
-            imageHost={demoImageHost}
-            mediaHost={demoMediaHost}
-            scriptureProvider={scriptureProvider}
+            documentTargetProvider={
+              fixtureState === 'unavailable' ? undefined : demoDocumentProvider
+            }
+            imageHost={
+              fixtureState === 'unavailable' ? undefined : demoImageHost
+            }
+            mediaHost={
+              fixtureState === 'unavailable' ? undefined : demoMediaHost
+            }
+            scriptureProvider={activeScriptureProvider}
           />
         ) : (
           <ScriptrEditor
             value={document}
             onChange={setDocument}
-            scriptureProvider={scriptureProvider}
-            bookmarkProvider={demoBookmarkProvider}
-            documentTargetProvider={demoDocumentProvider}
-            imageHost={demoImageHost}
-            mediaHost={demoMediaHost}
+            scriptureProvider={activeScriptureProvider}
+            bookmarkProvider={
+              fixtureState === 'unavailable' ? undefined : demoBookmarkProvider
+            }
+            documentTargetProvider={
+              fixtureState === 'unavailable' ? undefined : demoDocumentProvider
+            }
+            imageHost={
+              fixtureState === 'unavailable' ? undefined : demoImageHost
+            }
+            mediaHost={
+              fixtureState === 'unavailable' ? undefined : demoMediaHost
+            }
             autofocus
           />
         )}
