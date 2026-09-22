@@ -1,6 +1,16 @@
 import { StrictMode, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PACKAGE_NAME } from 'scriptr-editor';
 import type { CanonicalDocument } from 'scriptr-editor/document';
 import {
@@ -21,15 +31,6 @@ import {
   parseLocalScriptureDataset,
   type ScriptureStructure,
 } from 'scriptr-editor/scripture';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { SettingsPanel } from './settings-panel';
 import './styles.css';
 
@@ -787,11 +788,14 @@ function DevelopmentHarness({
             ) : null}
           </div>
         </div>
-        <section className="workbench-controls" aria-label="Workbench controls">
-          <div>
-            <span className="workbench-controls__label">Scenario</span>
+        <section
+          className="mb-9 grid gap-4 rounded-xl border bg-muted/40 p-4 sm:grid-cols-2"
+          aria-label="Workbench controls"
+        >
+          <Field>
+            <FieldLabel>Scenario</FieldLabel>
             <Select value={scenarioId} onValueChange={chooseScenario}>
-              <SelectTrigger aria-label="Workbench scenario">
+              <SelectTrigger className="w-full" aria-label="Workbench scenario">
                 <SelectValue>
                   {(value: string) =>
                     workbenchScenarios.find(({ id }) => id === value)?.label ??
@@ -799,7 +803,7 @@ function DevelopmentHarness({
                   }
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-max min-w-(--anchor-width)">
                 <SelectGroup>
                   {workbenchScenarios.map((scenario) => (
                     <SelectItem key={scenario.id} value={scenario.id}>
@@ -809,16 +813,16 @@ function DevelopmentHarness({
                 </SelectGroup>
               </SelectContent>
             </Select>
-          </div>
-          <div>
-            <span className="workbench-controls__label">Fixture state</span>
+          </Field>
+          <Field>
+            <FieldLabel>Fixture state</FieldLabel>
             <Select
               value={fixtureState}
               onValueChange={(value) => {
                 if (isFixtureState(value)) setFixtureState(value);
               }}
             >
-              <SelectTrigger aria-label="Fixture state">
+              <SelectTrigger className="w-full" aria-label="Fixture state">
                 <SelectValue>
                   {(value: string) =>
                     fixtureStates.find(({ id }) => id === value)?.label ?? value
@@ -835,16 +839,23 @@ function DevelopmentHarness({
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </Field>
+          <div className="flex flex-col gap-3 border-t pt-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="m-0 text-sm leading-relaxed text-muted-foreground">
+              {activeScenario.description}
+            </p>
+            <Button
+              className="shrink-0"
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setDocument(cloneDocument(activeScenario.document))
+              }
+            >
+              Reset scenario
+            </Button>
           </div>
-          <p>{activeScenario.description}</p>
-          <Button
-            size="sm"
-            type="button"
-            variant="ghost"
-            onClick={() => setDocument(cloneDocument(activeScenario.document))}
-          >
-            Reset scenario
-          </Button>
         </section>
         {fixtureState === 'error' ? (
           <div className="workbench-state" role="alert">

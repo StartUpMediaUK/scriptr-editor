@@ -13,7 +13,7 @@
   --color-divider: #d9d3c8;
   --font-heading: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'Lora', Georgia, serif;
-  font-family: var(--font-body);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   color: var(--color-text);
   background: var(--color-bg);
   --background: oklch(1 0 0);
@@ -101,41 +101,6 @@ body {
 .harness-actions {
   display: flex;
   gap: 8px;
-}
-
-.workbench-controls {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(160px, 200px)) 1fr auto;
-  align-items: end;
-  gap: 12px 16px;
-  margin-bottom: 36px;
-  padding: 14px;
-  border: 1px solid var(--color-divider);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--color-bg) 92%, var(--color-text));
-  font-family: ui-sans-serif, system-ui, sans-serif;
-}
-
-.workbench-controls > div {
-  display: grid;
-  min-width: 0;
-  gap: 6px;
-}
-
-.workbench-controls__label {
-  color: var(--color-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.workbench-controls p {
-  align-self: center;
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .workbench-state {
@@ -380,10 +345,6 @@ body {
   .harness-actions {
     width: 100%;
     flex-wrap: wrap;
-  }
-  .workbench-controls {
-    grid-template-columns: 1fr;
-    align-items: stretch;
   }
   .settings-schemes,
   .settings-themes {
