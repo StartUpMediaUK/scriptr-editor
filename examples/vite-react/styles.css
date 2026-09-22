@@ -27,6 +27,7 @@ body {
 .page-shell {
   display: grid;
   grid-template-columns: minmax(0, 686px);
+  justify-content: center;
   min-height: 100vh;
   place-items: start center;
   padding: clamp(64px, 12vh, 120px) 24px;
