@@ -8,11 +8,11 @@ import {
   type ScriptureProvider,
 } from 'scriptr-editor/host';
 import {
+  ScriptrEditor,
   ScriptrPresentationProvider,
   ScriptrPresentationSurface,
-  ScripturePicker,
-  ScriptrEditor,
   ScriptrRenderer,
+  ScripturePicker,
   defineReactExtension,
 } from 'scriptr-editor/react';
 import {
@@ -22,17 +22,16 @@ import {
   type ScriptureStructure,
 } from 'scriptr-editor/scripture';
 import {
-  Button,
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from 'scriptr-editor/ui';
-import './styles.css';
-import 'scriptr-editor/styles.css';
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { SettingsPanel } from './settings-panel';
+import './styles.css';
 
 const initialDocument: CanonicalDocument = {
   version: 2,

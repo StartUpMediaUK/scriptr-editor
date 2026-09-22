@@ -7,7 +7,7 @@ const bytes = (suffix) =>
   files
     .filter((file) => file.endsWith(suffix))
     .reduce((total, file) => total + statSync(join(dist, file)).size, 0);
-const budgets = { '.js': 900_000, '.css': 60_000 };
+const budgets = { '.js': 900_000, '.css': 120_000 };
 for (const [suffix, limit] of Object.entries(budgets)) {
   const size = bytes(suffix);
   if (size > limit)

@@ -43,10 +43,6 @@
       "types": "./dist/scripture/index.d.ts",
       "import": "./dist/scripture/index.js"
     },
-    "./ui": {
-      "types": "./dist/ui.d.ts",
-      "import": "./dist/ui.js"
-    },
     "./server": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
@@ -78,7 +74,7 @@
     "react"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node copy-styles.mjs",
+    "build": "node clean-dist.mjs && tsc -p tsconfig.build.json && node copy-styles.mjs",
     "budgets:check": "node check-budgets.mjs",
     "package:check": "pnpm build && publint && attw --pack --profile esm-only --exclude-entrypoints ./styles.css && node check-packed-package.mjs",
     "prepack": "pnpm build",
@@ -92,6 +88,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@shadcn/react": "^0.3.1",
     "@tiptap/core": "3.30.4",
     "@tiptap/extension-bubble-menu": "3.30.4",
     "@tiptap/extension-drag-handle-react": "3.30.4",
@@ -109,8 +106,13 @@
     "cmdk": "^1.1.1",
     "cn": "^0.2.6",
     "color": "^5.0.3",
+    "date-fns": "^4.4.0",
+    "embla-carousel-react": "^8.6.0",
+    "input-otp": "^1.5.0",
     "lucide-react": "^1.43.0",
     "radix-ui": "^1.6.7",
+    "react-day-picker": "^10.0.1",
+    "react-resizable-panels": "^4.13.1",
     "zod": "4.1.5"
   },
   "devDependencies": {

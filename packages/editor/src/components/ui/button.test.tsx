@@ -11,11 +11,11 @@ import { Button, buttonVariants } from './button.js';
 describe('Button', () => {
   it('provides the expanded package variants and pointer semantics', () => {
     expect(buttonVariants({ variant: 'muted-link', size: 'inline' })).toContain(
-      'scriptr-ui-button',
+      'text-muted-foreground',
     );
     expect(
       buttonVariants({ variant: 'ghost-no-hover', size: 'icon-xs' }),
-    ).toContain('scriptr-ui-button');
+    ).toContain('bg-transparent');
   });
 
   it('keeps icon buttons accessible and prevents disabled activation', () => {

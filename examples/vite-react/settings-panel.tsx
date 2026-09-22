@@ -2,30 +2,33 @@ import { Monitor, Moon, Settings2, Sun } from 'lucide-react';
 import { useState } from 'react';
 import type { ColourScheme, TimeFormat, TypographyRole } from 'scriptr-editor';
 import { useScriptrPresentation } from 'scriptr-editor/react';
+import { Button } from '@/components/ui/button';
 import {
-  Button,
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  ScrollArea,
+} from '@/components/ui/field';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
+} from '@/components/ui/select';
+import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  Slider,
-  Switch,
-  ToggleGroup,
-  ToggleGroupItem,
-} from 'scriptr-editor/ui';
+} from '@/components/ui/sheet';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 const labels: Record<TypographyRole, [string, string]> = {
   heading: ['Heading font', 'Titles and section headings.'],
@@ -228,7 +231,14 @@ export function SettingsPanel() {
                 min={50}
                 max={150}
                 value={preferences.contrast}
-                onValueChange={(contrast) => update({ contrast })}
+                onValueChange={(contrast) =>
+                  update({
+                    contrast:
+                      typeof contrast === 'number'
+                        ? contrast
+                        : (contrast[0] ?? preferences.contrast),
+                  })
+                }
               />
             </Field>
             <section className="settings-typography">

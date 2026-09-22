@@ -1,6 +1,22 @@
 @import 'tailwindcss/theme';
-@import 'tailwindcss/utilities';
+@import 'tailwindcss/utilities' source(none);
 @import '../react/styles.css';
+
+@source '../react';
+@source '../components/kibo-ui';
+@source '../components/ui/button.tsx';
+@source '../components/ui/combobox.tsx';
+@source '../components/ui/command.tsx';
+@source '../components/ui/dialog.tsx';
+@source '../components/ui/input-group.tsx';
+@source '../components/ui/input.tsx';
+@source '../components/ui/popover.tsx';
+@source '../components/ui/scroll-area.tsx';
+@source '../components/ui/select.tsx';
+@source '../components/ui/textarea.tsx';
+@source '../components/ui/toggle-group.tsx';
+@source '../components/ui/toggle.tsx';
+@source '../components/ui/tooltip.tsx';
 
 @custom-variant dark (&:is(.dark *));
 
