@@ -9,7 +9,7 @@
   border-radius: var(--radius-md);
   color: var(--popover-foreground);
   background: var(--popover);
-  box-shadow: 0 8px 24px rgb(32 31 29 / 14%);
+  box-shadow: var(--scriptr-shadow-md);
   outline: none;
 }
 
@@ -106,7 +106,7 @@
   border-radius: var(--scriptr-radius-sm);
   color: var(--background);
   background: var(--foreground);
-  box-shadow: 0 4px 14px rgb(32 31 29 / 18%);
+  box-shadow: var(--scriptr-shadow-sm);
   font: 500 11px/1.3 var(--scriptr-font-ui);
 }
 .scriptr-ui-tooltip__arrow {
@@ -179,19 +179,7 @@
 .scriptr-scripture-picker,
 .scriptr-reference-editor,
 .scriptr-document-picker {
-  --scriptr-color-ground: #f7f5f0;
-  --scriptr-color-surface: #efede7;
-  --scriptr-color-text: #201f1d;
-  --scriptr-color-muted: #716c64;
-  --scriptr-color-divider: #d9d3c8;
-  --scriptr-color-accent: #a56f2b;
-  --scriptr-color-accent-700: #7f501d;
-  --scriptr-font-heading: 'Cormorant Garamond', Georgia, serif;
-  --scriptr-font-body: 'Lora', Georgia, serif;
   --scriptr-editor-font-size: 15px;
-  --scriptr-editor-measure: 686px;
-  --scriptr-radius-sm: 2px;
-  --scriptr-radius-md: 4px;
   color: var(--scriptr-color-text);
   font-family: var(--scriptr-font-body);
   font-size: var(--scriptr-editor-font-size);
@@ -219,61 +207,73 @@
   font-size: calc(var(--scriptr-size-heading) * 0.64);
 }
 [data-scriptr-presentation][data-colour-scheme='dark'] {
+  color-scheme: dark;
   --background: #201f1d;
   --foreground: #eee9df;
+  --card: #201f1d;
+  --card-foreground: #eee9df;
   --popover: #201f1d;
   --popover-foreground: #eee9df;
-  --muted: #2a2825;
-  --muted-foreground: #b8b0a3;
-  --border: #47433d;
-  --input: #47433d;
+  --muted: #2d2b2b;
+  --muted-foreground: #bab6b6;
+  --border: color-mix(in srgb, #eee9df 20%, transparent);
+  --input: color-mix(in srgb, #eee9df 20%, transparent);
   --ring: #cfa15f;
   --primary: #cfa15f;
   --primary-foreground: #201f1d;
-  --accent: #35322e;
+  --secondary: #2d2b2b;
+  --secondary-foreground: #eee9df;
+  --accent: #444141;
   --accent-foreground: #eee9df;
+  --destructive: #d66c63;
   --scriptr-color-ground: #201f1d;
-  --scriptr-color-surface: #2a2825;
+  --scriptr-color-surface: #2d2b2b;
   --scriptr-color-text: #eee9df;
-  --scriptr-color-muted: #b8b0a3;
-  --scriptr-color-divider: #47433d;
+  --scriptr-color-muted: #bab6b6;
+  --scriptr-color-divider: color-mix(in srgb, #eee9df 20%, transparent);
 }
 [data-scriptr-presentation][data-colour-scheme='dark']
   :is(.scriptr-editor, .scriptr-renderer) {
   --scriptr-color-ground: #201f1d;
-  --scriptr-color-surface: #2a2825;
+  --scriptr-color-surface: #2d2b2b;
   --scriptr-color-text: #eee9df;
-  --scriptr-color-muted: #b8b0a3;
-  --scriptr-color-divider: #47433d;
+  --scriptr-color-muted: #bab6b6;
+  --scriptr-color-divider: color-mix(in srgb, #eee9df 20%, transparent);
 }
 @media (prefers-color-scheme: dark) {
   [data-scriptr-presentation][data-colour-scheme='system'] {
+    color-scheme: dark;
     --background: #201f1d;
     --foreground: #eee9df;
+    --card: #201f1d;
+    --card-foreground: #eee9df;
     --popover: #201f1d;
     --popover-foreground: #eee9df;
-    --muted: #2a2825;
-    --muted-foreground: #b8b0a3;
-    --border: #47433d;
-    --input: #47433d;
+    --muted: #2d2b2b;
+    --muted-foreground: #bab6b6;
+    --border: color-mix(in srgb, #eee9df 20%, transparent);
+    --input: color-mix(in srgb, #eee9df 20%, transparent);
     --ring: #cfa15f;
     --primary: #cfa15f;
     --primary-foreground: #201f1d;
-    --accent: #35322e;
+    --secondary: #2d2b2b;
+    --secondary-foreground: #eee9df;
+    --accent: #444141;
     --accent-foreground: #eee9df;
+    --destructive: #d66c63;
     --scriptr-color-ground: #201f1d;
-    --scriptr-color-surface: #2a2825;
+    --scriptr-color-surface: #2d2b2b;
     --scriptr-color-text: #eee9df;
-    --scriptr-color-muted: #b8b0a3;
-    --scriptr-color-divider: #47433d;
+    --scriptr-color-muted: #bab6b6;
+    --scriptr-color-divider: color-mix(in srgb, #eee9df 20%, transparent);
   }
   [data-scriptr-presentation][data-colour-scheme='system']
     :is(.scriptr-editor, .scriptr-renderer) {
     --scriptr-color-ground: #201f1d;
-    --scriptr-color-surface: #2a2825;
+    --scriptr-color-surface: #2d2b2b;
     --scriptr-color-text: #eee9df;
-    --scriptr-color-muted: #b8b0a3;
-    --scriptr-color-divider: #47433d;
+    --scriptr-color-muted: #bab6b6;
+    --scriptr-color-divider: color-mix(in srgb, #eee9df 20%, transparent);
   }
 }
 
@@ -312,7 +312,7 @@
   color: var(--foreground);
   background: var(--background);
   border-color: var(--border);
-  box-shadow: 0 18px 50px rgb(0 0 0 / 18%);
+  box-shadow: var(--scriptr-shadow-lg);
   transition:
     transform 200ms ease,
     opacity 200ms ease;

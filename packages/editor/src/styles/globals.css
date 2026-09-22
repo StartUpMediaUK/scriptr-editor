@@ -21,8 +21,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--scriptr-font-ui);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-muted: var(--muted);
@@ -37,33 +40,67 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --shadow-sm: var(--scriptr-shadow-sm);
+  --shadow-md: var(--scriptr-shadow-md);
+  --shadow-lg: var(--scriptr-shadow-lg);
   --radius-sm: 2px;
   --radius-md: 4px;
   --radius-lg: 7px;
+  --radius-xl: 7px;
 }
 
 :root {
-  --background: #f7f5f0;
+  color-scheme: light;
+  --scriptr-color-ground: #f3f2f2;
+  --scriptr-color-surface: #eae9e9;
+  --scriptr-color-text: #201f1d;
+  --scriptr-color-muted: #605d5d;
+  --scriptr-color-divider: color-mix(in srgb, #201f1d 16%, transparent);
+  --scriptr-color-accent: #b68235;
+  --scriptr-color-accent-700: #7d5411;
+  --scriptr-font-ui: Inter, ui-sans-serif, system-ui, sans-serif;
+  --scriptr-font-heading: 'Cormorant Garamond', Georgia, serif;
+  --scriptr-font-body: Lora, Georgia, serif;
+  --scriptr-editor-measure: 686px;
+  --scriptr-renderer-measure: 646px;
+  --scriptr-space-1: 4.6px;
+  --scriptr-space-2: 9.2px;
+  --scriptr-space-3: 13.8px;
+  --scriptr-space-4: 18.4px;
+  --scriptr-space-6: 27.6px;
+  --scriptr-space-8: 36.8px;
+  --scriptr-radius-sm: 2px;
+  --scriptr-radius-md: 4px;
+  --scriptr-radius-lg: 7px;
+  --scriptr-shadow-sm: 0 1px 2px rgb(45 43 43 / 14%);
+  --scriptr-shadow-md: 0 3px 10px rgb(45 43 43 / 16%);
+  --scriptr-shadow-lg: 0 12px 32px rgb(45 43 43 / 22%);
+  --background: var(--scriptr-color-ground);
   --foreground: #201f1d;
-  --popover: #f7f5f0;
+  --card: var(--scriptr-color-ground);
+  --card-foreground: #201f1d;
+  --popover: var(--scriptr-color-ground);
   --popover-foreground: #201f1d;
-  --muted: #efede7;
-  --muted-foreground: #716c64;
-  --border: #d9d3c8;
-  --input: #d9d3c8;
-  --ring: #a56f2b;
-  --primary: #7f501d;
-  --primary-foreground: #f7f5f0;
-  --secondary: #efede7;
+  --muted: var(--scriptr-color-surface);
+  --muted-foreground: var(--scriptr-color-muted);
+  --border: var(--scriptr-color-divider);
+  --input: var(--scriptr-color-divider);
+  --ring: var(--scriptr-color-accent);
+  --primary: var(--scriptr-color-accent-700);
+  --primary-foreground: #fff3e4;
+  --secondary: var(--scriptr-color-surface);
   --secondary-foreground: #201f1d;
-  --accent: #e7e1d7;
+  --accent: #ffe3bf;
   --accent-foreground: #201f1d;
   --destructive: #9b3f38;
 }
 
 .dark {
+  color-scheme: dark;
   --background: #201f1d;
   --foreground: #eee9df;
+  --card: #201f1d;
+  --card-foreground: #eee9df;
   --popover: #201f1d;
   --popover-foreground: #eee9df;
   --muted: #2a2825;
@@ -78,6 +115,22 @@
   --accent: #35322e;
   --accent-foreground: #eee9df;
   --destructive: #d66c63;
+  --scriptr-color-ground: #201f1d;
+  --scriptr-color-surface: #2d2b2b;
+  --scriptr-color-text: #eee9df;
+  --scriptr-color-muted: #bab6b6;
+  --scriptr-color-divider: color-mix(in srgb, #eee9df 20%, transparent);
+  --scriptr-color-accent: #cfa15f;
+  --scriptr-color-accent-700: #e1ad66;
+}
+
+::selection {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--scriptr-color-accent) 30%, transparent);
+}
+
+:where(button, input, textarea, select, [tabindex]):focus-visible {
+  outline-color: var(--ring);
 }
 
 /* Native overflow regions match the slim shadcn ScrollArea treatment. */
@@ -114,4 +167,40 @@
   display: none;
   width: 0;
   height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where([data-scriptr-presentation], .scriptr-editor, .scriptr-renderer) *,
+  :where([data-scriptr-presentation], .scriptr-editor, .scriptr-renderer)
+    *::before,
+  :where([data-scriptr-presentation], .scriptr-editor, .scriptr-renderer)
+    *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(.scriptr-editor, .scriptr-renderer, [data-scriptr-presentation]) {
+    --border: CanvasText;
+    --input: CanvasText;
+    --ring: Highlight;
+    --scriptr-color-divider: CanvasText;
+    --scriptr-color-accent: Highlight;
+  }
+}
+
+@media print {
+  :where(.scriptr-editor, .scriptr-renderer) {
+    --scriptr-editor-measure: none;
+    color: #000;
+    background: #fff;
+    filter: none !important;
+  }
+
+  :where(.scriptr-editor, .scriptr-renderer) [data-editor-chrome] {
+    display: none !important;
+  }
 }
