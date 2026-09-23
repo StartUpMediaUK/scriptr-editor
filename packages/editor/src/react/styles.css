@@ -1263,9 +1263,11 @@
 }
 
 .scriptr-editor__gutter-controls {
+  position: relative;
+  left: calc(-100% - 16px);
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
 }
 
 .scriptr-editor__gutter-controls > div > button {

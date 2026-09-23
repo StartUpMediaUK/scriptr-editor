@@ -113,6 +113,9 @@ describe('ScriptrEditor', () => {
       screen.getByRole('menuitem', { name: 'Turn into' }),
     ).toBeInTheDocument();
     expect(globalThis.document.documentElement.style.overflow).toBe('hidden');
+    expect(globalThis.document.documentElement.style.scrollbarGutter).toBe(
+      'stable',
+    );
 
     fireEvent.scroll(window);
     expect(
@@ -124,6 +127,7 @@ describe('ScriptrEditor', () => {
       expect(screen.queryByRole('menuitem', { name: 'Turn into' })).toBeNull(),
     );
     expect(globalThis.document.documentElement.style.overflow).toBe('');
+    expect(globalThis.document.documentElement.style.scrollbarGutter).toBe('');
     await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
   });
 

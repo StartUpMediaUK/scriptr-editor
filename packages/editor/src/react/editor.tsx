@@ -1035,12 +1035,15 @@ export const ScriptrEditor = forwardRef<
     const body = document.body;
     const previousRootOverflow = root.style.overflow;
     const previousBodyOverflow = body.style.overflow;
+    const previousScrollbarGutter = root.style.scrollbarGutter;
+    root.style.scrollbarGutter = 'stable';
     root.style.overflow = 'hidden';
     body.style.overflow = 'hidden';
     return () => {
       editor?.commands.setMeta('lockDragHandle', false);
       root.style.overflow = previousRootOverflow;
       body.style.overflow = previousBodyOverflow;
+      root.style.scrollbarGutter = previousScrollbarGutter;
     };
   }, [editor, gutterMenuOpen]);
 
@@ -1049,7 +1052,7 @@ export const ScriptrEditor = forwardRef<
     const revealHandleFromGutter = (event: MouseEvent) => {
       const content = editor.view.dom;
       const bounds = content.getBoundingClientRect();
-      const gutterWidth = 48;
+      const gutterWidth = 80;
       if (
         event.clientX < bounds.left - gutterWidth ||
         event.clientX >= bounds.left ||
