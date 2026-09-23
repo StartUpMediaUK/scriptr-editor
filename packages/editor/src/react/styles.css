@@ -1279,9 +1279,8 @@
 }
 
 .scriptr-editor__insert-menu {
-  width: min(340px, var(--available-width));
-  max-width: var(--available-width);
-  max-height: min(520px, calc(100vh - 32px));
+  width: min(340px, calc(100vw - 16px));
+  max-height: min(520px, var(--available-height), calc(100vh - 16px));
   overflow: hidden;
   padding: 0;
 }
@@ -1291,11 +1290,29 @@
 }
 
 .scriptr-editor__insert-menu [data-slot='command-list'] {
-  max-height: min(450px, calc(100vh - 96px));
+  max-height: min(
+    450px,
+    calc(var(--available-height) - 64px),
+    calc(100vh - 80px)
+  );
 }
 
 .scriptr-editor__insert-menu [data-slot='command-item'] {
   width: 100%;
+  gap: 6px;
+  border-radius: var(--radius-md);
+  padding: 4px 6px;
+}
+
+.scriptr-editor__insert-menu [data-slot='command-item'][data-selected='true'] {
+  color: var(--accent-foreground);
+  background: var(--accent);
+}
+
+.scriptr-editor__insert-menu
+  [data-slot='command-item'][data-selected='true']
+  > * {
+  color: var(--accent-foreground);
 }
 
 .scriptr-editor__insert-menu [data-slot='command-shortcut'] {

@@ -1,10 +1,11 @@
 import DragHandle from '@tiptap/extension-drag-handle-react';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import { NodeSelection, TextSelection } from '@tiptap/pm/state';
+import type { EditorView } from '@tiptap/pm/view';
 import type { Editor } from '@tiptap/react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
-import type { EditorView } from '@tiptap/pm/view';
-import { NodeSelection, TextSelection } from '@tiptap/pm/state';
-import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import type { LucideIcon } from 'lucide-react';
 import {
   ArrowDown,
   ArrowUp,
@@ -17,8 +18,8 @@ import {
   Code2,
   Columns2,
   Copy,
-  Heading,
   GripVertical,
+  Heading,
   Image,
   Link2,
   List,
@@ -38,7 +39,15 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,17 +60,14 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu.js';
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import type { ReactNode } from 'react';
 
+import type { CommandIcon, ScriptrCommand } from '../commands/catalogue.js';
 import { createCommandCatalogue } from '../commands/catalogue.js';
+import {
+  ColorPicker,
+  ColorPickerHue,
+  ColorPickerSelection,
+} from '../components/kibo-ui/color-picker/index.js';
 import { Button } from '../components/ui/button.js';
 import {
   Command,
@@ -93,9 +99,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../components/ui/tooltip.js';
-import type { CommandIcon, ScriptrCommand } from '../commands/catalogue.js';
-import { defineScriptr } from '../config.js';
 import type { ScriptrConfiguration } from '../config.js';
+import { defineScriptr } from '../config.js';
 import { createDocumentCodec } from '../document/codec.js';
 import type { CanonicalLocation } from '../document/locations.js';
 import type {
@@ -103,19 +108,17 @@ import type {
   CanonicalDocument,
   ExtensionBlock,
   ImageBlock,
-  VideoBlock,
-  WebBookmarkBlock,
-} from '../document/types.js';
-import type {
   Reference,
   ScriptureBlock,
   TranslationComparisonBlock,
+  VideoBlock,
+  WebBookmarkBlock,
 } from '../document/types.js';
-import type { ScriptureProvider } from '../host/scripture.js';
-import type { ImageHost } from '../host/images.js';
-import type { MediaHost } from '../host/media.js';
 import type { BookmarkProvider } from '../host/bookmarks.js';
 import type { DocumentTargetProvider } from '../host/documents.js';
+import type { ImageHost } from '../host/images.js';
+import type { MediaHost } from '../host/media.js';
+import type { ScriptureProvider } from '../host/scripture.js';
 import { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
 import { BookmarkComposer } from './bookmark-block.js';
 import { DocumentLinkPicker } from './document-link-picker.js';
@@ -125,11 +128,6 @@ import { MediaUploader } from './media-block.js';
 import { ReferenceEditor } from './reference-editor.js';
 import type { ReactExtensionRenderer } from './renderer.js';
 import { ScriptureCommandDialog } from './scripture-command-dialog.js';
-import {
-  ColorPicker,
-  ColorPickerHue,
-  ColorPickerSelection,
-} from '../components/kibo-ui/color-picker/index.js';
 
 export type EditorChange = {
   readonly origin: 'user';
@@ -917,7 +915,11 @@ export const ScriptrEditor = forwardRef<
   const [slashIndex, setSlashIndex] = useState(0);
   const [blockMenuOpen, setBlockMenuOpen] = useState(false);
   const [insertMenuOpen, setInsertMenuOpen] = useState(false);
+  const [insertMenuSide, setInsertMenuSide] = useState<
+    'bottom' | 'left' | 'top'
+  >('left');
   const [customColourOpen, setCustomColourOpen] = useState(false);
+  const insertTriggerRef = useRef<HTMLButtonElement>(null);
   const activeBlockPositionRef = useRef(-1);
   const tiptapEditorRef = useRef<Editor | null>(null);
   const slashQueryRef = useRef<string | undefined>(undefined);
@@ -1627,6 +1629,20 @@ export const ScriptrEditor = forwardRef<
               onOpenChange={(open) => {
                 if (open) {
                   setBlockMenuOpen(false);
+                  const triggerBounds =
+                    insertTriggerRef.current?.getBoundingClientRect();
+                  if (triggerBounds) {
+                    const menuWidth = Math.min(340, window.innerWidth - 16);
+                    const fitsLeft = triggerBounds.left - 8 >= menuWidth;
+                    setInsertMenuSide(
+                      fitsLeft
+                        ? 'left'
+                        : triggerBounds.top >=
+                            window.innerHeight - triggerBounds.bottom
+                          ? 'top'
+                          : 'bottom',
+                    );
+                  }
                   if (
                     !prepareBlockInsertion(
                       editor,
@@ -1643,6 +1659,7 @@ export const ScriptrEditor = forwardRef<
                 render={
                   <Button
                     aria-label="Insert block"
+                    ref={insertTriggerRef}
                     size="icon-sm"
                     type="button"
                     variant="ghost"
@@ -1653,14 +1670,14 @@ export const ScriptrEditor = forwardRef<
               </PopoverTrigger>
               {insertMenuOpen ? (
                 <PopoverContent
-                  align="start"
+                  align={insertMenuSide === 'left' ? 'start' : 'end'}
                   className="scriptr-editor__insert-menu"
                   collisionAvoidance={{
                     align: 'shift',
                     fallbackAxisSide: 'none',
                     side: 'none',
                   }}
-                  side="left"
+                  side={insertMenuSide}
                 >
                   <PopoverTitle className="sr-only">Insert block</PopoverTitle>
                   <Command aria-label="Insert block" shouldFilter>
