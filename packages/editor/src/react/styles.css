@@ -1279,7 +1279,8 @@
 }
 
 .scriptr-editor__insert-menu {
-  width: min(340px, calc(100vw - 32px));
+  width: min(340px, var(--available-width));
+  max-width: var(--available-width);
   max-height: min(520px, calc(100vh - 32px));
   overflow: hidden;
   padding: 0;
@@ -1294,10 +1295,12 @@
 }
 
 .scriptr-editor__insert-menu [data-slot='command-item'] {
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  width: 100%;
 }
 
-.scriptr-editor__insert-menu [data-slot='command-item'] small {
+.scriptr-editor__insert-menu [data-slot='command-shortcut'] {
+  flex: 0 0 auto;
+  margin-left: auto;
   color: var(--muted-foreground);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 11px;

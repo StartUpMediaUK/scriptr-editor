@@ -70,6 +70,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandShortcut,
 } from '../components/ui/command.js';
 import {
   Dialog,
@@ -1049,10 +1050,12 @@ export const ScriptrEditor = forwardRef<
 
   useEffect(() => {
     if (!editor || !editable) return;
+    let forwardingGutterPointer = false;
     const revealHandleFromGutter = (event: MouseEvent) => {
+      if (gutterMenuOpen || forwardingGutterPointer) return;
       const content = editor.view.dom;
       const bounds = content.getBoundingClientRect();
-      const gutterWidth = 80;
+      const gutterWidth = 112;
       if (
         event.clientX < bounds.left - gutterWidth ||
         event.clientX >= bounds.left ||
@@ -1061,24 +1064,34 @@ export const ScriptrEditor = forwardRef<
       )
         return;
 
-      const blockAtPointer = document.elementFromPoint(
-        bounds.left + 1,
-        event.clientY,
-      );
-      if (!blockAtPointer || !content.contains(blockAtPointer)) return;
-      blockAtPointer.dispatchEvent(
-        new MouseEvent('mousemove', {
-          bubbles: true,
-          clientX: bounds.left + 1,
-          clientY: event.clientY,
-        }),
-      );
+      const hoveredBlock = Array.from(content.children).find((child) => {
+        const blockBounds = child.getBoundingClientRect();
+        return (
+          event.clientY >= blockBounds.top &&
+          event.clientY <= blockBounds.bottom
+        );
+      });
+      if (!(hoveredBlock instanceof HTMLElement)) return;
+      const hoveredBlockBounds = hoveredBlock.getBoundingClientRect();
+
+      forwardingGutterPointer = true;
+      try {
+        hoveredBlock.dispatchEvent(
+          new MouseEvent('mousemove', {
+            bubbles: true,
+            clientX: hoveredBlockBounds.left + 1,
+            clientY: event.clientY,
+          }),
+        );
+      } finally {
+        forwardingGutterPointer = false;
+      }
     };
 
     document.addEventListener('mousemove', revealHandleFromGutter, true);
     return () =>
       document.removeEventListener('mousemove', revealHandleFromGutter, true);
-  }, [editable, editor]);
+  }, [editable, editor, gutterMenuOpen]);
 
   useEffect(() => {
     if (!editor || !editable) return;
@@ -1642,6 +1655,11 @@ export const ScriptrEditor = forwardRef<
                 <PopoverContent
                   align="start"
                   className="scriptr-editor__insert-menu"
+                  collisionAvoidance={{
+                    align: 'shift',
+                    fallbackAxisSide: 'none',
+                    side: 'none',
+                  }}
                   side="left"
                 >
                   <PopoverTitle className="sr-only">Insert block</PopoverTitle>
@@ -1673,7 +1691,9 @@ export const ScriptrEditor = forwardRef<
                               >
                                 <CommandIconView icon={item.icon} />
                                 <span>{item.label}</span>
-                                <small>{item.notation}</small>
+                                <CommandShortcut>
+                                  {item.notation}
+                                </CommandShortcut>
                               </CommandItem>
                             );
                           })}

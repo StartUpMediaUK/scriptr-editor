@@ -138,7 +138,14 @@ describe('ScriptrEditor', () => {
 
     fireEvent.click(insert);
     expect(globalThis.document.documentElement.style.overflow).toBe('hidden');
-    fireEvent.click(screen.getByRole('option', { name: /Heading 1/ }));
+    const headingOption = screen.getByRole('option', { name: /Heading 1/ });
+    expect(
+      headingOption.querySelector('[data-slot="command-shortcut"]'),
+    ).toHaveTextContent('#');
+    expect(headingOption.closest('[data-slot="command-list"]')).not.toHaveClass(
+      'no-scrollbar',
+    );
+    fireEvent.click(headingOption);
 
     await waitFor(() => {
       const changed = onChange.mock.calls.at(-1)?.[0] as
