@@ -4,6 +4,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { EditorView } from '@tiptap/pm/view';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import {
   ArrowDown,
   ArrowUp,
@@ -15,6 +16,7 @@ import {
   CheckSquare,
   Code2,
   Columns2,
+  Copy,
   Heading,
   GripVertical,
   Image,
@@ -449,6 +451,33 @@ function replaceSelectedBlockWithToggle(editor: Editor) {
 
 function moveCurrentBlock(editor: Editor, direction: -1 | 1) {
   moveCurrentBlockView(editor.view, direction);
+}
+
+function cloneAuthoredNode(node: ProseMirrorNode): ProseMirrorNode {
+  if (node.isText) return node.type.schema.text(node.text ?? '', node.marks);
+  const children: ProseMirrorNode[] = [];
+  node.forEach((child) => children.push(cloneAuthoredNode(child)));
+  const id: unknown = node.attrs.id;
+  const attrs =
+    typeof id === 'string'
+      ? { ...node.attrs, id: createAuthoredId(node.type.name) }
+      : node.attrs;
+  return node.type.create(
+    attrs,
+    children.length > 0 ? children : undefined,
+    node.marks,
+  );
+}
+
+function duplicateSelectedBlock(editor: Editor) {
+  const { selection } = editor.state;
+  if (!(selection instanceof NodeSelection)) return false;
+  const duplicate = cloneAuthoredNode(selection.node);
+  const position = selection.to;
+  const transaction = editor.state.tr.insert(position, duplicate);
+  transaction.setSelection(NodeSelection.create(transaction.doc, position));
+  editor.view.dispatch(transaction.scrollIntoView());
+  return true;
 }
 
 function navigateToLocation(
@@ -1188,19 +1217,6 @@ export const ScriptrEditor = forwardRef<
           >
             <Redo2 />
           </ToolbarButton>
-          <span className="scriptr-editor__history-divider" />
-          <ToolbarButton
-            label="Move block up"
-            onPress={() => moveCurrentBlock(editor, -1)}
-          >
-            <ArrowUp />
-          </ToolbarButton>
-          <ToolbarButton
-            label="Move block down"
-            onPress={() => moveCurrentBlock(editor, 1)}
-          >
-            <ArrowDown />
-          </ToolbarButton>
         </div>
       ) : null}
 
@@ -1545,6 +1561,63 @@ export const ScriptrEditor = forwardRef<
               >
                 <PopoverTitle className="sr-only">Block actions</PopoverTitle>
                 <p>Block</p>
+                <Button
+                  onClick={() => {
+                    if (
+                      selectBlockForAction(
+                        editor,
+                        activeBlockPositionRef.current,
+                      )
+                    )
+                      moveCurrentBlock(editor, -1);
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <ArrowUp data-icon="inline-start" />
+                  Move up
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (
+                      selectBlockForAction(
+                        editor,
+                        activeBlockPositionRef.current,
+                      )
+                    )
+                      moveCurrentBlock(editor, 1);
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <ArrowDown data-icon="inline-start" />
+                  Move down
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (
+                      selectBlockForAction(
+                        editor,
+                        activeBlockPositionRef.current,
+                      )
+                    )
+                      duplicateSelectedBlock(editor);
+                    setBlockMenuOpen(false);
+                  }}
+                  role="menuitem"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Copy data-icon="inline-start" />
+                  Duplicate
+                </Button>
                 <Button
                   onClick={() => {
                     if (

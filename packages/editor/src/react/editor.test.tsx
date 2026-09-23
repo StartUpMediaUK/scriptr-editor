@@ -41,6 +41,28 @@ describe('ScriptrEditor', () => {
     });
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     expect(screen.getByLabelText('Drag block to reorder')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Move block up' })).toBeNull();
+  });
+
+  it('keeps block operations contextual and regenerates authored IDs when duplicating', async () => {
+    const onChange = vi.fn();
+    render(<ScriptrEditor defaultValue={document} onChange={onChange} />);
+    const handle = await screen.findByLabelText('Drag block to reorder');
+
+    fireEvent.click(handle);
+    expect(
+      screen.getByRole('menuitem', { name: 'Move up' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Duplicate' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
+
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    const changed = onChange.mock.calls.at(-1)?.[0] as CanonicalDocument;
+    expect(changed.content).toHaveLength(2);
+    expect(changed.content[0]?.id).toBe('paragraph');
+    expect(changed.content[1]?.id).not.toBe('paragraph');
   });
 
   it('applies controlled document replacements outside the React effect lifecycle', async () => {

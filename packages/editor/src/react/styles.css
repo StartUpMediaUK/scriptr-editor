@@ -1146,13 +1146,6 @@
   opacity: 0.62;
 }
 
-.scriptr-editor__history-divider {
-  width: 1px;
-  height: 16px;
-  margin-inline: 4px;
-  background: var(--scriptr-color-divider);
-}
-
 .scriptr-editor__bubble,
 .scriptr-editor__slash {
   border: 1px solid var(--scriptr-color-divider);
