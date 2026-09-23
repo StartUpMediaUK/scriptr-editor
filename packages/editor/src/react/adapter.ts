@@ -131,7 +131,7 @@ function opaqueBlockToEditor(block: Block): EditorNode {
   };
 }
 
-function blockToEditor(block: Block): EditorNode {
+function blockToEditorBase(block: Block): EditorNode {
   const inline = (content: readonly InlineContent[]) =>
     content.map(inlineToEditor);
   switch (block.type) {
@@ -209,6 +209,13 @@ function blockToEditor(block: Block): EditorNode {
     default:
       return opaqueBlockToEditor(block);
   }
+}
+
+function blockToEditor(block: Block): EditorNode {
+  const node = blockToEditorBase(block);
+  return block.background
+    ? { ...node, attrs: { ...node.attrs, background: block.background } }
+    : node;
 }
 
 function toTiptapContent(node: EditorNode): JSONContent {
@@ -329,7 +336,10 @@ function listItemFromEditor(
   };
 }
 
-function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
+function editorNodeToBlockBase(
+  node: EditorNode,
+  index: number,
+): Block | undefined {
   const id = stringAttr(node, 'id') ?? `block-${index + 1}`;
   switch (node.type) {
     case 'paragraph':
@@ -465,6 +475,26 @@ function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
     default:
       return undefined;
   }
+}
+
+function editorNodeToBlock(node: EditorNode, index: number): Block | undefined {
+  const block = editorNodeToBlockBase(node, index);
+  if (!block) return undefined;
+  const background = stringAttr(node, 'background');
+  return background &&
+    [
+      'gray',
+      'brown',
+      'orange',
+      'yellow',
+      'green',
+      'blue',
+      'purple',
+      'pink',
+      'red',
+    ].includes(background)
+    ? { ...block, background: background as Block['background'] }
+    : block;
 }
 
 function reconcileReferenceData(

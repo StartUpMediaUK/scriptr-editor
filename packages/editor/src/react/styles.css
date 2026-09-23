@@ -1224,7 +1224,7 @@
 }
 
 .scriptr-editor__tool,
-.scriptr-editor__drag-handle button {
+.scriptr-editor__gutter-controls button {
   display: grid;
   min-width: 30px;
   height: 30px;
@@ -1241,12 +1241,12 @@
 
 .scriptr-editor__tool:hover,
 .scriptr-editor__tool[aria-pressed='true'],
-.scriptr-editor__drag-handle button:hover {
+.scriptr-editor__gutter-controls button:hover {
   background: color-mix(in srgb, var(--scriptr-color-text) 7%, transparent);
 }
 
 .scriptr-editor__tool:focus-visible,
-.scriptr-editor__drag-handle button:focus-visible,
+.scriptr-editor__gutter-controls button:focus-visible,
 .scriptr-editor__slash-item:focus-visible {
   outline: 2px solid var(--scriptr-color-accent);
   outline-offset: 1px;
@@ -1262,49 +1262,120 @@
   z-index: 20;
 }
 
-.scriptr-editor__drag-handle > div > button {
+.scriptr-editor__gutter-controls {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.scriptr-editor__gutter-controls > div > button {
   opacity: 0.55;
 }
 
-.scriptr-editor__drag-handle > div {
+.scriptr-editor__gutter-controls > div {
   position: relative;
 }
 
-.scriptr-editor__block-menu {
-  display: grid;
-  width: 220px;
-  gap: 2px;
-  padding: 8px;
-  border-color: var(--border);
-  background: var(--popover);
-  box-shadow: 0 10px 28px rgb(32 31 29 / 16%);
+.scriptr-editor__insert-menu {
+  width: min(340px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 32px));
+  overflow: hidden;
+  padding: 0;
 }
 
-.scriptr-editor__block-menu > p {
-  margin: 2px 8px 5px;
+.scriptr-editor__insert-menu [data-slot='command'] {
+  max-height: inherit;
+}
+
+.scriptr-editor__insert-menu [data-slot='command-list'] {
+  max-height: min(450px, calc(100vh - 96px));
+}
+
+.scriptr-editor__insert-menu [data-slot='command-item'] {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+}
+
+.scriptr-editor__insert-menu [data-slot='command-item'] small {
   color: var(--muted-foreground);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 11px;
 }
 
-.scriptr-editor__block-menu > button {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: 34px;
-  padding: 7px 9px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--popover-foreground);
-  background: transparent;
-  font-size: 14px;
-  line-height: 1.35;
-  text-align: left;
-  cursor: pointer;
+.scriptr-editor__block-menu {
+  width: 220px;
 }
 
-.scriptr-editor__block-menu > button:hover,
-.scriptr-editor__block-menu > button:focus-visible {
-  background: color-mix(in srgb, var(--popover-foreground) 7%, transparent);
+.scriptr-editor__block-submenu {
+  width: 210px;
+}
+
+.scriptr-editor__colour-submenu {
+  width: 230px;
+  max-height: min(620px, calc(100vh - 24px));
+}
+
+.scriptr-editor__colour-chip,
+.scriptr-editor__background-chip {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  font-family: var(--scriptr-font-body);
+  font-size: 14px;
+}
+
+.scriptr-editor__content > [data-scriptr-background],
+.scriptr-renderer__block-background {
+  margin-block: 0.65rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid
+    color-mix(in srgb, var(--scriptr-block-colour) 32%, var(--border));
+  border-radius: var(--radius-md);
+  background: color-mix(
+    in srgb,
+    var(--scriptr-block-colour) 16%,
+    var(--background)
+  );
+}
+
+[data-scriptr-background='gray'] {
+  --scriptr-block-colour: #8b8680;
+}
+[data-scriptr-background='brown'] {
+  --scriptr-block-colour: #9b6a4b;
+}
+[data-scriptr-background='orange'] {
+  --scriptr-block-colour: #d08745;
+}
+[data-scriptr-background='yellow'] {
+  --scriptr-block-colour: #d6b44a;
+}
+[data-scriptr-background='green'] {
+  --scriptr-block-colour: #5b9a78;
+}
+[data-scriptr-background='blue'] {
+  --scriptr-block-colour: #5b8fbd;
+}
+[data-scriptr-background='purple'] {
+  --scriptr-block-colour: #8b6db0;
+}
+[data-scriptr-background='pink'] {
+  --scriptr-block-colour: #be7191;
+}
+[data-scriptr-background='red'] {
+  --scriptr-block-colour: #bd6259;
+}
+
+.scriptr-editor__background-chip[data-background] {
+  background: color-mix(
+    in srgb,
+    var(--scriptr-block-colour) 22%,
+    var(--background)
+  );
 }
 
 .scriptr-editor__slash {

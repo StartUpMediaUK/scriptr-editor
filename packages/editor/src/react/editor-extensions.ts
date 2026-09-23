@@ -1,4 +1,4 @@
-import { Mark, mergeAttributes, Node } from '@tiptap/core';
+import { Extension, Mark, mergeAttributes, Node } from '@tiptap/core';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskItem from '@tiptap/extension-task-item';
@@ -502,6 +502,32 @@ const idTypes = [
   'toggle',
 ];
 
+const blockBackgroundTypes = idTypes.filter(
+  (type) => !['listItem', 'taskItem', 'column'].includes(type),
+);
+
+const BlockBackground = Extension.create({
+  name: 'blockBackground',
+  addGlobalAttributes() {
+    return [
+      {
+        types: blockBackgroundTypes,
+        attributes: {
+          background: {
+            default: null,
+            parseHTML: (element) =>
+              element.getAttribute('data-scriptr-background'),
+            renderHTML: (attributes) =>
+              typeof attributes.background === 'string'
+                ? { 'data-scriptr-background': attributes.background }
+                : {},
+          },
+        },
+      },
+    ];
+  },
+});
+
 export function createEditorExtensions(
   placeholder: string,
   scriptureProvider?: ScriptureProvider,
@@ -540,6 +566,7 @@ export function createEditorExtensions(
     Accent,
     TextColour,
     HighlightColour,
+    BlockBackground,
     UniqueID.configure({ types: idTypes }),
     Placeholder.configure({ placeholder }),
   ];

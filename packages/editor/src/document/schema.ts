@@ -68,7 +68,21 @@ const inlineContentSchema = z.discriminatedUnion('type', [
   hardBreakInlineSchema,
 ]);
 const inlineArraySchema = z.array(inlineContentSchema);
-const blockBaseShape = { id: nonEmptyId };
+const blockBackgroundSchema = z.enum([
+  'gray',
+  'brown',
+  'orange',
+  'yellow',
+  'green',
+  'blue',
+  'purple',
+  'pink',
+  'red',
+]);
+const blockBaseShape = {
+  id: nonEmptyId,
+  background: blockBackgroundSchema.optional(),
+};
 
 const paragraphBlockSchema = z
   .object({

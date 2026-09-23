@@ -340,7 +340,7 @@ function renderListItems(
   ));
 }
 
-function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
+function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
   const inline = (content: readonly InlineContent[]) =>
     renderInline(
       content,
@@ -499,6 +499,21 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
       );
     }
   }
+}
+
+function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
+  const content = renderBlockBase(block, props);
+  return block.background ? (
+    <div
+      className="scriptr-renderer__block-background"
+      data-scriptr-background={block.background}
+      key={block.id}
+    >
+      {content}
+    </div>
+  ) : (
+    content
+  );
 }
 
 export function ScriptrRenderer(props: ScriptrRendererProps) {

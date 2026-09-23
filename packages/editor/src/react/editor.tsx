@@ -26,8 +26,11 @@ import {
   MessageSquareText,
   Minus,
   NotebookPen,
+  PaintRoller,
+  Plus,
   Quote,
   Redo2,
+  Repeat2,
   Rows3,
   Trash2,
   Type,
@@ -36,6 +39,18 @@ import {
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu.js';
 import {
   forwardRef,
   useEffect,
@@ -52,6 +67,7 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
   CommandList,
 } from '../components/ui/command.js';
@@ -411,6 +427,35 @@ function selectBlockForAction(editor: Editor, preferredPosition: number) {
   return editor.state.selection instanceof NodeSelection;
 }
 
+function selectBlockText(editor: Editor, preferredPosition: number) {
+  if (!selectBlockForAction(editor, preferredPosition)) return false;
+  const selection = editor.state.selection;
+  if (!(selection instanceof NodeSelection) || !selection.node.isTextblock)
+    return false;
+  editor.commands.setTextSelection({
+    from: selection.from + 1,
+    to: selection.from + selection.node.nodeSize - 1,
+  });
+  return true;
+}
+
+function setBlockBackground(
+  editor: Editor,
+  preferredPosition: number,
+  background: string | null,
+) {
+  if (!selectBlockForAction(editor, preferredPosition)) return false;
+  const selection = editor.state.selection;
+  if (!(selection instanceof NodeSelection)) return false;
+  editor.view.dispatch(
+    editor.state.tr.setNodeMarkup(selection.from, undefined, {
+      ...selection.node.attrs,
+      background,
+    }),
+  );
+  return true;
+}
+
 function replaceSelectedBlockWithToggle(editor: Editor) {
   const { selection, schema } = editor.state;
   if (!(selection instanceof NodeSelection)) return false;
@@ -476,6 +521,27 @@ function duplicateSelectedBlock(editor: Editor) {
   const position = selection.to;
   const transaction = editor.state.tr.insert(position, duplicate);
   transaction.setSelection(NodeSelection.create(transaction.doc, position));
+  editor.view.dispatch(transaction.scrollIntoView());
+  return true;
+}
+
+function prepareBlockInsertion(editor: Editor, preferredPosition: number) {
+  const position = Math.max(0, preferredPosition);
+  const node = editor.state.doc.nodeAt(position);
+  if (!node) return false;
+  if (node.type.name === 'paragraph' && node.content.size === 0) {
+    editor.commands.setTextSelection(position + 1);
+    return true;
+  }
+  const paragraph = editor.state.schema.nodes.paragraph?.create({
+    id: createAuthoredId('paragraph'),
+  });
+  if (!paragraph) return false;
+  const insertionPosition = position + node.nodeSize;
+  const transaction = editor.state.tr.insert(insertionPosition, paragraph);
+  transaction.setSelection(
+    TextSelection.create(transaction.doc, insertionPosition + 1),
+  );
   editor.view.dispatch(transaction.scrollIntoView());
   return true;
 }
@@ -849,6 +915,7 @@ export const ScriptrEditor = forwardRef<
   const [slashQuery, setSlashQuery] = useState<string>();
   const [slashIndex, setSlashIndex] = useState(0);
   const [blockMenuOpen, setBlockMenuOpen] = useState(false);
+  const [insertMenuOpen, setInsertMenuOpen] = useState(false);
   const [customColourOpen, setCustomColourOpen] = useState(false);
   const activeBlockPositionRef = useRef(-1);
   const tiptapEditorRef = useRef<Editor | null>(null);
@@ -960,16 +1027,22 @@ export const ScriptrEditor = forwardRef<
     },
   });
 
+  const gutterMenuOpen = blockMenuOpen || insertMenuOpen;
   useEffect(() => {
-    if (!blockMenuOpen) return;
-
-    const closeOnScroll = () => setBlockMenuOpen(false);
-
-    window.addEventListener('scroll', closeOnScroll, true);
+    if (!gutterMenuOpen) return;
+    editor?.commands.setMeta('lockDragHandle', true);
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    root.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
     return () => {
-      window.removeEventListener('scroll', closeOnScroll, true);
+      editor?.commands.setMeta('lockDragHandle', false);
+      root.style.overflow = previousRootOverflow;
+      body.style.overflow = previousBodyOverflow;
     };
-  }, [blockMenuOpen]);
+  }, [editor, gutterMenuOpen]);
 
   useEffect(() => {
     if (!editor || !editable) return;
@@ -1530,306 +1603,414 @@ export const ScriptrEditor = forwardRef<
           editor={editor}
           className="scriptr-editor__drag-handle"
           onNodeChange={({ pos }) => {
-            activeBlockPositionRef.current = pos;
+            if (!gutterMenuOpen) activeBlockPositionRef.current = pos;
           }}
         >
-          <Popover onOpenChange={setBlockMenuOpen} open={blockMenuOpen}>
-            <PopoverTrigger
-              render={
-                <Button
-                  aria-label="Drag block to reorder"
-                  onClick={() => {
-                    if (!blockMenuOpen && activeBlockPositionRef.current >= 0)
-                      editor.commands.setNodeSelection(
-                        activeBlockPositionRef.current,
-                      );
-                  }}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                />
-              }
+          <div className="scriptr-editor__gutter-controls">
+            <Popover
+              onOpenChange={(open) => {
+                if (open) {
+                  setBlockMenuOpen(false);
+                  if (
+                    !prepareBlockInsertion(
+                      editor,
+                      activeBlockPositionRef.current,
+                    )
+                  )
+                    return;
+                }
+                setInsertMenuOpen(open);
+              }}
+              open={insertMenuOpen}
             >
-              <GripVertical />
-            </PopoverTrigger>
-            {blockMenuOpen ? (
-              <PopoverContent
-                align="start"
-                className="scriptr-editor__block-menu"
-                role="menu"
-                side="right"
-              >
-                <PopoverTitle className="sr-only">Block actions</PopoverTitle>
-                <p>Block</p>
-                <Button
-                  onClick={() => {
-                    if (
-                      selectBlockForAction(
-                        editor,
-                        activeBlockPositionRef.current,
-                      )
-                    )
-                      moveCurrentBlock(editor, -1);
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <ArrowUp data-icon="inline-start" />
-                  Move up
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (
-                      selectBlockForAction(
-                        editor,
-                        activeBlockPositionRef.current,
-                      )
-                    )
-                      moveCurrentBlock(editor, 1);
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <ArrowDown data-icon="inline-start" />
-                  Move down
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (
-                      selectBlockForAction(
-                        editor,
-                        activeBlockPositionRef.current,
-                      )
-                    )
-                      duplicateSelectedBlock(editor);
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <Copy data-icon="inline-start" />
-                  Duplicate
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (
-                      selectBlockForAction(
-                        editor,
-                        activeBlockPositionRef.current,
-                      )
-                    ) {
-                      const selection = editor.state.selection;
-                      if (
-                        selection instanceof NodeSelection &&
-                        selection.node.isTextblock
-                      ) {
-                        editor.commands.setTextSelection({
-                          from: selection.from + 1,
-                          to: selection.from + selection.node.nodeSize - 1,
-                        });
-                        void editor.chain().focus().toggleMark('accent').run();
-                      }
-                    }
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <CaseSensitive data-icon="inline-start" />
-                  Turn into accent
-                </Button>
-                <Button
-                  onClick={() => {
-                    void editor.chain().focus().setParagraph().run();
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  Turn into text
-                </Button>
-                <Button
-                  onClick={() => {
-                    void editor
-                      .chain()
-                      .focus()
-                      .toggleHeading({ level: 1 })
-                      .run();
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  Turn into heading 1
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (
-                      selectBlockForAction(
-                        editor,
-                        activeBlockPositionRef.current,
-                      )
-                    )
-                      replaceSelectedBlockWithColumns(editor);
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <Columns2 data-icon="inline-start" />
-                  Turn into columns
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (
-                      selectBlockForAction(
-                        editor,
-                        activeBlockPositionRef.current,
-                      )
-                    )
-                      replaceSelectedBlockWithToggle(editor);
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <ListCollapse data-icon="inline-start" />
-                  Turn into toggle
-                </Button>
-                <Popover>
-                  <PopoverTrigger
-                    render={
-                      <Button size="sm" type="button" variant="ghost">
-                        Colour
-                      </Button>
-                    }
+              <PopoverTrigger
+                render={
+                  <Button
+                    aria-label="Insert block"
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
                   />
-                  <PopoverContent className="scriptr-editor__colour-panel">
-                    <PopoverTitle className="sr-only">
-                      Block colour
-                    </PopoverTitle>
-                    <p>Text colour</p>
-                    <div className="scriptr-editor__swatches">
-                      <Button
-                        aria-label="Remove block text colour"
-                        onClick={() =>
-                          void editor
-                            .chain()
-                            .focus()
-                            .unsetMark('textColour')
-                            .run()
-                        }
-                        type="button"
-                      >
-                        A
-                      </Button>
-                      {[
-                        '#6f6a63',
-                        '#9b5e3c',
-                        '#b56b24',
-                        '#a98520',
-                        '#398363',
-                        '#3978b9',
-                        '#8056aa',
-                        '#b84e7a',
-                        '#b74d43',
-                      ].map((colour) => (
-                        <Button
-                          aria-label={`Set block text colour ${colour}`}
-                          key={colour}
-                          onClick={() =>
-                            void editor
-                              .chain()
-                              .focus()
-                              .setMark('textColour', { colour })
-                              .run()
-                          }
-                          style={{ color: colour }}
-                          type="button"
-                        >
-                          A
-                        </Button>
-                      ))}
-                    </div>
-                    <p>Highlight colour</p>
-                    <div className="scriptr-editor__swatches">
-                      <Button
-                        aria-label="Remove block highlight colour"
-                        onClick={() =>
-                          void editor
-                            .chain()
-                            .focus()
-                            .unsetMark('highlightColour')
-                            .run()
-                        }
-                        type="button"
-                      >
-                        ⊘
-                      </Button>
-                      {[
-                        '#ece9e4',
-                        '#f1e6df',
-                        '#f5e2cf',
-                        '#f4ebcc',
-                        '#dfece5',
-                        '#dceaf5',
-                        '#e8e0f2',
-                        '#f2dfe7',
-                        '#f3dfdc',
-                      ].map((colour) => (
-                        <Button
-                          aria-label={`Set block highlight colour ${colour}`}
-                          key={colour}
-                          onClick={() =>
-                            void editor
-                              .chain()
-                              .focus()
-                              .setMark('highlightColour', { colour })
-                              .run()
-                          }
-                          style={{ backgroundColor: colour }}
-                          type="button"
-                        />
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <Button
-                  onClick={() => {
-                    editor.commands.deleteNode(
-                      editor.state.selection.$from.parent.type.name,
-                    );
-                    setBlockMenuOpen(false);
-                  }}
-                  role="menuitem"
-                  size="sm"
-                  type="button"
-                  variant="ghost"
+                }
+              >
+                <Plus />
+              </PopoverTrigger>
+              {insertMenuOpen ? (
+                <PopoverContent
+                  align="start"
+                  className="scriptr-editor__insert-menu"
+                  side="left"
                 >
-                  <Trash2 data-icon="inline-start" />
-                  Delete
-                </Button>
-              </PopoverContent>
-            ) : null}
-          </Popover>
+                  <PopoverTitle className="sr-only">Insert block</PopoverTitle>
+                  <Command aria-label="Insert block" shouldFilter>
+                    <CommandInput
+                      aria-label="Filter blocks"
+                      autoFocus
+                      placeholder="Search blocks…"
+                    />
+                    <CommandList>
+                      {commandCatalogue.groups('').map((group) => (
+                        <CommandGroup
+                          heading={group.label}
+                          key={group.category}
+                        >
+                          {group.commands.map((command) => {
+                            const item = availableSlashItems.find(
+                              (candidate) => candidate.id === command.id,
+                            );
+                            if (!item) return null;
+                            return (
+                              <CommandItem
+                                key={item.id}
+                                onSelect={() => {
+                                  item.run(editor);
+                                  setInsertMenuOpen(false);
+                                }}
+                                value={`${item.label} ${item.notation}`}
+                              >
+                                <CommandIconView icon={item.icon} />
+                                <span>{item.label}</span>
+                                <small>{item.notation}</small>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      ))}
+                      <CommandEmpty>No matching blocks</CommandEmpty>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              ) : null}
+            </Popover>
+            <DropdownMenu
+              modal={false}
+              onOpenChange={(open) => {
+                if (open) {
+                  setInsertMenuOpen(false);
+                  if (activeBlockPositionRef.current >= 0)
+                    editor.commands.setNodeSelection(
+                      activeBlockPositionRef.current,
+                    );
+                }
+                setBlockMenuOpen(open);
+              }}
+              open={blockMenuOpen}
+            >
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    aria-label="Drag block to reorder"
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
+                  />
+                }
+              >
+                <GripVertical />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="scriptr-editor__block-menu"
+                side="left"
+              >
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>Block</DropdownMenuLabel>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Repeat2 data-icon="inline-start" />
+                      Turn into
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent
+                      className="scriptr-editor__block-submenu"
+                      side="left"
+                    >
+                      <DropdownMenuItem
+                        onClick={() =>
+                          void editor.chain().focus().setParagraph().run()
+                        }
+                      >
+                        <Type data-icon="inline-start" /> Text
+                      </DropdownMenuItem>
+                      {([1, 2, 3] as const).map((level) => (
+                        <DropdownMenuItem
+                          key={level}
+                          onClick={() =>
+                            void editor
+                              .chain()
+                              .focus()
+                              .setHeading({ level })
+                              .run()
+                          }
+                        >
+                          <Heading data-icon="inline-start" /> Heading {level}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuItem
+                        onClick={() =>
+                          void editor.chain().focus().toggleBlockquote().run()
+                        }
+                      >
+                        <Quote data-icon="inline-start" /> Quote
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (
+                            selectBlockText(
+                              editor,
+                              activeBlockPositionRef.current,
+                            )
+                          )
+                            void editor
+                              .chain()
+                              .focus()
+                              .toggleMark('accent')
+                              .run();
+                        }}
+                      >
+                        <CaseSensitive data-icon="inline-start" /> Accent
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (
+                            selectBlockForAction(
+                              editor,
+                              activeBlockPositionRef.current,
+                            )
+                          )
+                            replaceSelectedBlockWithColumns(editor);
+                        }}
+                      >
+                        <Columns2 data-icon="inline-start" /> Columns
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (
+                            selectBlockForAction(
+                              editor,
+                              activeBlockPositionRef.current,
+                            )
+                          )
+                            replaceSelectedBlockWithToggle(editor);
+                        }}
+                      >
+                        <ListCollapse data-icon="inline-start" /> Toggle
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <PaintRoller data-icon="inline-start" /> Colour
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent
+                      className="scriptr-editor__colour-submenu"
+                      side="left"
+                    >
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>Text colour</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (
+                              selectBlockText(
+                                editor,
+                                activeBlockPositionRef.current,
+                              )
+                            )
+                              void editor
+                                .chain()
+                                .focus()
+                                .unsetMark('textColour')
+                                .run();
+                          }}
+                        >
+                          <span className="scriptr-editor__colour-chip">
+                            A
+                          </span>{' '}
+                          Default text
+                        </DropdownMenuItem>
+                        {(
+                          [
+                            ['#6f6a63', 'Gray'],
+                            ['#9b5e3c', 'Brown'],
+                            ['#b56b24', 'Orange'],
+                            ['#a98520', 'Yellow'],
+                            ['#398363', 'Green'],
+                            ['#3978b9', 'Blue'],
+                            ['#8056aa', 'Purple'],
+                            ['#b84e7a', 'Pink'],
+                            ['#b74d43', 'Red'],
+                          ] as const
+                        ).map(([colour, label]) => (
+                          <DropdownMenuItem
+                            key={colour}
+                            onClick={() => {
+                              if (
+                                selectBlockText(
+                                  editor,
+                                  activeBlockPositionRef.current,
+                                )
+                              )
+                                void editor
+                                  .chain()
+                                  .focus()
+                                  .setMark('textColour', { colour })
+                                  .run();
+                            }}
+                          >
+                            <span
+                              className="scriptr-editor__colour-chip"
+                              style={{ color: colour }}
+                            >
+                              A
+                            </span>
+                            {label} text
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Highlight</DropdownMenuLabel>
+                        {(
+                          [
+                            ['', 'No highlight'],
+                            ['#ece9e4', 'Gray'],
+                            ['#f1e6df', 'Brown'],
+                            ['#f5e2cf', 'Orange'],
+                            ['#f4ebcc', 'Yellow'],
+                            ['#dfece5', 'Green'],
+                            ['#dceaf5', 'Blue'],
+                            ['#e8e0f2', 'Purple'],
+                            ['#f2dfe7', 'Pink'],
+                            ['#f3dfdc', 'Red'],
+                          ] as const
+                        ).map(([colour, label]) => (
+                          <DropdownMenuItem
+                            key={label}
+                            onClick={() => {
+                              if (
+                                selectBlockText(
+                                  editor,
+                                  activeBlockPositionRef.current,
+                                )
+                              ) {
+                                const chain = editor.chain().focus();
+                                void (colour
+                                  ? chain
+                                      .setMark('highlightColour', { colour })
+                                      .run()
+                                  : chain.unsetMark('highlightColour').run());
+                              }
+                            }}
+                          >
+                            <span
+                              className="scriptr-editor__colour-chip"
+                              style={
+                                colour ? { backgroundColor: colour } : undefined
+                              }
+                            />
+                            {label}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Background</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            void setBlockBackground(
+                              editor,
+                              activeBlockPositionRef.current,
+                              null,
+                            )
+                          }
+                        >
+                          <span className="scriptr-editor__background-chip" />{' '}
+                          Default background
+                        </DropdownMenuItem>
+                        {(
+                          [
+                            ['gray', 'Gray'],
+                            ['brown', 'Brown'],
+                            ['orange', 'Orange'],
+                            ['yellow', 'Yellow'],
+                            ['green', 'Green'],
+                            ['blue', 'Blue'],
+                            ['purple', 'Purple'],
+                            ['pink', 'Pink'],
+                            ['red', 'Red'],
+                          ] as const
+                        ).map(([background, label]) => (
+                          <DropdownMenuItem
+                            key={background}
+                            onClick={() =>
+                              void setBlockBackground(
+                                editor,
+                                activeBlockPositionRef.current,
+                                background,
+                              )
+                            }
+                          >
+                            <span
+                              className="scriptr-editor__background-chip"
+                              data-background={background}
+                            />
+                            {label} background
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (
+                        selectBlockForAction(
+                          editor,
+                          activeBlockPositionRef.current,
+                        )
+                      )
+                        duplicateSelectedBlock(editor);
+                    }}
+                  >
+                    <Copy data-icon="inline-start" /> Duplicate
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (
+                        selectBlockForAction(
+                          editor,
+                          activeBlockPositionRef.current,
+                        )
+                      )
+                        moveCurrentBlock(editor, -1);
+                    }}
+                  >
+                    <ArrowUp data-icon="inline-start" /> Move up
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (
+                        selectBlockForAction(
+                          editor,
+                          activeBlockPositionRef.current,
+                        )
+                      )
+                        moveCurrentBlock(editor, 1);
+                    }}
+                  >
+                    <ArrowDown data-icon="inline-start" /> Move down
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() =>
+                    void editor.chain().focus().deleteSelection().run()
+                  }
+                >
+                  <Trash2 data-icon="inline-start" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </DragHandle>
       ) : null}
 

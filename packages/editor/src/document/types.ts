@@ -54,7 +54,21 @@ export type HardBreakInline = { readonly type: 'hardBreak' };
 
 export type InlineContent = TextInline | HardBreakInline;
 
-export type BlockBase = { readonly id: string };
+export type BlockBackground =
+  | 'gray'
+  | 'brown'
+  | 'orange'
+  | 'yellow'
+  | 'green'
+  | 'blue'
+  | 'purple'
+  | 'pink'
+  | 'red';
+
+export type BlockBase = {
+  readonly id: string;
+  readonly background?: BlockBackground | undefined;
+};
 
 export type ParagraphBlock = BlockBase & {
   readonly type: 'paragraph';

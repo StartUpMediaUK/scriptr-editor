@@ -103,6 +103,21 @@ describe('canonical editor adapter', () => {
     expect(JSON.stringify(roundTrip)).not.toContain('ProseMirror');
   });
 
+  it('round-trips a full-block background as authored document data', () => {
+    const themed = {
+      ...document,
+      content: document.content.map((block, index) =>
+        index === 0 ? { ...block, background: 'orange' as const } : block,
+      ),
+    };
+
+    const editorJson = canonicalToEditorJson(themed);
+    expect(editorJson.content?.[0]?.attrs?.background).toBe('orange');
+    expect(editorJsonToCanonical(editorJson)).toEqual(
+      createDocumentCodec().parse(themed),
+    );
+  });
+
   it('maps Scripture blocks to authored editor nodes', () => {
     const editorJson = canonicalToEditorJson(document);
     expect(editorJson.content?.at(-3)).toMatchObject({

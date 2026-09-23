@@ -104,25 +104,46 @@ describe('ScriptrEditor', () => {
     consoleError.mockRestore();
   });
 
-  it('dismisses the block action menu when focus moves elsewhere or the page scrolls', async () => {
+  it('locks scrolling and its drag-handle target while the block menu is open', async () => {
     render(<ScriptrEditor value={document} />);
     const handle = await screen.findByLabelText('Drag block to reorder');
 
     fireEvent.click(handle);
-    expect(screen.getByText('Turn into text')).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Turn into' }),
+    ).toBeInTheDocument();
+    expect(globalThis.document.documentElement.style.overflow).toBe('hidden');
 
-    fireEvent.click(screen.getByLabelText('Document editor'));
-    await waitFor(() =>
-      expect(screen.queryByText('Turn into text')).toBeNull(),
-    );
-
-    fireEvent.click(handle);
-    expect(screen.getByText('Turn into text')).toBeInTheDocument();
     fireEvent.scroll(window);
+    expect(
+      screen.getByRole('menuitem', { name: 'Turn into' }),
+    ).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByLabelText('Document editor'));
     await waitFor(() =>
-      expect(screen.queryByText('Turn into text')).toBeNull(),
+      expect(screen.queryByRole('menuitem', { name: 'Turn into' })).toBeNull(),
     );
+    expect(globalThis.document.documentElement.style.overflow).toBe('');
     await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
+  });
+
+  it('uses the gutter plus menu to create and transform a following block', async () => {
+    const onChange = vi.fn();
+    render(<ScriptrEditor defaultValue={document} onChange={onChange} />);
+    const insert = await screen.findByLabelText('Insert block');
+
+    fireEvent.click(insert);
+    expect(globalThis.document.documentElement.style.overflow).toBe('hidden');
+    fireEvent.click(screen.getByRole('option', { name: /Heading 1/ }));
+
+    await waitFor(() => {
+      const changed = onChange.mock.calls.at(-1)?.[0] as
+        | CanonicalDocument
+        | undefined;
+      expect(changed?.content).toHaveLength(2);
+      expect(changed?.content[1]?.type).toBe('heading');
+    });
+    expect(globalThis.document.documentElement.style.overflow).toBe('');
   });
 
   it('removes editing chrome when configured read-only', async () => {
@@ -458,7 +479,8 @@ describe('ScriptrEditor', () => {
   it('turns a selected block into a nested layout from its action menu', async () => {
     const { unmount } = render(<ScriptrEditor value={document} />);
     fireEvent.click(await screen.findByLabelText('Drag block to reorder'));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Turn into toggle' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Turn into' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Toggle' }));
     await waitFor(() =>
       expect(
         screen
@@ -470,9 +492,8 @@ describe('ScriptrEditor', () => {
 
     render(<ScriptrEditor value={document} />);
     fireEvent.click(await screen.findByLabelText('Drag block to reorder'));
-    fireEvent.click(
-      screen.getByRole('menuitem', { name: 'Turn into columns' }),
-    );
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Turn into' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Columns' }));
     await waitFor(() =>
       expect(
         screen
