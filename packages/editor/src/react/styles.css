@@ -1158,9 +1158,25 @@
   display: flex;
   align-items: center;
   gap: 3px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
   padding: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   font-family: var(--scriptr-font-ui);
   line-height: 1;
+}
+
+.scriptr-editor__bubble [data-slot='separator'][data-orientation='vertical'] {
+  align-self: center;
+  width: 1px;
+  height: 22px;
+  margin-inline: 2px;
+}
+
+.scriptr-editor__text-style-trigger {
+  min-width: 112px;
+  justify-content: space-between;
 }
 
 .scriptr-editor__bubble-panel button:hover,
@@ -1169,9 +1185,9 @@
 }
 
 .scriptr-editor__bubble > .scriptr-editor__tool {
-  width: 34px;
-  min-width: 34px;
-  height: 34px;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
   padding: 0;
   line-height: 1;
 }

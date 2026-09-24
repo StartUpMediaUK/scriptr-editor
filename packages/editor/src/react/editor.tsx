@@ -11,6 +11,7 @@ import {
   ArrowUp,
   AudioLines,
   Blocks,
+  Bold as BoldIcon,
   BookOpenText,
   Bookmark,
   CaseSensitive,
@@ -18,9 +19,11 @@ import {
   Code2,
   Columns2,
   Copy,
+  ChevronDown,
   GripVertical,
   Heading,
   Image,
+  Italic as ItalicIcon,
   Link2,
   List,
   ListCollapse,
@@ -35,9 +38,11 @@ import {
   Rows3,
   Trash2,
   Type,
+  Underline as UnderlineIcon,
   Undo2,
   Video,
   X,
+  Strikethrough as StrikethroughIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
@@ -87,6 +92,7 @@ import {
   DialogTitle,
 } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
+import { Separator } from '../components/ui/separator.js';
 import {
   Popover,
   PopoverContent,
@@ -1286,6 +1292,15 @@ export const ScriptrEditor = forwardRef<
     commandWorkflow?.type === 'link'
       ? normalizeExternalUrl(commandWorkflow.url)
       : undefined;
+  const activeTextStyle = editor.isActive('heading', { level: 1 })
+    ? 'Heading 1'
+    : editor.isActive('heading', { level: 2 })
+      ? 'Heading 2'
+      : editor.isActive('heading', { level: 3 })
+        ? 'Heading 3'
+        : editor.isActive('blockquote')
+          ? 'Quote'
+          : 'Normal text';
 
   return (
     <div
@@ -1324,8 +1339,14 @@ export const ScriptrEditor = forwardRef<
           <Popover>
             <PopoverTrigger
               render={
-                <Button size="sm" type="button" variant="ghost">
-                  Normal text
+                <Button
+                  className="scriptr-editor__text-style-trigger"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  {activeTextStyle}
+                  <ChevronDown data-icon="inline-end" />
                 </Button>
               }
             />
@@ -1361,6 +1382,16 @@ export const ScriptrEditor = forwardRef<
               </Button>
               <Button
                 onClick={() =>
+                  void editor.chain().focus().toggleHeading({ level: 3 }).run()
+                }
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Heading 3
+              </Button>
+              <Button
+                onClick={() =>
                   void editor.chain().focus().toggleBlockquote().run()
                 }
                 size="sm"
@@ -1380,7 +1411,7 @@ export const ScriptrEditor = forwardRef<
                   type="button"
                   variant="ghost"
                 >
-                  A
+                  <PaintRoller />
                 </Button>
               }
             />
@@ -1497,6 +1528,7 @@ export const ScriptrEditor = forwardRef<
               </Popover>
             </PopoverContent>
           </Popover>
+          <Separator orientation="vertical" />
           <ToolbarButton
             label="Accent font"
             active={editor.isActive('accent')}
@@ -1511,36 +1543,37 @@ export const ScriptrEditor = forwardRef<
             active={editor.isActive('bold')}
             onPress={() => void editor.chain().focus().toggleBold().run()}
           >
-            B
+            <BoldIcon />
           </ToolbarButton>
           <ToolbarButton
             label="Italic"
             active={editor.isActive('italic')}
             onPress={() => void editor.chain().focus().toggleItalic().run()}
           >
-            I
+            <ItalicIcon />
           </ToolbarButton>
           <ToolbarButton
             label="Underline"
             active={editor.isActive('underline')}
             onPress={() => void editor.chain().focus().toggleUnderline().run()}
           >
-            U
+            <UnderlineIcon />
           </ToolbarButton>
           <ToolbarButton
             label="Strikethrough"
             active={editor.isActive('strike')}
             onPress={() => void editor.chain().focus().toggleStrike().run()}
           >
-            S
+            <StrikethroughIcon />
           </ToolbarButton>
           <ToolbarButton
             label="Inline code"
             active={editor.isActive('code')}
             onPress={() => void editor.chain().focus().toggleCode().run()}
           >
-            &lt;/&gt;
+            <Code2 />
           </ToolbarButton>
+          <Separator orientation="vertical" />
           <ToolbarButton
             label="Link"
             active={editor.isActive('link')}
@@ -1569,6 +1602,32 @@ export const ScriptrEditor = forwardRef<
               data-icon="inline-start"
             />
           </ToolbarButton>
+          <ToolbarButton
+            label="Reference"
+            active={editor.isActive('referenceAnchor')}
+            onPress={() => {
+              const { from, to } = editor.state.selection;
+              setCommandWorkflow({
+                type: 'reference',
+                range: { from, to },
+                reference: {
+                  id: createAuthoredId('reference'),
+                  content: [{ type: 'paragraph', content: [] }],
+                },
+              });
+            }}
+          >
+            <NotebookPen />
+          </ToolbarButton>
+          {resolvedDocumentTargetProvider ? (
+            <ToolbarButton
+              label="Link to document"
+              active={editor.isActive('internalDocumentLink')}
+              onPress={() => setCommandWorkflow({ type: 'internal-link' })}
+            >
+              <BookOpenText />
+            </ToolbarButton>
+          ) : null}
         </BubbleMenu>
       ) : null}
 
