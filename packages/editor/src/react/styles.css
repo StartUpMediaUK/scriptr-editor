@@ -870,7 +870,28 @@
 .scriptr-editor__content ol,
 .scriptr-renderer ul,
 .scriptr-renderer ol {
-  padding-left: 27.6px;
+  padding-inline-start: 27.6px;
+  list-style-position: outside;
+}
+
+.scriptr-editor__content ul,
+.scriptr-renderer ul {
+  list-style-type: disc;
+}
+
+.scriptr-editor__content ol,
+.scriptr-renderer ol {
+  list-style-type: decimal;
+}
+
+.scriptr-editor__content ul ul,
+.scriptr-renderer ul ul {
+  list-style-type: circle;
+}
+
+.scriptr-editor__content ul ul ul,
+.scriptr-renderer ul ul ul {
+  list-style-type: square;
 }
 
 .scriptr-editor__content li,
