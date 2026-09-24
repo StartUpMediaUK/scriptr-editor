@@ -968,6 +968,20 @@
   border: 1px solid var(--scriptr-color-divider);
   border-radius: var(--scriptr-radius-md);
   background: color-mix(in srgb, var(--scriptr-color-accent) 5%, transparent);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.scriptr-editor .ProseMirror-selectednode .scriptr-scripture,
+.scriptr-scripture:focus-within {
+  border-color: color-mix(
+    in srgb,
+    var(--scriptr-color-accent) 52%,
+    var(--scriptr-color-divider)
+  );
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--scriptr-color-accent) 12%, transparent);
 }
 
 .scriptr-scripture > header {
@@ -984,6 +998,9 @@
   min-width: 10rem;
   min-height: 1.4em;
   line-height: 1.25;
+  font-family: var(--scriptr-font-heading);
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 .scriptr-scripture__address-segment {
   position: relative;
@@ -1024,6 +1041,13 @@
   outline: 0;
 }
 
+.scriptr-scripture__address-segment:focus-within {
+  border-radius: var(--scriptr-radius-sm);
+  background: color-mix(in srgb, var(--scriptr-color-accent) 12%, transparent);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--scriptr-color-accent) 22%, transparent);
+}
+
 .scriptr-scripture > header > span,
 .scriptr-scripture__passage > strong {
   color: var(--scriptr-color-accent-700);
@@ -1047,6 +1071,27 @@
 .scriptr-scripture__passage p {
   margin: 4.6px 0;
   text-align: left;
+}
+
+.scriptr-scripture__passage-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9.2px;
+  min-height: 3rem;
+  padding: 9.2px;
+  border-radius: var(--scriptr-radius-md);
+  background: color-mix(in srgb, var(--scriptr-color-surface) 68%, transparent);
+  color: var(--scriptr-color-muted);
+}
+
+.scriptr-scripture__passage[data-state='offline']
+  .scriptr-scripture__passage-status {
+  border: 1px dashed var(--scriptr-color-divider);
+}
+
+.scriptr-scripture__passage-status > p {
+  margin: 0;
 }
 
 .scriptr-scripture__passage small {
@@ -1085,6 +1130,20 @@
 .scriptr-scripture__translation-controls {
   justify-content: flex-end;
   margin-top: 4.6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.scriptr-scripture__translation:hover
+  > .scriptr-scripture__translation-controls,
+.scriptr-scripture__translation:focus-within
+  > .scriptr-scripture__translation-controls,
+.scriptr-editor
+  .ProseMirror-selectednode
+  .scriptr-scripture__translation-controls {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .scriptr-scripture__translation-controls button {
@@ -1714,6 +1773,11 @@
   .scriptr-media__toolbar {
     opacity: 1;
   }
+
+  .scriptr-scripture__translation-controls {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .scriptr-editor__content p.is-editor-empty:first-child::before {
@@ -1770,6 +1834,11 @@
 
   .scriptr-editor__history {
     min-height: 44px;
+  }
+
+  .scriptr-scripture > header {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .scriptr-editor__tool,

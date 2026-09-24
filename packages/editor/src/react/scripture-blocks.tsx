@@ -37,6 +37,7 @@ import type {
   ScriptureProvider,
   ScriptureTranslation,
 } from '../host/scripture.js';
+import { ScriptureProviderError } from '../host/scripture.js';
 import {
   formatScriptureAddress,
   parseReferenceQuery,
@@ -54,7 +55,11 @@ export type ScriptureBlockContentProps = {
 
 type ResolvedPassage =
   | { readonly state: 'loading' }
-  | { readonly state: 'unavailable'; readonly message: string }
+  | {
+      readonly state: 'offline' | 'unavailable';
+      readonly message: string;
+      readonly retryable: boolean;
+    }
   | { readonly state: 'ready'; readonly passage: PassageText };
 
 function moveTranslation(
@@ -102,6 +107,7 @@ function Passage({
   readonly provider?: ScriptureProvider | undefined;
   readonly translation: ScriptureTranslation | undefined;
 }) {
+  const [attempt, setAttempt] = useState(0);
   const [resolved, setResolved] = useState<ResolvedPassage>({
     state: 'loading',
   });
@@ -112,6 +118,7 @@ function Passage({
         message: provider
           ? 'Translation unavailable.'
           : 'Passage text is not available locally.',
+        retryable: false,
       });
       return;
     }
@@ -122,17 +129,27 @@ function Passage({
       (error: unknown) => {
         if (controller.signal.aborted) return;
         setResolved({
-          state: 'unavailable',
+          state:
+            error instanceof ScriptureProviderError &&
+            error.reason === 'offline'
+              ? 'offline'
+              : 'unavailable',
           message:
             error instanceof Error ? error.message : 'Passage unavailable.',
+          retryable:
+            error instanceof ScriptureProviderError ? error.retryable : true,
         });
       },
     );
     return () => controller.abort();
-  }, [address, provider, translation]);
+  }, [address, attempt, provider, translation]);
 
   return (
-    <div className="scriptr-scripture__passage" data-state={resolved.state}>
+    <div
+      aria-busy={resolved.state === 'loading' || undefined}
+      className="scriptr-scripture__passage"
+      data-state={resolved.state}
+    >
       <strong>{translation?.abbreviation ?? 'Translation'}</strong>
       {resolved.state === 'ready' ? (
         <>
@@ -140,9 +157,23 @@ function Passage({
           <small>{resolved.passage.attribution}</small>
         </>
       ) : (
-        <p role="status">
-          {resolved.state === 'loading' ? 'Loading passage…' : resolved.message}
-        </p>
+        <div className="scriptr-scripture__passage-status">
+          <p role="status">
+            {resolved.state === 'loading'
+              ? 'Loading passage…'
+              : resolved.message}
+          </p>
+          {resolved.state !== 'loading' && resolved.retryable ? (
+            <Button
+              onClick={() => setAttempt((current) => current + 1)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Retry
+            </Button>
+          ) : null}
+        </div>
       )}
     </div>
   );
@@ -215,12 +246,37 @@ function EditableAddress({
     );
     if (result.address && !result.error) onCommit(result.address);
   };
+  const applyAddress = (nextAddress: ScriptureAddress) => {
+    const nextBook = structure.books.find(
+      (candidate) => candidate.id === nextAddress.book,
+    );
+    setBookText(
+      nextBook?.translationNames?.[translationId] ??
+        nextBook?.name ??
+        nextAddress.book,
+    );
+    setChapterText(String(nextAddress.chapter));
+    setVerseText(
+      nextAddress.verseStart === undefined
+        ? ''
+        : `${nextAddress.verseStart}${nextAddress.verseEnd === undefined ? '' : `-${nextAddress.verseEnd}`}`,
+    );
+    onCommit(nextAddress);
+  };
   return (
     <div
       aria-label="Scripture address"
       className="scriptr-scripture__address-editor"
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) commit();
+      }}
+      onPaste={(event) => {
+        const pasted = event.clipboardData.getData('text').trim();
+        const result = parseReferenceQuery(pasted, structure);
+        if (!result.address || result.error) return;
+        event.preventDefault();
+        applyAddress(result.address);
+        verseRef.current?.focus();
       }}
       role="group"
     >

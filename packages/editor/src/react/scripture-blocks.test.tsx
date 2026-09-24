@@ -12,6 +12,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { TranslationComparisonBlock } from '../document/types.js';
+import { ScriptureProviderError } from '../host/scripture.js';
 import { createFakeScriptureProvider } from '../scripture/fake-provider.js';
 import { testStructure } from '../scripture/test-structure.js';
 import { ScriptureBlockContent } from './scripture-blocks.js';
@@ -39,6 +40,12 @@ const provider = createFakeScriptureProvider({
       id: 'WEB',
       name: 'World English Bible',
       abbreviation: 'WEB',
+      languageTag: 'en',
+    },
+    {
+      id: 'BSB',
+      name: 'Berean Standard Bible',
+      abbreviation: 'BSB',
       languageTag: 'en',
     },
   ],
@@ -74,6 +81,21 @@ describe('ScriptureBlockContent', () => {
       ...block,
       translationIds: ['WEB', 'KJV'],
     });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add translation' }));
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Berean Standard Bible' }),
+    );
+    expect(onChange).toHaveBeenCalledWith({
+      ...block,
+      translationIds: ['KJV', 'WEB', 'BSB'],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove WEB' }));
+    expect(onChange).toHaveBeenCalledWith({
+      ...block,
+      translationIds: ['KJV'],
+    });
   });
 
   it('retains the address when passage text is unavailable', () => {
@@ -82,6 +104,43 @@ describe('ScriptureBlockContent', () => {
     expect(
       screen.getAllByText('Passage text is not available locally.'),
     ).toHaveLength(2);
+  });
+
+  it('distinguishes retryable offline passages and retries in place', async () => {
+    const getPassage = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ScriptureProviderError(
+          'offline',
+          'Passage unavailable offline.',
+          true,
+        ),
+      )
+      .mockResolvedValue({
+        address: block.address,
+        translationId: 'KJV',
+        text: 'All things work together for good.',
+        attribution: 'Test translation',
+        cache: 'persistent' as const,
+      });
+    render(
+      <ScriptureBlockContent
+        block={{ ...block, translationIds: ['KJV'] }}
+        provider={{ ...provider, getPassage }}
+      />,
+    );
+
+    expect(
+      await screen.findByText('Passage unavailable offline.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Passage unavailable offline.').closest('[data-state]'),
+    ).toHaveAttribute('data-state', 'offline');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(
+      await screen.findByText('All things work together for good.'),
+    ).toBeInTheDocument();
+    expect(getPassage).toHaveBeenCalledTimes(2);
   });
 
   it('keeps passage data committed while a segmented address draft is edited', async () => {
@@ -140,5 +199,39 @@ describe('ScriptureBlockContent', () => {
     chapter.setSelectionRange(0, 0);
     fireEvent.keyDown(chapter, { key: 'Backspace' });
     expect(book).toHaveFocus();
+  });
+
+  it('pastes a complete reference across the segmented address editor', async () => {
+    const onChange = vi.fn();
+    render(
+      <ScriptureBlockContent
+        block={block}
+        editable
+        onChange={onChange}
+        provider={provider}
+      />,
+    );
+    const address = await screen.findByRole('group', {
+      name: 'Scripture address',
+    });
+
+    fireEvent.paste(address, {
+      clipboardData: { getData: () => 'John 3:16-17' },
+    });
+
+    expect(screen.getByRole('textbox', { name: 'Bible book' })).toHaveValue(
+      'John',
+    );
+    expect(screen.getByRole('textbox', { name: 'Chapter' })).toHaveValue('3');
+    expect(screen.getByRole('textbox', { name: 'Verse or range' })).toHaveValue(
+      '16-17',
+    );
+    expect(
+      screen.getByRole('textbox', { name: 'Verse or range' }),
+    ).toHaveFocus();
+    expect(onChange).toHaveBeenCalledWith({
+      ...block,
+      address: { book: 'JHN', chapter: 3, verseStart: 16, verseEnd: 17 },
+    });
   });
 });
