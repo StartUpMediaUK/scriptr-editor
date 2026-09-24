@@ -990,6 +990,38 @@ export const ScriptrEditor = forwardRef<
             return true;
           }
         }
+        if (currentEditor && event.key === 'Tab') {
+          const listItemType = currentEditor.isActive('taskItem')
+            ? 'taskItem'
+            : currentEditor.isActive('listItem')
+              ? 'listItem'
+              : undefined;
+          if (listItemType) {
+            event.preventDefault();
+            if (event.shiftKey)
+              currentEditor.commands.liftListItem(listItemType);
+            else currentEditor.commands.sinkListItem(listItemType);
+            return true;
+          }
+
+          event.preventDefault();
+          const { $from, empty } = currentEditor.state.selection;
+          const textBeforeCursor = $from.parent.textBetween(
+            0,
+            $from.parentOffset,
+          );
+          const indentOffset = textBeforeCursor.lastIndexOf('\t');
+          if (event.shiftKey && empty && indentOffset >= 0) {
+            const indentPosition = $from.start() + indentOffset;
+            currentEditor.commands.deleteRange({
+              from: indentPosition,
+              to: indentPosition + 1,
+            });
+          } else if (!event.shiftKey) {
+            currentEditor.commands.insertContent('\t');
+          }
+          return true;
+        }
         if (event.altKey && event.shiftKey && event.key === 'ArrowUp') {
           event.preventDefault();
           moveCurrentBlockView(view, -1);

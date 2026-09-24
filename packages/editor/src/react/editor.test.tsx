@@ -176,6 +176,85 @@ describe('ScriptrEditor', () => {
     });
   });
 
+  it('uses Tab for authored indentation and Shift+Tab to remove it', async () => {
+    const rect = {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+    };
+    Object.defineProperty(Text.prototype, 'getClientRects', {
+      configurable: true,
+      value: () => [rect],
+    });
+    Object.defineProperty(Text.prototype, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => rect,
+    });
+    Object.defineProperty(Element.prototype, 'getClientRects', {
+      configurable: true,
+      value: () => [rect],
+    });
+    Object.defineProperty(Range.prototype, 'getClientRects', {
+      configurable: true,
+      value: () => [rect],
+    });
+    Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => rect,
+    });
+    const onChange = vi.fn<(value: CanonicalDocument) => void>();
+    const editorRef = createRef<ScriptrEditorHandle>();
+    render(
+      <ScriptrEditor
+        defaultValue={document}
+        onChange={onChange}
+        ref={editorRef}
+      />,
+    );
+    await waitFor(() => expect(editorRef.current).not.toBeNull());
+    act(() => {
+      editorRef.current?.navigateTo(
+        { blockId: 'paragraph', kind: 'text', offset: 5, length: 0 },
+        { highlightMs: 0 },
+      );
+    });
+
+    const surface = screen.getByLabelText('Document editor');
+    fireEvent.keyDown(surface, { key: 'Tab' });
+    await waitFor(() => {
+      expect(onChange.mock.calls.at(-1)?.[0].content[0]).toMatchObject({
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'A qui\tet writing surface.' }],
+      });
+    });
+
+    act(() => editorRef.current?.undo());
+    await waitFor(() => {
+      expect(onChange.mock.calls.at(-1)?.[0].content[0]).toMatchObject({
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'A quiet writing surface.' }],
+      });
+    });
+    act(() => editorRef.current?.redo());
+    await waitFor(() => {
+      expect(onChange.mock.calls.at(-1)?.[0].content[0]).toMatchObject({
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'A qui\tet writing surface.' }],
+      });
+    });
+
+    fireEvent.keyDown(surface, { key: 'Tab', shiftKey: true });
+    await waitFor(() => {
+      expect(onChange.mock.calls.at(-1)?.[0].content[0]).toMatchObject({
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'A quiet writing surface.' }],
+      });
+    });
+  });
+
   it('navigates to a stable canonical location and temporarily highlights it', async () => {
     const editorRef = createRef<ScriptrEditorHandle>();
     render(<ScriptrEditor ref={editorRef} value={document} />);

@@ -148,6 +148,46 @@ describe('ScriptrRenderer', () => {
     expect(link).toHaveTextContent('The Day of the Lord');
   });
 
+  it('preserves every core inline mark in read-only output', () => {
+    const { container } = render(
+      <ScriptrRenderer
+        document={{
+          version: 2,
+          content: [
+            {
+              id: 'marks',
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Coloured',
+                  marks: [{ type: 'textColour', colour: '#7c3aed' }],
+                },
+                { type: 'text', text: ' and ' },
+                {
+                  type: 'text',
+                  text: 'highlighted',
+                  marks: [{ type: 'highlightColour', colour: '#fde68a' }],
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Coloured')).toHaveStyle({ color: '#7c3aed' });
+    expect(screen.getByText('highlighted')).toHaveStyle({
+      backgroundColor: '#fde68a',
+    });
+    expect(
+      container.querySelector('[data-scriptr-text-colour]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-scriptr-highlight-colour]'),
+    ).toBeInTheDocument();
+  });
+
   it('renders responsive columns and accessible heading toggles', () => {
     const layoutDocument: CanonicalDocument = {
       version: 2,

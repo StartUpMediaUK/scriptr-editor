@@ -32,10 +32,12 @@ const Callout = Node.create({
     return [{ tag: 'aside[data-scriptr-callout]' }];
   },
   renderHTML({ HTMLAttributes }) {
+    const { tone, ...attributes } = HTMLAttributes;
     return [
       'aside',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(attributes, {
         'data-scriptr-callout': '',
+        'data-tone': typeof tone === 'string' ? tone : 'note',
         class: 'scriptr-editor__callout',
       }),
       0,

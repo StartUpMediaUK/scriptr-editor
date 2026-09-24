@@ -226,6 +226,26 @@ function applyMark(
       return <s key={key}>{child}</s>;
     case 'inlineCode':
       return <code key={key}>{child}</code>;
+    case 'textColour':
+      return (
+        <span
+          data-scriptr-text-colour=""
+          key={key}
+          style={{ color: mark.colour }}
+        >
+          {child}
+        </span>
+      );
+    case 'highlightColour':
+      return (
+        <mark
+          data-scriptr-highlight-colour=""
+          key={key}
+          style={{ backgroundColor: mark.colour }}
+        >
+          {child}
+        </mark>
+      );
     case 'link':
       return (
         <a
