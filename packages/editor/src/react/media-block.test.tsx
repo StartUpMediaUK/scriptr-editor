@@ -80,6 +80,11 @@ describe('media blocks', () => {
         onChange={onChange}
       />,
     );
+    expect(
+      screen
+        .getByRole('button', { name: 'Edit caption' })
+        .closest('.scriptr-editor__context-toolbar'),
+    ).toBeInTheDocument();
 
     await waitFor(() =>
       expect(document.querySelector('audio')).toHaveAttribute(

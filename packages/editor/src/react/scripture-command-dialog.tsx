@@ -64,7 +64,7 @@ export function ScriptureCommandDialog({
     >
       <DialogContent
         aria-label={title}
-        className="scriptr-editor__workflow-dialog--scripture"
+        className="scriptr-editor__inspector scriptr-editor__workflow-dialog--scripture"
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
         {state.status === 'loading' ? (

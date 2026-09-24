@@ -109,7 +109,7 @@ export function ImageBlockContent({
         </div>
       )}
       {editable ? (
-        <div className="scriptr-media__toolbar">
+        <div className="scriptr-editor__context-toolbar scriptr-media__toolbar">
           <Button
             aria-label="Edit caption"
             onClick={() => setCaptionOpen((value) => !value)}

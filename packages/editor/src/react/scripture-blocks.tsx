@@ -399,7 +399,7 @@ export function ScriptureBlockContent({
               </SelectContent>
             </Select>
           ) : (
-            <div className="scriptr-scripture__layout">
+            <div className="scriptr-editor__context-toolbar scriptr-scripture__layout">
               <ToggleGroup
                 aria-label="Scripture comparison layout"
                 onValueChange={(layouts) => {
@@ -479,7 +479,7 @@ export function ScriptureBlockContent({
               translation={translationMap.get(translationId)}
             />
             {editable && block.type === 'translationComparison' ? (
-              <div className="scriptr-scripture__translation-controls">
+              <div className="scriptr-editor__context-toolbar scriptr-scripture__translation-controls">
                 <Button
                   aria-label={`Move ${translationId} earlier`}
                   disabled={index === 0}

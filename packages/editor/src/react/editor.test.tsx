@@ -369,6 +369,9 @@ describe('ScriptrEditor', () => {
     expect(
       screen.getByRole('dialog', { name: 'Add Reference' }),
     ).toHaveTextContent('Reference name');
+    expect(screen.getByRole('dialog', { name: 'Add Reference' })).toHaveClass(
+      'scriptr-editor__inspector',
+    );
     expect(
       screen.getByRole('button', { name: 'Add Reference' }),
     ).toBeDisabled();

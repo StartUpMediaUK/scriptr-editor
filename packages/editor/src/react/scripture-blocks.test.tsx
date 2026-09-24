@@ -62,6 +62,11 @@ describe('ScriptureBlockContent', () => {
       ),
     );
     fireEvent.click(screen.getByRole('button', { name: 'One column' }));
+    expect(
+      screen
+        .getByRole('button', { name: 'One column' })
+        .closest('.scriptr-editor__context-toolbar'),
+    ).toBeInTheDocument();
     expect(onChange).toHaveBeenCalledWith({ ...block, layout: 'oneColumn' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Move WEB earlier' }));

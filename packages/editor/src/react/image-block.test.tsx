@@ -61,6 +61,11 @@ describe('ImageBlockContent', () => {
       screen.getByRole('button', { name: 'Crop image' }),
     ).toBeInTheDocument();
     expect(
+      screen
+        .getByRole('button', { name: 'Crop image' })
+        .closest('.scriptr-editor__context-toolbar'),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole('button', { name: 'Expand image' }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Crop image' }));

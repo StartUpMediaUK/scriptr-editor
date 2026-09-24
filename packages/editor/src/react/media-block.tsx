@@ -271,7 +271,7 @@ export function MediaBlockContent({
         </div>
       )}
       {editable ? (
-        <div className="scriptr-media__toolbar">
+        <div className="scriptr-editor__context-toolbar scriptr-media__toolbar">
           {block.type === 'audio' ? (
             <Button
               aria-label="Rename audio"

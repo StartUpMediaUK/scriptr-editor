@@ -2206,7 +2206,10 @@ export const ScriptrEditor = forwardRef<
           }}
           open
         >
-          <DialogContent aria-label="Add image">
+          <DialogContent
+            aria-label="Add image"
+            className="scriptr-editor__inspector"
+          >
             <DialogHeader>
               <DialogTitle>Add image</DialogTitle>
             </DialogHeader>
@@ -2237,7 +2240,10 @@ export const ScriptrEditor = forwardRef<
           }}
           open
         >
-          <DialogContent aria-label={`Add ${commandWorkflow.type}`}>
+          <DialogContent
+            aria-label={`Add ${commandWorkflow.type}`}
+            className="scriptr-editor__inspector"
+          >
             <DialogHeader>
               <DialogTitle>Add {commandWorkflow.type}</DialogTitle>
             </DialogHeader>
@@ -2267,7 +2273,10 @@ export const ScriptrEditor = forwardRef<
           }}
           open
         >
-          <DialogContent aria-label="Add web bookmark">
+          <DialogContent
+            aria-label="Add web bookmark"
+            className="scriptr-editor__inspector"
+          >
             <DialogHeader>
               <DialogTitle>Add web bookmark</DialogTitle>
             </DialogHeader>
@@ -2296,7 +2305,10 @@ export const ScriptrEditor = forwardRef<
           }}
           open
         >
-          <DialogContent aria-label="Add Reference">
+          <DialogContent
+            aria-label="Add Reference"
+            className="scriptr-editor__inspector"
+          >
             <DialogHeader>
               <DialogTitle>Add Reference</DialogTitle>
               <DialogClose
@@ -2386,7 +2398,10 @@ export const ScriptrEditor = forwardRef<
           }}
           open
         >
-          <DialogContent aria-label="Link to document">
+          <DialogContent
+            aria-label="Link to document"
+            className="scriptr-editor__inspector"
+          >
             <DialogTitle className="sr-only">Link to document</DialogTitle>
             <DocumentLinkPicker
               onCancel={() => setCommandWorkflow(undefined)}
@@ -2412,7 +2427,10 @@ export const ScriptrEditor = forwardRef<
           }}
           open
         >
-          <DialogContent aria-label="Add or edit link">
+          <DialogContent
+            aria-label="Add or edit link"
+            className="scriptr-editor__inspector"
+          >
             <DialogHeader>
               <DialogTitle>Link</DialogTitle>
               <DialogClose

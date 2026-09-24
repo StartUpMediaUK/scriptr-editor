@@ -185,7 +185,10 @@ export function ReferenceEditor({
         .filter(Boolean)
         .join(' ')}
     >
-      <BubbleMenu editor={editor} className="scriptr-reference-editor__toolbar">
+      <BubbleMenu
+        editor={editor}
+        className="scriptr-editor__context-toolbar scriptr-reference-editor__toolbar"
+      >
         <Button
           aria-label="Bold"
           aria-pressed={editor.isActive('bold')}

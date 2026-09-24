@@ -576,14 +576,6 @@
 
 .scriptr-reference-editor__toolbar {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 10px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--scriptr-color-ground);
-  box-shadow: 0 6px 18px rgb(32 31 29 / 12%);
 }
 
 .scriptr-reference-editor button,
@@ -1167,6 +1159,40 @@
   line-height: 1;
 }
 
+.scriptr-editor__context-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: var(--scriptr-shadow-sm);
+  font-family: var(--scriptr-font-ui);
+}
+
+.scriptr-editor__context-toolbar button {
+  flex: none;
+}
+
+.scriptr-editor__inspector {
+  width: min(440px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(720px, calc(100vh - 32px));
+  gap: 13.8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  font-family: var(--scriptr-font-ui);
+}
+
+.scriptr-editor__inspector form {
+  display: grid;
+  gap: 13.8px;
+  min-width: 0;
+}
+
 .scriptr-editor__bubble [data-slot='separator'][data-orientation='vertical'] {
   align-self: center;
   width: 1px;
@@ -1645,6 +1671,10 @@
   .scriptr-editor__workflow-actions button,
   .scriptr-editor__workflow-status button {
     min-height: 44px;
+  }
+
+  .scriptr-media__toolbar {
+    opacity: 1;
   }
 }
 
@@ -2160,7 +2190,8 @@
 .scriptr-media:hover .scriptr-media__toolbar,
 .scriptr-media:focus-within .scriptr-media__toolbar,
 .scriptr-image:hover .scriptr-media__toolbar,
-.scriptr-image:focus-within .scriptr-media__toolbar {
+.scriptr-image:focus-within .scriptr-media__toolbar,
+.scriptr-media__toolbar:focus-within {
   opacity: 1;
 }
 .scriptr-image[data-crop-ratio]:not([data-crop-ratio='original']) img {
