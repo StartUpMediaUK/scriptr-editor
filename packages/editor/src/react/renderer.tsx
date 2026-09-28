@@ -12,6 +12,7 @@ import type {
   ExtensionBlock,
   JsonValue,
 } from '../document/types.js';
+import { isSafeExternalUrl } from '../document/external-links.js';
 import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
 import type { MediaHost } from '../host/media.js';
@@ -25,6 +26,9 @@ export type ScriptrRendererProps = {
   readonly document: CanonicalDocument;
   readonly className?: string | undefined;
   readonly onInternalDocumentLink?: ((targetId: string) => void) | undefined;
+  readonly onReferenceOpen?:
+    | ((reference: Reference, referenceId: string) => void)
+    | undefined;
   readonly renderExtension?:
     | ((block: Extract<Block, { type: 'extension' }>) => ReactNode)
     | undefined;
@@ -196,9 +200,10 @@ function ResolvedInternalLink({
 }
 
 function referenceText(reference: Reference | undefined): string | undefined {
-  return reference?.content
+  const content = reference?.content
     .flatMap((block) => block.content.map((inline) => inline.text))
     .join(' ');
+  return [reference?.title, content].filter(Boolean).join(' — ') || undefined;
 }
 
 function applyMark(
@@ -208,6 +213,7 @@ function applyMark(
   references: CanonicalDocument['references'],
   onInternalDocumentLink: ScriptrRendererProps['onInternalDocumentLink'],
   documentTargetProvider: ScriptrRendererProps['documentTargetProvider'],
+  onReferenceOpen: ScriptrRendererProps['onReferenceOpen'],
 ): ReactNode {
   switch (mark.type) {
     case 'bold':
@@ -247,7 +253,7 @@ function applyMark(
         </mark>
       );
     case 'link':
-      return (
+      return isSafeExternalUrl(mark.href) ? (
         <a
           href={mark.href}
           key={key}
@@ -256,6 +262,10 @@ function applyMark(
         >
           {child}
         </a>
+      ) : (
+        <span data-link-state="unsafe" key={key}>
+          {child}
+        </span>
       );
     case 'internalDocumentLink':
       return (
@@ -268,17 +278,31 @@ function applyMark(
           {child}
         </ResolvedInternalLink>
       );
-    case 'reference':
-      return (
-        <span
+    case 'reference': {
+      const reference = references?.[mark.referenceId];
+      return onReferenceOpen && reference ? (
+        <button
           className="scriptr-renderer__reference"
           data-reference-id={mark.referenceId}
           key={key}
-          title={referenceText(references?.[mark.referenceId])}
+          onClick={() => onReferenceOpen(reference, mark.referenceId)}
+          title={referenceText(reference)}
+          type="button"
+        >
+          {child}
+        </button>
+      ) : (
+        <span
+          className="scriptr-renderer__reference"
+          data-reference-id={mark.referenceId}
+          data-reference-state={reference ? 'ready' : 'unavailable'}
+          key={key}
+          title={referenceText(reference)}
         >
           {child}
         </span>
       );
+    }
   }
 }
 
@@ -287,6 +311,7 @@ function renderInline(
   references: CanonicalDocument['references'],
   onInternalDocumentLink: ScriptrRendererProps['onInternalDocumentLink'],
   documentTargetProvider: ScriptrRendererProps['documentTargetProvider'],
+  onReferenceOpen: ScriptrRendererProps['onReferenceOpen'],
 ) {
   return content.map((inline, index) => {
     if (inline.type === 'hardBreak') return <br key={`break-${index}`} />;
@@ -299,6 +324,7 @@ function renderInline(
         references,
         onInternalDocumentLink,
         documentTargetProvider,
+        onReferenceOpen,
       );
     }
     return <span key={`inline-${index}`}>{child}</span>;
@@ -311,6 +337,7 @@ function renderListItems(
   references: CanonicalDocument['references'],
   onInternalDocumentLink: ScriptrRendererProps['onInternalDocumentLink'],
   documentTargetProvider: ScriptrRendererProps['documentTargetProvider'],
+  onReferenceOpen: ScriptrRendererProps['onReferenceOpen'],
 ): ReactNode {
   return items.map((item) => (
     <li
@@ -331,6 +358,7 @@ function renderListItems(
           references,
           onInternalDocumentLink,
           documentTargetProvider,
+          onReferenceOpen,
         )}
       </span>
       {item.children?.length ? (
@@ -342,6 +370,7 @@ function renderListItems(
               references,
               onInternalDocumentLink,
               documentTargetProvider,
+              onReferenceOpen,
             )}
           </ol>
         ) : (
@@ -352,6 +381,7 @@ function renderListItems(
               references,
               onInternalDocumentLink,
               documentTargetProvider,
+              onReferenceOpen,
             )}
           </ul>
         )
@@ -367,6 +397,7 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
       props.document.references,
       props.onInternalDocumentLink,
       props.documentTargetProvider,
+      props.onReferenceOpen,
     );
   switch (block.type) {
     case 'paragraph':
@@ -404,6 +435,7 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
             props.document.references,
             props.onInternalDocumentLink,
             props.documentTargetProvider,
+            props.onReferenceOpen,
           )}
         </ol>
       ) : (
@@ -417,6 +449,7 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
             props.document.references,
             props.onInternalDocumentLink,
             props.documentTargetProvider,
+            props.onReferenceOpen,
           )}
         </ul>
       );

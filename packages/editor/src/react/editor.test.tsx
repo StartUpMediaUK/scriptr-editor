@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRef, StrictMode } from 'react';
 
 import type { CanonicalDocument } from '../document/types.js';
+import { normalizeExternalUrl } from '../document/external-links.js';
 import { ScriptrEditor } from './editor.js';
 import type { ScriptrEditorHandle } from './editor.js';
 
@@ -31,6 +32,143 @@ const document: CanonicalDocument = {
 afterEach(cleanup);
 
 describe('ScriptrEditor', () => {
+  it('normalizes safe external links and rejects unsafe schemes', () => {
+    expect(normalizeExternalUrl('example.com/path')).toBe(
+      'https://example.com/path',
+    );
+    expect(normalizeExternalUrl('mailto:reader@example.com')).toBe(
+      'mailto:reader@example.com',
+    );
+    expect(normalizeExternalUrl('javascript:alert(1)')).toBeUndefined();
+    expect(normalizeExternalUrl('data:text/html,test')).toBeUndefined();
+  });
+
+  it('opens, edits, and removes an existing Reference without deleting its text', async () => {
+    const onChange = vi.fn();
+    const referenced: CanonicalDocument = {
+      version: 2,
+      references: {
+        source: {
+          id: 'source',
+          title: 'Original source',
+          content: [{ type: 'paragraph', content: [] }],
+        },
+      },
+      content: [
+        {
+          id: 'paragraph',
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Before ' },
+            {
+              type: 'text',
+              text: 'anchored words',
+              marks: [{ type: 'reference', referenceId: 'source' }],
+            },
+            { type: 'text', text: '.' },
+          ],
+        },
+      ],
+    };
+    const { container } = render(
+      <ScriptrEditor defaultValue={referenced} onChange={onChange} />,
+    );
+    const anchor = await waitFor(() => {
+      const element = container.querySelector('[data-scriptr-reference]');
+      expect(element).not.toBeNull();
+      return element as HTMLElement;
+    });
+
+    fireEvent.click(anchor);
+    const dialog = screen.getByRole('dialog', { name: 'Edit Reference' });
+    fireEvent.change(screen.getByLabelText('Reference name'), {
+      target: { value: 'Revised source' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Reference' }));
+    await waitFor(() =>
+      expect(
+        (onChange.mock.calls.at(-1)?.[0] as CanonicalDocument).references
+          ?.source?.title,
+      ).toBe('Revised source'),
+    );
+
+    fireEvent.click(anchor);
+    expect(dialog).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Reference' }));
+    await waitFor(() => {
+      const changed = onChange.mock.calls.at(-1)?.[0] as CanonicalDocument;
+      expect(changed.references).toBeUndefined();
+      expect(screen.getByLabelText('Document editor')).toHaveTextContent(
+        'anchored words',
+      );
+    });
+  });
+
+  it('opens and removes an existing internal document link', async () => {
+    const onChange = vi.fn();
+    const linked: CanonicalDocument = {
+      version: 2,
+      content: [
+        {
+          id: 'paragraph',
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'See ' },
+            {
+              type: 'text',
+              text: 'The Day of the Lord',
+              marks: [
+                {
+                  type: 'internalDocumentLink',
+                  targetId: 'day-of-the-lord',
+                },
+              ],
+            },
+            { type: 'text', text: '.' },
+          ],
+        },
+      ],
+    };
+    const { container } = render(
+      <ScriptrEditor
+        defaultValue={linked}
+        documentTargetProvider={{
+          search: () =>
+            Promise.resolve([
+              { id: 'day-of-the-lord', label: 'The Day of the Lord' },
+            ]),
+          resolve: () =>
+            Promise.resolve({
+              id: 'day-of-the-lord',
+              label: 'The Day of the Lord',
+            }),
+        }}
+        onChange={onChange}
+      />,
+    );
+    const link = await waitFor(() => {
+      const element = container.querySelector('[data-scriptr-document-link]');
+      expect(element).not.toBeNull();
+      return element as HTMLElement;
+    });
+
+    fireEvent.click(link);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove document link' }),
+    );
+    await waitFor(() => {
+      const changed = onChange.mock.calls.at(-1)?.[0] as CanonicalDocument;
+      expect(JSON.stringify(changed.content[0])).toContain(
+        'The Day of the Lord',
+      );
+      expect(JSON.stringify(changed.content[0])).not.toContain(
+        'internalDocumentLink',
+      );
+      expect(
+        container.querySelector('[data-scriptr-document-link]'),
+      ).toBeNull();
+    });
+  });
   it('renders canonical content and accessible editing controls', async () => {
     render(<ScriptrEditor value={document} />);
 

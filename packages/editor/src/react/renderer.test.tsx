@@ -99,6 +99,62 @@ const provider = createFakeScriptureProvider({
 afterEach(cleanup);
 
 describe('ScriptrRenderer', () => {
+  it('opens available References and preserves unavailable anchor text', () => {
+    const onReferenceOpen = vi.fn();
+    const referenced: CanonicalDocument = {
+      version: 2,
+      references: {
+        source: {
+          id: 'source',
+          title: 'Study note',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Supporting detail.' }],
+            },
+          ],
+        },
+      },
+      content: [
+        {
+          id: 'reference',
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'available note',
+              marks: [{ type: 'reference', referenceId: 'source' }],
+            },
+            { type: 'text', text: ' and ' },
+            {
+              type: 'text',
+              text: 'missing note',
+              marks: [{ type: 'reference', referenceId: 'missing' }],
+            },
+          ],
+        },
+      ],
+    };
+    const { container } = render(
+      <ScriptrRenderer
+        document={referenced}
+        onReferenceOpen={onReferenceOpen}
+      />,
+    );
+
+    screen.getByRole('button', { name: 'available note' }).click();
+    expect(onReferenceOpen).toHaveBeenCalledWith(
+      referenced.references?.source,
+      'source',
+    );
+    expect(
+      screen.getByRole('button', { name: 'available note' }),
+    ).toHaveAttribute('title', 'Study note — Supporting detail.');
+    expect(
+      container.querySelector('[data-reference-id="missing"]'),
+    ).toHaveAttribute('data-reference-state', 'unavailable');
+  });
+
   it('preserves authored hierarchy without editing controls', async () => {
     const onLink = vi.fn();
     const { container } = render(
@@ -186,6 +242,34 @@ describe('ScriptrRenderer', () => {
     expect(
       container.querySelector('[data-scriptr-highlight-colour]'),
     ).toBeInTheDocument();
+  });
+
+  it('renders unsafe external URLs as inert authored text', () => {
+    const { container } = render(
+      <ScriptrRenderer
+        document={{
+          version: 2,
+          content: [
+            {
+              id: 'unsafe-link',
+              type: 'paragraph',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Do not run',
+                  marks: [{ type: 'link', href: 'javascript:alert(1)' }],
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: 'Do not run' })).toBeNull();
+    expect(
+      container.querySelector('[data-link-state="unsafe"]'),
+    ).toHaveTextContent('Do not run');
   });
 
   it('renders responsive columns and accessible heading toggles', () => {

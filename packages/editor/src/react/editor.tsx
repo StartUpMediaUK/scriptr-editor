@@ -108,6 +108,7 @@ import {
 import type { ScriptrConfiguration } from '../config.js';
 import { defineScriptr } from '../config.js';
 import { createDocumentCodec } from '../document/codec.js';
+import { normalizeExternalUrl } from '../document/external-links.js';
 import type { CanonicalLocation } from '../document/locations.js';
 import type {
   AudioBlock,
@@ -195,7 +196,7 @@ const emptyDocument: CanonicalDocument = {
 const noExtensions: readonly ReactExtensionRenderer[] = [];
 
 type CommandWorkflow =
-  | { readonly type: 'scripture' | 'comparison' | 'internal-link' }
+  | { readonly type: 'scripture' | 'comparison' }
   | { readonly type: 'image' | 'video' | 'audio' | 'bookmark' }
   | {
       readonly type: 'link';
@@ -207,38 +208,18 @@ type CommandWorkflow =
       readonly type: 'reference';
       readonly reference: Reference;
       readonly range: { readonly from: number; readonly to: number };
+      readonly mode: 'create' | 'edit';
+    }
+  | {
+      readonly type: 'internal-link';
+      readonly range: { readonly from: number; readonly to: number };
+      readonly targetId?: string | undefined;
     };
 
 let generatedId = 0;
 const createAuthoredId = (prefix: string) => {
   generatedId += 1;
   return `${prefix}-${Date.now().toString(36)}-${generatedId.toString(36)}`;
-};
-
-const normalizeExternalUrl = (value: string) => {
-  const candidate = value.trim();
-  if (!candidate || /\s/.test(candidate)) return undefined;
-  const withProtocol = /^[a-z][a-z\d+.-]*:/i.test(candidate)
-    ? candidate
-    : `https://${candidate}`;
-  try {
-    const parsed = new URL(withProtocol);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:')
-      return parsed.hostname === 'localhost' || parsed.hostname.includes('.')
-        ? parsed.href
-        : undefined;
-    if (parsed.protocol === 'mailto:')
-      return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(parsed.pathname)
-        ? parsed.href
-        : undefined;
-    if (parsed.protocol === 'tel:')
-      return /^\+?[\d(). -]{5,}$/.test(parsed.pathname)
-        ? parsed.href
-        : undefined;
-    return undefined;
-  } catch {
-    return undefined;
-  }
 };
 
 type SlashItem = ScriptrCommand & {
@@ -884,6 +865,7 @@ export const ScriptrEditor = forwardRef<
             else if (command.id === 'reference')
               setCommandWorkflow({
                 type: 'reference',
+                mode: 'create',
                 range: {
                   from: currentEditor.state.selection.from,
                   to: currentEditor.state.selection.to,
@@ -901,9 +883,13 @@ export const ScriptrEditor = forwardRef<
                 url: '',
                 range: { from, to },
               });
-            } else if (command.id === 'internal-link')
-              setCommandWorkflow({ type: 'internal-link' });
-            else if (command.id === 'image')
+            } else if (command.id === 'internal-link') {
+              const { from, to } = currentEditor.state.selection;
+              setCommandWorkflow({
+                type: 'internal-link',
+                range: { from, to },
+              });
+            } else if (command.id === 'image')
               setCommandWorkflow({ type: 'image' });
             else if (command.id === 'video')
               setCommandWorkflow({ type: 'video' });
@@ -1135,9 +1121,39 @@ export const ScriptrEditor = forwardRef<
 
   useEffect(() => {
     if (!editor || !editable) return;
-    const editLink = (event: MouseEvent) => {
+    const editInlineAnnotation = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
+      const reference = target.closest<HTMLElement>('[data-scriptr-reference]');
+      if (reference && editor.view.dom.contains(reference)) {
+        event.preventDefault();
+        const referenceId = reference.getAttribute('referenceid');
+        const definition = referenceId
+          ? documentRef.current.references?.[referenceId]
+          : undefined;
+        if (!definition) return;
+        const from = editor.view.posAtDOM(reference, 0);
+        setCommandWorkflow({
+          type: 'reference',
+          mode: 'edit',
+          reference: definition,
+          range: { from, to: from + (reference.textContent?.length ?? 0) },
+        });
+        return;
+      }
+      const internalLink = target.closest<HTMLElement>(
+        '[data-scriptr-document-link]',
+      );
+      if (internalLink && editor.view.dom.contains(internalLink)) {
+        event.preventDefault();
+        const from = editor.view.posAtDOM(internalLink, 0);
+        setCommandWorkflow({
+          type: 'internal-link',
+          targetId: internalLink.getAttribute('targetid') ?? undefined,
+          range: { from, to: from + (internalLink.textContent?.length ?? 0) },
+        });
+        return;
+      }
       const anchor = target.closest('a[href]');
       if (!anchor || !editor.view.dom.contains(anchor)) return;
       event.preventDefault();
@@ -1149,8 +1165,9 @@ export const ScriptrEditor = forwardRef<
         range: { from, to: from + (anchor.textContent?.length ?? 0) },
       });
     };
-    editor.view.dom.addEventListener('click', editLink);
-    return () => editor.view.dom.removeEventListener('click', editLink);
+    editor.view.dom.addEventListener('click', editInlineAnnotation);
+    return () =>
+      editor.view.dom.removeEventListener('click', editInlineAnnotation);
   }, [editable, editor]);
   tiptapEditorRef.current = editor;
 
@@ -1324,6 +1341,13 @@ export const ScriptrEditor = forwardRef<
     commandWorkflow?.type === 'link'
       ? normalizeExternalUrl(commandWorkflow.url)
       : undefined;
+  const closeCommandWorkflow = () => {
+    setCommandWorkflow(undefined);
+    queueMicrotask(() => {
+      if (!editor.isDestroyed)
+        editor.commands.focus(undefined, { scrollIntoView: false });
+    });
+  };
   const activeTextStyle = editor.isActive('heading', { level: 1 })
     ? 'Heading 1'
     : editor.isActive('heading', { level: 2 })
@@ -1639,10 +1663,19 @@ export const ScriptrEditor = forwardRef<
             active={editor.isActive('referenceAnchor')}
             onPress={() => {
               const { from, to } = editor.state.selection;
+              const activeReferenceId = editor.isActive('referenceAnchor')
+                ? String(
+                    editor.getAttributes('referenceAnchor').referenceId ?? '',
+                  )
+                : undefined;
+              const activeReference = activeReferenceId
+                ? documentRef.current.references?.[activeReferenceId]
+                : undefined;
               setCommandWorkflow({
                 type: 'reference',
+                mode: activeReference ? 'edit' : 'create',
                 range: { from, to },
-                reference: {
+                reference: activeReference ?? {
                   id: createAuthoredId('reference'),
                   content: [{ type: 'paragraph', content: [] }],
                 },
@@ -1655,7 +1688,19 @@ export const ScriptrEditor = forwardRef<
             <ToolbarButton
               label="Link to document"
               active={editor.isActive('internalDocumentLink')}
-              onPress={() => setCommandWorkflow({ type: 'internal-link' })}
+              onPress={() => {
+                const { from, to } = editor.state.selection;
+                setCommandWorkflow({
+                  type: 'internal-link',
+                  range: { from, to },
+                  targetId: editor.isActive('internalDocumentLink')
+                    ? String(
+                        editor.getAttributes('internalDocumentLink').targetId ??
+                          '',
+                      )
+                    : undefined,
+                });
+              }}
             >
               <BookOpenText />
             </ToolbarButton>
@@ -2269,7 +2314,7 @@ export const ScriptrEditor = forwardRef<
       {commandWorkflow?.type === 'image' && resolvedImageHost ? (
         <Dialog
           onOpenChange={(open) => {
-            if (!open) setCommandWorkflow(undefined);
+            if (!open) closeCommandWorkflow();
           }}
           open
         >
@@ -2303,7 +2348,7 @@ export const ScriptrEditor = forwardRef<
       resolvedMediaHost ? (
         <Dialog
           onOpenChange={(open) => {
-            if (!open) setCommandWorkflow(undefined);
+            if (!open) closeCommandWorkflow();
           }}
           open
         >
@@ -2368,16 +2413,24 @@ export const ScriptrEditor = forwardRef<
       {commandWorkflow?.type === 'reference' ? (
         <Dialog
           onOpenChange={(open) => {
-            if (!open) setCommandWorkflow(undefined);
+            if (!open) closeCommandWorkflow();
           }}
           open
         >
           <DialogContent
-            aria-label="Add Reference"
+            aria-label={
+              commandWorkflow.mode === 'create'
+                ? 'Add Reference'
+                : 'Edit Reference'
+            }
             className="scriptr-editor__inspector"
           >
             <DialogHeader>
-              <DialogTitle>Add Reference</DialogTitle>
+              <DialogTitle>
+                {commandWorkflow.mode === 'create'
+                  ? 'Add Reference'
+                  : 'Edit Reference'}
+              </DialogTitle>
               <DialogClose
                 aria-label="Close Reference editor"
                 render={<Button size="icon-sm" variant="ghost" />}
@@ -2390,22 +2443,33 @@ export const ScriptrEditor = forwardRef<
                 event.preventDefault();
                 const { reference, range } = commandWorkflow;
                 if (!reference.title?.trim()) return;
+                const references = {
+                  ...documentRef.current.references,
+                  [reference.id]: reference,
+                };
                 documentRef.current = {
                   ...documentRef.current,
-                  references: {
-                    ...documentRef.current.references,
-                    [reference.id]: reference,
-                  },
+                  references,
                 };
-                const chain = editor
-                  .chain()
-                  .focus()
-                  .setTextSelection(range)
-                  .setMark('referenceAnchor', {
-                    referenceId: reference.id,
-                  });
-                void chain.run();
-                setCommandWorkflow(undefined);
+                if (commandWorkflow.mode === 'create') {
+                  void editor
+                    .chain()
+                    .focus()
+                    .setTextSelection(range)
+                    .setMark('referenceAnchor', {
+                      referenceId: reference.id,
+                    })
+                    .run();
+                } else {
+                  const editorJson = editor.getJSON();
+                  const nextDocument = editorJsonToCanonical(
+                    editorJson,
+                    references,
+                  );
+                  documentRef.current = nextDocument;
+                  onChange?.(nextDocument, { origin: 'user', editorJson });
+                }
+                closeCommandWorkflow();
               }}
             >
               <label className="scriptr-editor__workflow-field">
@@ -2436,8 +2500,12 @@ export const ScriptrEditor = forwardRef<
                 />
               </label>
               <DialogFooter>
+                {commandWorkflow.mode === 'create' &&
+                commandWorkflow.range.from === commandWorkflow.range.to ? (
+                  <p role="status">Select text to create a Reference.</p>
+                ) : null}
                 <Button
-                  onClick={() => setCommandWorkflow(undefined)}
+                  onClick={closeCommandWorkflow}
                   size="sm"
                   type="button"
                   variant="outline"
@@ -2445,12 +2513,63 @@ export const ScriptrEditor = forwardRef<
                   Cancel
                 </Button>
                 <Button
-                  disabled={!commandWorkflow.reference.title?.trim()}
+                  disabled={
+                    !commandWorkflow.reference.title?.trim() ||
+                    (commandWorkflow.mode === 'create' &&
+                      commandWorkflow.range.from === commandWorkflow.range.to)
+                  }
                   size="sm"
                   type="submit"
                 >
-                  Add Reference
+                  {commandWorkflow.mode === 'create'
+                    ? 'Add Reference'
+                    : 'Save Reference'}
                 </Button>
+                {commandWorkflow.mode === 'edit' ? (
+                  <Button
+                    onClick={() => {
+                      const references = Object.fromEntries(
+                        Object.entries(
+                          documentRef.current.references ?? {},
+                        ).filter(([id]) => id !== commandWorkflow.reference.id),
+                      );
+                      documentRef.current = {
+                        ...documentRef.current,
+                        references: Object.keys(references).length
+                          ? references
+                          : undefined,
+                      };
+                      const transaction = editor.state.tr;
+                      editor.state.doc.descendants((node, position) => {
+                        for (const mark of node.marks) {
+                          if (
+                            mark.type.name === 'referenceAnchor' &&
+                            mark.attrs.referenceId ===
+                              commandWorkflow.reference.id
+                          )
+                            transaction.removeMark(
+                              position,
+                              position + node.nodeSize,
+                              mark,
+                            );
+                        }
+                      });
+                      transaction.setSelection(
+                        TextSelection.create(
+                          transaction.doc,
+                          commandWorkflow.range.to,
+                        ),
+                      );
+                      editor.view.dispatch(transaction);
+                      closeCommandWorkflow();
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="destructive"
+                  >
+                    Remove Reference
+                  </Button>
+                ) : null}
               </DialogFooter>
             </form>
           </DialogContent>
@@ -2461,7 +2580,7 @@ export const ScriptrEditor = forwardRef<
       resolvedDocumentTargetProvider ? (
         <Dialog
           onOpenChange={(open) => {
-            if (!open) setCommandWorkflow(undefined);
+            if (!open) closeCommandWorkflow();
           }}
           open
         >
@@ -2471,17 +2590,49 @@ export const ScriptrEditor = forwardRef<
           >
             <DialogTitle className="sr-only">Link to document</DialogTitle>
             <DocumentLinkPicker
-              onCancel={() => setCommandWorkflow(undefined)}
+              onCancel={closeCommandWorkflow}
+              onRemove={
+                commandWorkflow.targetId
+                  ? () => {
+                      void editor
+                        .chain()
+                        .setTextSelection(commandWorkflow.range)
+                        .unsetMark('internalDocumentLink')
+                        .setTextSelection(commandWorkflow.range.to)
+                        .run();
+                      closeCommandWorkflow();
+                    }
+                  : undefined
+              }
               onSelect={(target) => {
-                if (!editor.state.selection.empty)
+                if (commandWorkflow.range.from !== commandWorkflow.range.to) {
                   void editor
                     .chain()
                     .focus()
+                    .setTextSelection(commandWorkflow.range)
                     .setMark('internalDocumentLink', { targetId: target.id })
                     .run();
-                setCommandWorkflow(undefined);
+                } else {
+                  void editor
+                    .chain()
+                    .focus()
+                    .setTextSelection(commandWorkflow.range)
+                    .insertContent({
+                      type: 'text',
+                      text: target.label,
+                      marks: [
+                        {
+                          type: 'internalDocumentLink',
+                          attrs: { targetId: target.id },
+                        },
+                      ],
+                    })
+                    .run();
+                }
+                closeCommandWorkflow();
               }}
               provider={resolvedDocumentTargetProvider}
+              selectedTargetId={commandWorkflow.targetId}
             />
           </DialogContent>
         </Dialog>
@@ -2490,7 +2641,7 @@ export const ScriptrEditor = forwardRef<
       {commandWorkflow?.type === 'link' ? (
         <Dialog
           onOpenChange={(open) => {
-            if (!open) setCommandWorkflow(undefined);
+            if (!open) closeCommandWorkflow();
           }}
           open
         >
@@ -2517,24 +2668,41 @@ export const ScriptrEditor = forwardRef<
                   .chain()
                   .focus()
                   .setTextSelection({ from, to });
-                if (label) {
-                  chain.insertContent({
-                    type: 'text',
-                    text: label,
-                    marks: [
-                      {
-                        type: 'link',
-                        attrs: { href: normalizedLinkUrl },
-                      },
-                    ],
-                  });
-                } else if (from !== to) {
+                const selectedText = editor.state.doc.textBetween(from, to);
+                if (from !== to && label === selectedText) {
                   chain.setLink({ href: normalizedLinkUrl });
+                } else if (label) {
+                  const linkMark = editor.state.schema.marks.link;
+                  if (!linkMark) return;
+                  const inheritedMarks = (
+                    editor.state.doc
+                      .resolve(from)
+                      .marksAcross(editor.state.doc.resolve(to)) ?? []
+                  ).filter(
+                    (mark) =>
+                      mark.type.name !== 'link' &&
+                      mark.type.name !== 'internalDocumentLink',
+                  );
+                  const replacement = editor.state.schema.text(label, [
+                    ...inheritedMarks,
+                    linkMark.create({ href: normalizedLinkUrl }),
+                  ]);
+                  const transaction = editor.state.tr.replaceWith(
+                    from,
+                    to,
+                    replacement,
+                  );
+                  transaction.setSelection(
+                    TextSelection.create(transaction.doc, from + label.length),
+                  );
+                  editor.view.dispatch(transaction);
+                  closeCommandWorkflow();
+                  return;
                 } else {
                   chain.setLink({ href: normalizedLinkUrl });
                 }
                 void chain.run();
-                setCommandWorkflow(undefined);
+                closeCommandWorkflow();
               }}
             >
               <label className="scriptr-editor__workflow-field">
@@ -2588,7 +2756,15 @@ export const ScriptrEditor = forwardRef<
                 >
                   Remove link
                 </Button>
-                <Button disabled={!normalizedLinkUrl} size="sm" type="submit">
+                <Button
+                  disabled={
+                    !normalizedLinkUrl ||
+                    (commandWorkflow.range.from === commandWorkflow.range.to &&
+                      !commandWorkflow.label.trim())
+                  }
+                  size="sm"
+                  type="submit"
+                >
                   Add link
                 </Button>
               </DialogFooter>

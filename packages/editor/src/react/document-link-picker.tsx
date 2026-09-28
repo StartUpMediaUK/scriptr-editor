@@ -20,12 +20,16 @@ export type DocumentLinkPickerProps = {
   readonly provider: DocumentTargetProvider;
   readonly onSelect: (target: DocumentTarget) => void;
   readonly onCancel?: (() => void) | undefined;
+  readonly onRemove?: (() => void) | undefined;
+  readonly selectedTargetId?: string | undefined;
 };
 
 export function DocumentLinkPicker({
   provider,
   onSelect,
   onCancel,
+  onRemove,
+  selectedTargetId,
 }: DocumentLinkPickerProps) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -115,6 +119,11 @@ export function DocumentLinkPicker({
               ? ''
               : 'No documents found.'}
       </p>
+      {selectedTargetId && onRemove ? (
+        <Button onClick={onRemove} type="button" variant="outline">
+          Remove document link
+        </Button>
+      ) : null}
     </section>
   );
 }

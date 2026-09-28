@@ -881,6 +881,9 @@ function DevelopmentHarness({
             key={`${scenarioId}-${fixtureState}-preview`}
             document={document}
             extensions={[workbenchExtension]}
+            onReferenceOpen={(reference) =>
+              setSelectedReference(reference.title ?? reference.id)
+            }
             documentTargetProvider={
               fixtureState === 'unavailable' ? undefined : demoDocumentProvider
             }

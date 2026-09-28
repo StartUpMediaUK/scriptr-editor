@@ -288,6 +288,19 @@
   font-size: var(--scriptr-size-reference, inherit);
 }
 
+button.scriptr-renderer__reference {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.scriptr-renderer__reference[data-reference-state='unavailable'] {
+  text-decoration-style: dashed;
+  opacity: 0.72;
+}
+
 .scriptr-ui-sheet__overlay {
   position: fixed;
   z-index: 50;
