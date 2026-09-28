@@ -2,13 +2,7 @@
 
 import '@testing-library/jest-dom/vitest';
 
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { TranslationComparisonBlock } from '../document/types.js';
@@ -63,11 +57,9 @@ describe('ScriptureBlockContent', () => {
       />,
     );
 
-    await waitFor(() =>
-      expect(screen.getByRole('textbox', { name: 'Bible book' })).toHaveValue(
-        'Romans',
-      ),
-    );
+    await screen.findByRole('button', {
+      name: 'Edit Scripture address Romans 8:28',
+    });
     fireEvent.click(screen.getByRole('button', { name: 'One column' }));
     expect(
       screen
@@ -153,7 +145,14 @@ describe('ScriptureBlockContent', () => {
         provider={provider}
       />,
     );
-    const book = await screen.findByRole('textbox', { name: 'Bible book' });
+    const addressButton = await screen.findByRole('button', {
+      name: 'Edit Scripture address Romans 8:28',
+    });
+    expect(
+      screen.queryByRole('textbox', { name: 'Bible book' }),
+    ).not.toBeInTheDocument();
+    fireEvent.doubleClick(addressButton);
+    const book = screen.getByRole('textbox', { name: 'Bible book' });
     const chapter = screen.getByRole('textbox', { name: 'Chapter' });
     const verses = screen.getByRole('textbox', { name: 'Verse or range' });
     if (!(chapter instanceof HTMLInputElement))
@@ -179,7 +178,11 @@ describe('ScriptureBlockContent', () => {
     render(
       <ScriptureBlockContent block={block} editable provider={provider} />,
     );
-    const book = await screen.findByRole('textbox', { name: 'Bible book' });
+    const addressButton = await screen.findByRole('button', {
+      name: 'Edit Scripture address Romans 8:28',
+    });
+    fireEvent.doubleClick(addressButton);
+    const book = screen.getByRole('textbox', { name: 'Bible book' });
     const chapter = screen.getByRole('textbox', { name: 'Chapter' });
     const verses = screen.getByRole('textbox', { name: 'Verse or range' });
 
@@ -201,6 +204,38 @@ describe('ScriptureBlockContent', () => {
     expect(book).toHaveFocus();
   });
 
+  it('returns segmented address editing to the button on blur or Escape', async () => {
+    render(
+      <ScriptureBlockContent block={block} editable provider={provider} />,
+    );
+    const addressButton = await screen.findByRole('button', {
+      name: 'Edit Scripture address Romans 8:28',
+    });
+
+    fireEvent.doubleClick(addressButton);
+    const book = screen.getByRole('textbox', { name: 'Bible book' });
+    fireEvent.keyDown(book, { key: 'Escape' });
+    expect(
+      screen.getByRole('button', {
+        name: 'Edit Scripture address Romans 8:28',
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.doubleClick(
+      screen.getByRole('button', {
+        name: 'Edit Scripture address Romans 8:28',
+      }),
+    );
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Bible book' }), {
+      relatedTarget: null,
+    });
+    expect(
+      screen.getByRole('button', {
+        name: 'Edit Scripture address Romans 8:28',
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('pastes a complete reference across the segmented address editor', async () => {
     const onChange = vi.fn();
     render(
@@ -211,7 +246,11 @@ describe('ScriptureBlockContent', () => {
         provider={provider}
       />,
     );
-    const address = await screen.findByRole('group', {
+    const addressButton = await screen.findByRole('button', {
+      name: 'Edit Scripture address Romans 8:28',
+    });
+    fireEvent.doubleClick(addressButton);
+    const address = screen.getByRole('group', {
       name: 'Scripture address',
     });
 
@@ -233,5 +272,69 @@ describe('ScriptureBlockContent', () => {
       ...block,
       address: { book: 'JHN', chapter: 3, verseStart: 16, verseEnd: 17 },
     });
+  });
+
+  it('opens the full reference picker from a single click and updates the block', async () => {
+    const onChange = vi.fn();
+    render(
+      <ScriptureBlockContent
+        block={block}
+        editable
+        onChange={onChange}
+        provider={provider}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Edit Scripture address Romans 8:28',
+      }),
+    );
+    const input = await screen.findByPlaceholderText('Romans 8:28-30');
+    fireEvent.change(input, { target: { value: 'John 3:16' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Update reference' }));
+    expect(onChange).toHaveBeenCalledWith({
+      ...block,
+      address: { book: 'JHN', chapter: 3, verseStart: 16 },
+    });
+  });
+
+  it('renders provider verse boundaries with visible verse markers', async () => {
+    render(
+      <ScriptureBlockContent
+        block={{ ...block, translationIds: ['KJV'] }}
+        provider={createFakeScriptureProvider({
+          structure: testStructure,
+          translations: [
+            {
+              id: 'KJV',
+              name: 'King James Version',
+              abbreviation: 'KJV',
+              languageTag: 'en',
+            },
+          ],
+          passages: [
+            {
+              address: block.address,
+              translationId: 'KJV',
+              text: 'First verse. Second verse.',
+              verses: [
+                { number: 28, text: 'First verse.' },
+                { number: 29, text: 'Second verse.' },
+              ],
+              attribution: 'Test translation',
+              cache: 'persistent',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(await screen.findByText('28')).toHaveClass(
+      'scriptr-scripture__verse-number',
+    );
+    expect(screen.getByText('29')).toHaveClass(
+      'scriptr-scripture__verse-number',
+    );
   });
 });

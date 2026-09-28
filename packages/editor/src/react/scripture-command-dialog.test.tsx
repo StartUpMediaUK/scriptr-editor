@@ -48,6 +48,7 @@ describe('ScriptureCommandDialog', () => {
     );
 
     const input = await screen.findByPlaceholderText('Romans 8:28-30');
+    expect(screen.getAllByRole('button', { name: /close/i })).toHaveLength(1);
     fireEvent.change(input, { target: { value: 'Romans 8:28' } });
     fireEvent.click(screen.getByRole('button', { name: 'Insert reference' }));
 

@@ -22,6 +22,7 @@ export type ScripturePickerProps = {
   readonly offline?: boolean | undefined;
   readonly className?: string | undefined;
   readonly translationId?: string | undefined;
+  readonly actionLabel?: string | undefined;
 };
 
 export function ScripturePicker({
@@ -32,6 +33,7 @@ export function ScripturePicker({
   offline = false,
   className,
   translationId,
+  actionLabel = 'Insert reference',
 }: ScripturePickerProps) {
   const [query, setQuery] = useState(initialQuery);
   const [previewQuery, setPreviewQuery] = useState<string>();
@@ -253,7 +255,7 @@ export function ScripturePicker({
           size="sm"
           type="button"
         >
-          Insert reference
+          {actionLabel}
         </Button>
       </footer>
     </section>

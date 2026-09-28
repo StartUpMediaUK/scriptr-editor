@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '../components/ui/button.js';
+import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import {
   Popover,
   PopoverContent,
@@ -43,6 +44,7 @@ import {
   parseReferenceQuery,
 } from '../scripture/address.js';
 import type { ScriptureStructure } from '../scripture/types.js';
+import { ScripturePicker } from './scripture-picker.js';
 
 export type ScriptureBlockContentProps = {
   readonly block: ScriptureBlock | TranslationComparisonBlock;
@@ -153,7 +155,18 @@ function Passage({
       <strong>{translation?.abbreviation ?? 'Translation'}</strong>
       {resolved.state === 'ready' ? (
         <>
-          <p>{resolved.passage.text}</p>
+          <p>
+            {resolved.passage.verses?.length
+              ? resolved.passage.verses.map((verse) => (
+                  <span className="scriptr-scripture__verse" key={verse.number}>
+                    <sup className="scriptr-scripture__verse-number">
+                      {verse.number}
+                    </sup>{' '}
+                    {verse.text}{' '}
+                  </span>
+                ))
+              : resolved.passage.text}
+          </p>
           <small>{resolved.passage.attribution}</small>
         </>
       ) : (
@@ -184,11 +197,13 @@ function EditableAddress({
   structure,
   translationId,
   onCommit,
+  onExit,
 }: {
   readonly address: ScriptureAddress;
   readonly structure: ScriptureStructure;
   readonly translationId: string;
   readonly onCommit: (address: ScriptureAddress) => void;
+  readonly onExit: () => void;
 }) {
   const book = structure.books.find(
     (candidate) => candidate.id === address.book,
@@ -268,7 +283,16 @@ function EditableAddress({
       aria-label="Scripture address"
       className="scriptr-scripture__address-editor"
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) commit();
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          commit();
+          onExit();
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        event.stopPropagation();
+        onExit();
       }}
       onPaste={(event) => {
         const pasted = event.clipboardData.getData('text').trim();
@@ -381,6 +405,17 @@ export function ScriptureBlockContent({
 }: ScriptureBlockContentProps) {
   const { structure, translations } = useProviderMetadata(provider);
   const [translationMenuOpen, setTranslationMenuOpen] = useState(false);
+  const [addressPickerOpen, setAddressPickerOpen] = useState(false);
+  const [addressInputOpen, setAddressInputOpen] = useState(false);
+  const addressClickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  useEffect(
+    () => () => {
+      if (addressClickTimer.current) clearTimeout(addressClickTimer.current);
+    },
+    [],
+  );
   const translationIds =
     block.type === 'scripture' ? [block.translationId] : block.translationIds;
   const translationMap = useMemo(
@@ -418,12 +453,66 @@ export function ScriptureBlockContent({
     >
       <header>
         {editable && structure ? (
-          <EditableAddress
-            address={block.address}
-            onCommit={(address) => onChange?.({ ...block, address })}
-            structure={structure}
-            translationId={translationIds[0] ?? ''}
-          />
+          <>
+            {addressInputOpen ? (
+              <EditableAddress
+                address={block.address}
+                onCommit={(address) => onChange?.({ ...block, address })}
+                onExit={() => setAddressInputOpen(false)}
+                structure={structure}
+                translationId={translationIds[0] ?? ''}
+              />
+            ) : (
+              <Button
+                aria-label={`Edit Scripture address ${label}`}
+                className="scriptr-scripture__address-button"
+                onClick={() => {
+                  if (addressClickTimer.current)
+                    clearTimeout(addressClickTimer.current);
+                  addressClickTimer.current = setTimeout(
+                    () => setAddressPickerOpen(true),
+                    220,
+                  );
+                }}
+                onDoubleClick={() => {
+                  if (addressClickTimer.current)
+                    clearTimeout(addressClickTimer.current);
+                  setAddressPickerOpen(false);
+                  setAddressInputOpen(true);
+                }}
+                type="button"
+                variant="ghost"
+              >
+                {label}
+              </Button>
+            )}
+            <Dialog
+              onOpenChange={setAddressPickerOpen}
+              open={addressPickerOpen}
+            >
+              <DialogContent
+                aria-label="Edit Scripture reference"
+                className="scriptr-editor__inspector scriptr-editor__workflow-dialog--scripture"
+                showCloseButton={false}
+              >
+                <DialogTitle className="sr-only">
+                  Edit Scripture reference
+                </DialogTitle>
+                <ScripturePicker
+                  actionLabel="Update reference"
+                  className="scriptr-scripture-picker--dialog"
+                  initialQuery={label}
+                  onCancel={() => setAddressPickerOpen(false)}
+                  onSelect={(address) => {
+                    onChange?.({ ...block, address });
+                    setAddressPickerOpen(false);
+                  }}
+                  structure={structure}
+                  translationId={translationIds[0] ?? ''}
+                />
+              </DialogContent>
+            </Dialog>
+          </>
         ) : (
           <span>{label}</span>
         )}
@@ -535,7 +624,7 @@ export function ScriptureBlockContent({
               translation={translationMap.get(translationId)}
             />
             {editable && block.type === 'translationComparison' ? (
-              <div className="scriptr-editor__context-toolbar scriptr-scripture__translation-controls">
+              <div className="scriptr-scripture__translation-controls">
                 <Button
                   aria-label={`Move ${translationId} earlier`}
                   disabled={index === 0}

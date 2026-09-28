@@ -16,10 +16,10 @@ import {
   Bookmark,
   CaseSensitive,
   CheckSquare,
+  ChevronDown,
   Code2,
   Columns2,
   Copy,
-  ChevronDown,
   GripVertical,
   Heading,
   Image,
@@ -36,13 +36,13 @@ import {
   Redo2,
   Repeat2,
   Rows3,
+  Strikethrough as StrikethroughIcon,
   Trash2,
   Type,
   Underline as UnderlineIcon,
   Undo2,
   Video,
   X,
-  Strikethrough as StrikethroughIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
@@ -92,13 +92,13 @@ import {
   DialogTitle,
 } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
-import { Separator } from '../components/ui/separator.js';
 import {
   Popover,
   PopoverContent,
   PopoverTitle,
   PopoverTrigger,
 } from '../components/ui/popover.js';
+import { Separator } from '../components/ui/separator.js';
 import {
   Tooltip,
   TooltipContent,
@@ -2148,52 +2148,87 @@ export const ScriptrEditor = forwardRef<
       <EditorContent editor={editor} />
 
       {editable && slashQuery !== undefined ? (
-        <Command
-          aria-label="Insert block"
-          className="scriptr-editor__slash"
-          role="menu"
-          shouldFilter={false}
-          {...(filteredSlashItems[slashIndex]
-            ? { value: filteredSlashItems[slashIndex].id }
-            : {})}
+        <Popover
+          onOpenChange={(open) => {
+            if (!open) setSlashState(undefined);
+          }}
+          open
         >
-          <CommandList>
-            {slashGroups.map((group) => (
-              <CommandGroup
-                className="scriptr-editor__command-group"
-                heading={group.label}
-                key={group.category}
-              >
-                {group.commands.map((item) => {
-                  const index = filteredSlashItems.findIndex(
-                    (candidate) => candidate.id === item.id,
-                  );
-                  return (
-                    <CommandItem
-                      className="scriptr-editor__slash-item"
-                      data-selected={index === slashIndex || undefined}
-                      key={item.id}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onSelect={() => {
-                        removeSlashQuery(editor);
-                        item.run(editor);
-                        setSlashState(undefined);
-                      }}
-                      value={item.id}
-                    >
-                      <CommandIconView icon={item.icon} />
-                      <span>{item.label}</span>
-                      <small>{item.notation}</small>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            ))}
-            <CommandEmpty className="scriptr-editor__empty-menu">
-              No matching blocks
-            </CommandEmpty>
-          </CommandList>
-        </Command>
+          <PopoverContent
+            align="start"
+            anchor={() => {
+              const position = editor.state.selection.from;
+              const coordinates = editor.view.coordsAtPos(position);
+              return {
+                getBoundingClientRect: () =>
+                  new DOMRect(
+                    coordinates.left,
+                    coordinates.top,
+                    Math.max(1, coordinates.right - coordinates.left),
+                    Math.max(1, coordinates.bottom - coordinates.top),
+                  ),
+              };
+            }}
+            className="scriptr-editor__slash-positioner"
+            collisionAvoidance={{ side: 'flip', align: 'shift' }}
+            positionMethod="fixed"
+            side="bottom"
+            sideOffset={4}
+          >
+            <Command
+              aria-label="Insert block"
+              className="scriptr-editor__slash"
+              role="menu"
+              shouldFilter={false}
+              {...(filteredSlashItems[slashIndex]
+                ? { value: filteredSlashItems[slashIndex].id }
+                : {})}
+            >
+              <CommandInput
+                aria-label="Search blocks"
+                className="scriptr-editor__slash-query"
+                readOnly
+                value={slashQuery}
+              />
+              <CommandList>
+                {slashGroups.map((group) => (
+                  <CommandGroup
+                    className="scriptr-editor__command-group"
+                    heading={group.label}
+                    key={group.category}
+                  >
+                    {group.commands.map((item) => {
+                      const index = filteredSlashItems.findIndex(
+                        (candidate) => candidate.id === item.id,
+                      );
+                      return (
+                        <CommandItem
+                          className="scriptr-editor__slash-item"
+                          data-selected={index === slashIndex || undefined}
+                          key={item.id}
+                          onMouseDown={(event) => event.preventDefault()}
+                          onSelect={() => {
+                            removeSlashQuery(editor);
+                            item.run(editor);
+                            setSlashState(undefined);
+                          }}
+                          value={item.id}
+                        >
+                          <CommandIconView icon={item.icon} />
+                          <span>{item.label}</span>
+                          <small>{item.notation}</small>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                ))}
+                <CommandEmpty className="scriptr-editor__empty-menu">
+                  No matching blocks
+                </CommandEmpty>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       ) : null}
 
       {commandWorkflow?.type === 'scripture' ||

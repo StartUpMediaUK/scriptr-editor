@@ -65,6 +65,7 @@ export function ScriptureCommandDialog({
       <DialogContent
         aria-label={title}
         className="scriptr-editor__inspector scriptr-editor__workflow-dialog--scripture"
+        showCloseButton={false}
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
         {state.status === 'loading' ? (
@@ -106,6 +107,7 @@ export function ScriptureCommandDialog({
           </div>
         ) : (
           <ScripturePicker
+            className="scriptr-scripture-picker--dialog"
             onCancel={onCancel}
             onSelect={(address) =>
               onSelect(

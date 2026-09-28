@@ -429,6 +429,7 @@ describe('ScriptrEditor', () => {
     fireEvent.input(editor, { target: { textContent: '/' } });
 
     await waitFor(() => expect(screen.getByRole('menu')).toBeInTheDocument());
+    expect(screen.getByLabelText('Search blocks')).toHaveValue('');
     expect(screen.getByText('Basic')).toBeInTheDocument();
     expect(screen.getByText('Annotation')).toBeInTheDocument();
     expect(screen.getByText('Layout')).toBeInTheDocument();

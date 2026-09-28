@@ -407,6 +407,17 @@
   font-family: var(--scriptr-font-body);
 }
 
+.scriptr-editor__workflow-dialog--scripture {
+  padding: 0;
+  overflow: hidden;
+}
+
+.scriptr-scripture-picker--dialog {
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
+}
+
 .scriptr-scripture-picker__header,
 .scriptr-scripture-picker__footer {
   display: flex;
@@ -476,7 +487,7 @@
 
 .scriptr-scripture-picker__options-content {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(4.25rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(2.5rem, 1fr));
   gap: 0.375rem;
   padding: 0 1.125rem 1rem;
 }
@@ -518,7 +529,10 @@
 }
 
 .scriptr-scripture-picker__options button {
+  width: 2.5rem;
+  height: 2.5rem;
   min-height: 2.5rem;
+  justify-self: center;
   padding: 0.5rem;
   background: transparent;
   border: 1px solid var(--scriptr-color-divider);
@@ -1002,6 +1016,16 @@
   font-size: 1.05rem;
   font-weight: 600;
 }
+.scriptr-scripture__address-button {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--scriptr-color-accent-700) !important;
+  font-family: var(--scriptr-font-heading) !important;
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+}
 .scriptr-scripture__address-segment {
   position: relative;
   display: inline-grid;
@@ -1073,6 +1097,19 @@
   text-align: left;
 }
 
+.scriptr-scripture__verse-number {
+  margin-right: 0.12em;
+  color: var(--scriptr-color-muted);
+  font-family: var(--scriptr-font-ui);
+  font-size: 0.62em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.scriptr-scripture__verse {
+  white-space: pre-wrap;
+}
+
 .scriptr-scripture__passage-status {
   display: flex;
   align-items: center;
@@ -1133,6 +1170,10 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 150ms ease;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .scriptr-scripture__translation:hover
@@ -1540,12 +1581,28 @@
 }
 
 .scriptr-editor__slash {
-  position: absolute;
-  z-index: 20;
-  top: 74px;
-  left: 0;
   width: min(320px, calc(100vw - 32px));
-  padding: 7px;
+  height: auto;
+  max-height: min(360px, calc(100vh - 110px));
+  padding: 5px;
+}
+
+.scriptr-editor__slash-positioner {
+  width: auto;
+  max-width: none;
+  gap: 0;
+  padding: 0;
+  border-radius: var(--scriptr-radius-md);
+  background: transparent;
+  box-shadow: none;
+}
+
+.scriptr-editor__slash [data-slot='command-input-wrapper'] {
+  padding: 2px 2px 5px;
+}
+
+.scriptr-editor__slash [data-slot='command-list'] {
+  max-height: min(300px, calc(100vh - 170px));
 }
 
 .scriptr-ui-command__scroll {
@@ -1568,8 +1625,8 @@
   grid-template-columns: 24px minmax(0, 1fr) auto;
   gap: 9.2px;
   align-items: center;
-  min-height: 38px;
-  padding: 7px 9px;
+  min-height: 34px;
+  padding: 5px 8px;
   border: 0;
   border-radius: var(--scriptr-radius-sm);
   color: var(--scriptr-color-text);
@@ -1607,6 +1664,9 @@
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 11px;
   white-space: nowrap;
+}
+.scriptr-editor__slash-item > svg:last-child {
+  display: none;
 }
 .scriptr-ui-command__check {
   display: none;

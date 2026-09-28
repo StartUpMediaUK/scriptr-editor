@@ -193,10 +193,10 @@ function buildStructure(dataset: LocalScriptureDataset): ScriptureStructure {
   };
 }
 
-function passageText(
+function passageVerses(
   translation: LocalScriptureTranslation,
   address: ScriptureAddress,
-): string | undefined {
+): readonly { readonly number: number; readonly text: string }[] | undefined {
   const chapter =
     translation.books[address.book as CanonicalBookId]?.[
       String(address.chapter)
@@ -210,13 +210,13 @@ function passageText(
   const end = address.verseEnd ?? address.verseStart ?? availableVerses.at(-1);
   if (start === undefined || end === undefined) return undefined;
 
-  const verses: string[] = [];
+  const verses: { number: number; text: string }[] = [];
   for (let verse = start; verse <= end; verse += 1) {
     const text = chapter[String(verse)];
     if (!text) return undefined;
-    verses.push(text);
+    verses.push({ number: verse, text });
   }
-  return verses.join(' ');
+  return verses;
 }
 
 export function createLocalScriptureProvider(
@@ -276,8 +276,8 @@ export function createLocalScriptureProvider(
             false,
           );
         }
-        const text = passageText(translation, validation.address);
-        if (!text) {
+        const verses = passageVerses(translation, validation.address);
+        if (!verses) {
           throw new ScriptureProviderError(
             'not-found',
             'The requested passage is unavailable in this dataset.',
@@ -287,7 +287,8 @@ export function createLocalScriptureProvider(
         return {
           address: validation.address,
           translationId,
-          text,
+          text: verses.map((verse) => verse.text).join(' '),
+          verses,
           attribution: translation.attribution,
           cache: 'persistent',
         };

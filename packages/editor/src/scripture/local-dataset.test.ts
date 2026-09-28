@@ -65,6 +65,10 @@ describe('local Scripture dataset', () => {
       address: { book: 'GEN', chapter: 1, verseStart: 1, verseEnd: 2 },
       translationId: 'TEST',
       text: 'In the beginning. The earth was without form.',
+      verses: [
+        { number: 1, text: 'In the beginning.' },
+        { number: 2, text: 'The earth was without form.' },
+      ],
       attribution: 'Test translation — development only.',
       cache: 'persistent',
     });

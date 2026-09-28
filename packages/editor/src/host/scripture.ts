@@ -16,6 +16,10 @@ export type PassageText = {
   readonly address: ScriptureAddress;
   readonly translationId: string;
   readonly text: string;
+  /** Ordered verse boundaries when the provider can preserve them. */
+  readonly verses?:
+    | readonly { readonly number: number; readonly text: string }[]
+    | undefined;
   readonly attribution: string;
   readonly cache: ScriptureCachePolicy;
 };
