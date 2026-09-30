@@ -350,31 +350,30 @@ function removeSlashQuery(editor: Editor) {
 }
 
 function moveCurrentBlockView(view: EditorView, direction: -1 | 1) {
-  const { $from } = view.state.selection;
-  const index = $from.index(0);
+  const { selection } = view.state;
+  if (!(selection instanceof NodeSelection)) return;
+  const { $from } = selection;
+  const parentDepth = $from.depth;
+  const parent = $from.node(parentDepth);
+  const index = $from.index(parentDepth);
   const targetIndex = index + direction;
-  if (targetIndex < 0 || targetIndex >= view.state.doc.childCount) return;
+  if (targetIndex < 0 || targetIndex >= parent.childCount) return;
 
-  let currentStart = 0;
-  for (let childIndex = 0; childIndex < index; childIndex += 1) {
-    currentStart += view.state.doc.child(childIndex).nodeSize;
-  }
-  const currentNode = view.state.doc.child(index);
+  const currentStart = selection.from;
+  const currentNode = selection.node;
+  const sibling = parent.child(targetIndex);
   const transaction = view.state.tr.delete(
     currentStart,
     currentStart + currentNode.nodeSize,
   );
-
-  if (direction === -1) {
-    let previousStart = 0;
-    for (let childIndex = 0; childIndex < targetIndex; childIndex += 1) {
-      previousStart += view.state.doc.child(childIndex).nodeSize;
-    }
-    transaction.insert(previousStart, currentNode);
-  } else {
-    const nextNode = view.state.doc.child(targetIndex);
-    transaction.insert(currentStart + nextNode.nodeSize, currentNode);
-  }
+  const insertionPosition =
+    direction === -1
+      ? currentStart - sibling.nodeSize
+      : currentStart + sibling.nodeSize;
+  transaction.insert(insertionPosition, currentNode);
+  transaction.setSelection(
+    NodeSelection.create(transaction.doc, insertionPosition),
+  );
   view.dispatch(transaction.scrollIntoView());
 }
 
@@ -481,6 +480,29 @@ function replaceSelectedBlockWithToggle(editor: Editor) {
 }
 
 function moveCurrentBlock(editor: Editor, direction: -1 | 1) {
+  if (!(editor.state.selection instanceof NodeSelection)) {
+    const { $from } = editor.state.selection;
+    const structuralContainers = new Set([
+      'column',
+      'toggleSummary',
+      'toggleContent',
+    ]);
+    for (let depth = $from.depth; depth > 0; depth -= 1) {
+      const node = $from.node(depth);
+      if (
+        node.isBlock &&
+        NodeSelection.isSelectable(node) &&
+        !structuralContainers.has(node.type.name)
+      ) {
+        editor.view.dispatch(
+          editor.state.tr.setSelection(
+            NodeSelection.create(editor.state.doc, $from.before(depth)),
+          ),
+        );
+        break;
+      }
+    }
+  }
   moveCurrentBlockView(editor.view, direction);
 }
 

@@ -337,7 +337,7 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
             z
               .object({
                 id: nonEmptyId,
-                content: z.array(blockSchema),
+                content: z.array(blockSchema).min(1),
               })
               .strict(),
           )
@@ -354,7 +354,7 @@ export const blockSchema: z.ZodType<Block> = z.lazy(() =>
           .union([z.literal(1), z.literal(2), z.literal(3)])
           .optional(),
         defaultOpen: z.boolean().optional(),
-        content: z.array(blockSchema),
+        content: z.array(blockSchema).min(1),
       })
       .strict(),
     extensionBlockSchema,

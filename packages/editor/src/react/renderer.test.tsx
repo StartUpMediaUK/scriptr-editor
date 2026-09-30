@@ -99,6 +99,67 @@ const provider = createFakeScriptureProvider({
 afterEach(cleanup);
 
 describe('ScriptrRenderer', () => {
+  it('preserves layout order and toggle-heading semantics without editing chrome', () => {
+    const { container } = render(
+      <ScriptrRenderer
+        document={{
+          version: 2,
+          content: [
+            {
+              id: 'columns',
+              type: 'columns',
+              columns: [
+                {
+                  id: 'left',
+                  content: [
+                    {
+                      id: 'left-text',
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'First column' }],
+                    },
+                  ],
+                },
+                {
+                  id: 'right',
+                  content: [
+                    {
+                      id: 'right-text',
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Second column' }],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              id: 'toggle',
+              type: 'toggle',
+              headingLevel: 2,
+              defaultOpen: true,
+              summary: [{ type: 'text', text: 'Supporting notes' }],
+              content: [
+                {
+                  id: 'toggle-text',
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'Nested detail' }],
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    const columns = container.querySelector('[data-scriptr-columns]');
+    expect(columns?.children[0]).toHaveTextContent('First column');
+    expect(columns?.children[1]).toHaveTextContent('Second column');
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Supporting notes' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Nested detail')).toBeVisible();
+    expect(container.querySelector('.scriptr-editor__drag-handle')).toBeNull();
+  });
+
   it('opens available References and preserves unavailable anchor text', () => {
     const onReferenceOpen = vi.fn();
     const referenced: CanonicalDocument = {

@@ -422,8 +422,26 @@ const Toggle = Node.create({
         }, 0);
       };
 
+      const toggleFromKeyboard = (event: KeyboardEvent) => {
+        const target = event.target;
+        if (!(target instanceof Element) || !target.closest('summary')) return;
+        const nextOpen =
+          event.key === 'ArrowRight'
+            ? true
+            : event.key === 'ArrowLeft'
+              ? false
+              : event.key === 'Enter' || event.key === ' '
+                ? !dom.open
+                : undefined;
+        if (nextOpen === undefined || nextOpen === dom.open) return;
+        event.preventDefault();
+        dom.open = nextOpen;
+        persistOpenState();
+      };
+
       dom.addEventListener('toggle', persistOpenState);
       dom.addEventListener('click', toggleFromSummary, true);
+      dom.addEventListener('keydown', toggleFromKeyboard, true);
       syncAttributes();
 
       return {
@@ -438,6 +456,7 @@ const Toggle = Node.create({
         destroy() {
           dom.removeEventListener('toggle', persistOpenState);
           dom.removeEventListener('click', toggleFromSummary, true);
+          dom.removeEventListener('keydown', toggleFromKeyboard, true);
         },
       };
     };

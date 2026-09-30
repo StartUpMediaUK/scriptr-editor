@@ -25,6 +25,43 @@ const prayerExtension = defineExtension({
 });
 
 describe('canonical document codec', () => {
+  it('rejects empty nested layout containers', () => {
+    const codec = createDocumentCodec();
+
+    expect(() =>
+      codec.parse({
+        version: 2,
+        content: [
+          {
+            id: 'columns',
+            type: 'columns',
+            columns: [
+              { id: 'left', content: [] },
+              {
+                id: 'right',
+                content: [{ id: 'text', type: 'paragraph', content: [] }],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(DocumentValidationError);
+
+    expect(() =>
+      codec.parse({
+        version: 2,
+        content: [
+          {
+            id: 'toggle',
+            type: 'toggle',
+            summary: [],
+            content: [],
+          },
+        ],
+      }),
+    ).toThrow(DocumentValidationError);
+  });
+
   it('round-trips a representative v1 document deterministically', () => {
     const codec = createDocumentCodec({ extensions: [prayerExtension] });
     const document = codec.parse(fixture);

@@ -621,6 +621,76 @@ describe('ScriptrEditor', () => {
     });
   });
 
+  it('moves a nested layout child among its actual siblings', async () => {
+    const editorRef = createRef<ScriptrEditorHandle>();
+    const onChange = vi.fn();
+    render(
+      <ScriptrEditor
+        defaultValue={{
+          version: 2,
+          content: [
+            {
+              id: 'columns',
+              type: 'columns',
+              columns: [
+                {
+                  id: 'left',
+                  content: [
+                    {
+                      id: 'first',
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'First' }],
+                    },
+                    {
+                      id: 'second',
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Second' }],
+                    },
+                  ],
+                },
+                {
+                  id: 'right',
+                  content: [
+                    {
+                      id: 'right-text',
+                      type: 'paragraph',
+                      content: [{ type: 'text', text: 'Right' }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        }}
+        onChange={onChange}
+        ref={editorRef}
+      />,
+    );
+    await waitFor(() => expect(editorRef.current).not.toBeNull());
+
+    act(() => {
+      editorRef.current?.navigateTo({
+        blockId: 'second',
+        kind: 'text',
+        offset: 0,
+        length: 1,
+      });
+      editorRef.current?.moveCurrentBlock(-1);
+    });
+
+    await waitFor(() => {
+      const changed = onChange.mock.calls.at(-1)?.[0] as CanonicalDocument;
+      const layout = changed.content[0];
+      expect(layout?.type).toBe('columns');
+      if (layout?.type !== 'columns') return;
+      expect(layout.columns[0]?.content.map((block) => block.id)).toEqual([
+        'second',
+        'first',
+      ]);
+      expect(layout.columns[1]?.content[0]?.id).toBe('right-text');
+    });
+  });
+
   it('opens package-owned media and bookmark workflows from slash commands', async () => {
     const mediaHost = {
       upload: vi.fn(),
@@ -706,6 +776,11 @@ describe('ScriptrEditor', () => {
         ),
       ).toBe(true);
     });
+
+    fireEvent.keyDown(summary, { key: 'ArrowRight' });
+    await waitFor(() => expect(details.open).toBe(true));
+    fireEvent.keyDown(summary, { key: 'ArrowLeft' });
+    await waitFor(() => expect(details.open).toBe(false));
   });
 
   it('turns a selected block into a nested layout from its action menu', async () => {
