@@ -68,6 +68,13 @@ describe('ImageBlockContent', () => {
     expect(
       screen.getByRole('button', { name: 'Expand image' }),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Image settings' }));
+    fireEvent.change(screen.getByLabelText('Alternative text'), {
+      target: { value: 'An annotated Bible' },
+    });
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ alt: 'An annotated Bible' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Crop image' }));
     fireEvent.click(screen.getByRole('button', { name: 'Square' }));
     expect(onChange).toHaveBeenCalledWith(

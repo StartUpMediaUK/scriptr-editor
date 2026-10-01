@@ -6,22 +6,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { createDocumentCodec } from '../document/codec.js';
+import { normalizeExternalUrl } from '../document/external-links.js';
 import type { WebBookmarkBlock } from '../document/types.js';
 import type { BookmarkProvider } from '../host/bookmarks.js';
 import type { MediaHost } from '../host/media.js';
 
 function normalizeBookmarkUrl(value: string) {
-  const candidate = /^[a-z][a-z\d+.-]*:/i.test(value.trim())
-    ? value.trim()
-    : `https://${value.trim()}`;
-  try {
-    const url = new URL(candidate);
-    return url.protocol === 'https:' || url.protocol === 'http:'
-      ? url.href
-      : undefined;
-  } catch {
-    return undefined;
-  }
+  const normalized = normalizeExternalUrl(value);
+  return normalized && /^https?:/i.test(normalized) ? normalized : undefined;
 }
 
 export type BookmarkBlockContentProps = {
@@ -49,26 +41,43 @@ export function BookmarkBlockContent({
     );
     return () => controller.abort();
   }, [block.imageAssetId, mediaHost]);
+  const safeUrl = normalizeBookmarkUrl(block.url);
+  const hostname = safeUrl ? new URL(safeUrl).hostname : 'Unavailable link';
 
   return (
-    <article className="scriptr-bookmark">
-      <a href={block.url} rel="noreferrer noopener" target="_blank">
+    <article className="scriptr-bookmark" data-invalid={!safeUrl || undefined}>
+      <a
+        aria-disabled={!safeUrl || undefined}
+        href={safeUrl}
+        onClick={(event) => {
+          if (!safeUrl) event.preventDefault();
+        }}
+        rel="noreferrer noopener"
+        target={safeUrl ? '_blank' : undefined}
+      >
         {imageSource ? <img alt="" src={imageSource} /> : null}
         <span className="scriptr-bookmark__body">
           <span className="scriptr-bookmark__site">
             <Globe2 />
-            {block.siteName ?? new URL(block.url).hostname}
+            {block.siteName ?? hostname}
           </span>
           <strong>{block.title}</strong>
           {block.description ? <span>{block.description}</span> : null}
         </span>
-        <ExternalLink aria-hidden="true" />
+        {!editable && safeUrl ? <ExternalLink aria-hidden="true" /> : null}
       </a>
       {editable ? (
-        <Button onClick={onRemove} size="sm" type="button" variant="ghost">
-          <Trash2 data-icon="inline-start" />
-          Remove bookmark
-        </Button>
+        <div className="scriptr-editor__context-toolbar scriptr-bookmark__toolbar">
+          <Button
+            aria-label="Remove bookmark"
+            onClick={onRemove}
+            size="icon-sm"
+            type="button"
+            variant="ghost"
+          >
+            <Trash2 />
+          </Button>
+        </div>
       ) : null}
     </article>
   );

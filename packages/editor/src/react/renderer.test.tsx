@@ -422,7 +422,7 @@ describe('ScriptrRenderer', () => {
     expect(container.querySelector('video')).toHaveAttribute('controls');
     expect(container.querySelector('audio')).not.toHaveAttribute('controls');
     expect(
-      screen.getByRole('button', { name: 'Seek audio' }),
+      screen.getByRole('slider', { name: 'Seek audio' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.getByText('Video caption')).toBeInTheDocument();

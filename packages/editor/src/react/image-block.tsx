@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Captions,
+  Image as ImageIcon,
   Copy,
   CopyPlus,
   Crop,
@@ -16,12 +17,14 @@ import {
 
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { Field, FieldGroup, FieldLabel } from '../components/ui/field.js';
 import {
   Popover,
   PopoverContent,
   PopoverTitle,
   PopoverTrigger,
 } from '../components/ui/popover.js';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
 import { createDocumentCodec } from '../document/codec.js';
 import type { ImageBlock } from '../document/types.js';
 import type { HostedImage, ImageHost } from '../host/images.js';
@@ -118,6 +121,78 @@ export function ImageBlockContent({
           >
             <Captions />
           </Button>
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button
+                  aria-label="Image settings"
+                  size="icon-sm"
+                  variant="ghost"
+                />
+              }
+            >
+              <ImageIcon />
+            </PopoverTrigger>
+            <PopoverContent align="end" className="scriptr-media__inspector">
+              <PopoverTitle>Image settings</PopoverTitle>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor={`image-alt-${block.id}`}>
+                    Alternative text
+                  </FieldLabel>
+                  <Input
+                    id={`image-alt-${block.id}`}
+                    onChange={(event) =>
+                      onChange?.({ ...block, alt: event.currentTarget.value })
+                    }
+                    placeholder="Describe this image"
+                    value={block.alt}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel>Alignment</FieldLabel>
+                  <ToggleGroup
+                    aria-label="Image alignment"
+                    onValueChange={(alignments) => {
+                      const alignment = alignments[0];
+                      if (
+                        alignment === 'start' ||
+                        alignment === 'center' ||
+                        alignment === 'end' ||
+                        alignment === 'wide'
+                      )
+                        onChange?.({ ...block, alignment });
+                    }}
+                    size="sm"
+                    value={[block.alignment]}
+                    variant="outline"
+                  >
+                    <ToggleGroupItem value="start">Left</ToggleGroupItem>
+                    <ToggleGroupItem value="center">Centre</ToggleGroupItem>
+                    <ToggleGroupItem value="end">Right</ToggleGroupItem>
+                    <ToggleGroupItem value="wide">Wide</ToggleGroupItem>
+                  </ToggleGroup>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor={`image-width-${block.id}`}>
+                    Maximum width
+                  </FieldLabel>
+                  <Input
+                    id={`image-width-${block.id}`}
+                    min={160}
+                    onChange={(event) => {
+                      const width = event.currentTarget.valueAsNumber;
+                      if (Number.isFinite(width))
+                        onChange?.({ ...block, width });
+                    }}
+                    step={20}
+                    type="number"
+                    value={block.width ?? resolved?.width ?? ''}
+                  />
+                </Field>
+              </FieldGroup>
+            </PopoverContent>
+          </Popover>
           <Popover>
             <PopoverTrigger
               render={

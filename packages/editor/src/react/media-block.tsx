@@ -175,27 +175,32 @@ export function MediaBlockContent({
               ref={mediaRef}
               src={source}
             />
-            <button
-              aria-label="Seek audio"
-              className="scriptr-audio__waveform"
-              onClick={(event) => {
-                const audio = mediaRef.current;
-                if (!audio || !audio.duration) return;
-                const bounds = event.currentTarget.getBoundingClientRect();
-                audio.currentTime =
-                  ((event.clientX - bounds.left) / bounds.width) *
-                  audio.duration;
-              }}
-              type="button"
-            >
-              {Array.from({ length: 54 }, (_, index) => (
-                <i
-                  data-played={index / 54 <= progress ? '' : undefined}
-                  key={index}
-                  style={{ height: `${22 + ((index * 17) % 70)}%` }}
-                />
-              ))}
-            </button>
+            <div className="scriptr-audio__waveform">
+              <span aria-hidden="true">
+                {Array.from({ length: 54 }, (_, index) => (
+                  <i
+                    data-played={index / 54 <= progress ? '' : undefined}
+                    key={index}
+                    style={{ height: `${22 + ((index * 17) % 70)}%` }}
+                  />
+                ))}
+              </span>
+              <input
+                aria-label="Seek audio"
+                max="1"
+                min="0"
+                onChange={(event) => {
+                  const audio = mediaRef.current;
+                  if (!audio || !audio.duration) return;
+                  audio.currentTime =
+                    Number(event.currentTarget.value) * audio.duration;
+                  setProgress(Number(event.currentTarget.value));
+                }}
+                step="0.001"
+                type="range"
+                value={progress}
+              />
+            </div>
             <div className="scriptr-audio__controls">
               <Button
                 aria-label="Playback speed"
@@ -410,8 +415,13 @@ export function MediaBlockContent({
               : inlineText(block.transcript)
           }
         />
-      ) : block.type === 'video' && block.caption ? (
-        <figcaption>{inlineText(block.caption)}</figcaption>
+      ) : block.type === 'video' && (block.title || block.caption) ? (
+        <div className="scriptr-media__details">
+          {block.title ? <strong>{block.title}</strong> : null}
+          {block.caption ? (
+            <figcaption>{inlineText(block.caption)}</figcaption>
+          ) : null}
+        </div>
       ) : block.type === 'audio' && block.transcript ? (
         <figcaption>{inlineText(block.transcript)}</figcaption>
       ) : null}

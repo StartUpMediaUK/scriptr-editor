@@ -71,4 +71,25 @@ describe('bookmark blocks', () => {
       screen.getByRole('link', { name: /Further reading/ }),
     ).toHaveAttribute('target', '_blank');
   });
+
+  it('keeps removal contextual and refuses unsafe persisted URLs', () => {
+    const onRemove = vi.fn();
+    render(
+      <BookmarkBlockContent
+        block={{
+          id: 'bookmark',
+          type: 'webBookmark',
+          url: 'javascript:alert(1)',
+          title: 'Unsafe bookmark',
+        }}
+        editable
+        onRemove={onRemove}
+      />,
+    );
+    const disabledAnchor = screen.getByText('Unsafe bookmark').closest('a');
+    expect(disabledAnchor).not.toHaveAttribute('href');
+    expect(disabledAnchor).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Remove bookmark' }));
+    expect(onRemove).toHaveBeenCalledOnce();
+  });
 });

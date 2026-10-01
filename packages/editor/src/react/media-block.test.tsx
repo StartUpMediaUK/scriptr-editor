@@ -93,7 +93,7 @@ describe('media blocks', () => {
       ),
     );
     expect(
-      screen.getByRole('button', { name: 'Seek audio' }),
+      screen.getByRole('slider', { name: 'Seek audio' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Back 5 seconds' }),
