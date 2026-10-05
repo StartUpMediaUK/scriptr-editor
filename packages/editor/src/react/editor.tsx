@@ -867,6 +867,7 @@ export const ScriptrEditor = forwardRef<
         (command): SlashItem => ({
           ...command,
           run: (currentEditor) => {
+            if (command.disabled) return;
             const [extensionName, extensionItemId] = command.id.split(':');
             const extensionItem = extensionRenderers
               .find((extension) => extension.name === extensionName)
@@ -965,8 +966,8 @@ export const ScriptrEditor = forwardRef<
           const matchingIds = new Set(
             commandCatalogue.search(currentQuery).map((item) => item.id),
           );
-          const matchingItems = availableSlashItems.filter((item) =>
-            matchingIds.has(item.id),
+          const matchingItems = availableSlashItems.filter(
+            (item) => matchingIds.has(item.id) && !item.disabled,
           );
           if (event.key === 'Escape') {
             event.preventDefault();
@@ -995,6 +996,15 @@ export const ScriptrEditor = forwardRef<
               item.run(currentEditor);
               setSlashState(undefined);
             }
+            return true;
+          }
+          if (
+            !matchingItems.length &&
+            (event.key === 'Enter' ||
+              event.key === 'ArrowDown' ||
+              event.key === 'ArrowUp')
+          ) {
+            event.preventDefault();
             return true;
           }
         }
@@ -1352,6 +1362,9 @@ export const ScriptrEditor = forwardRef<
   );
   const filteredSlashItems = availableSlashItems.filter((item) =>
     filteredIds.has(item.id),
+  );
+  const filteredEnabledSlashItems = filteredSlashItems.filter(
+    (item) => !item.disabled,
   );
   const slashGroups = commandCatalogue.groups(slashQuery).map((group) => ({
     ...group,
@@ -1857,6 +1870,7 @@ export const ScriptrEditor = forwardRef<
                             if (!item) return null;
                             return (
                               <CommandItem
+                                {...(item.disabled ? { disabled: true } : {})}
                                 key={item.id}
                                 onSelect={() => {
                                   item.run(editor);
@@ -1867,7 +1881,7 @@ export const ScriptrEditor = forwardRef<
                                 <CommandIconView icon={item.icon} />
                                 <span>{item.label}</span>
                                 <CommandShortcut>
-                                  {item.notation}
+                                  {item.unavailableReason ?? item.notation}
                                 </CommandShortcut>
                               </CommandItem>
                             );
@@ -2238,6 +2252,7 @@ export const ScriptrEditor = forwardRef<
             }}
             className="scriptr-editor__slash-positioner"
             collisionAvoidance={{ side: 'flip', align: 'shift' }}
+            initialFocus={false}
             positionMethod="fixed"
             side="bottom"
             sideOffset={4}
@@ -2247,8 +2262,8 @@ export const ScriptrEditor = forwardRef<
               className="scriptr-editor__slash"
               role="menu"
               shouldFilter={false}
-              {...(filteredSlashItems[slashIndex]
-                ? { value: filteredSlashItems[slashIndex].id }
+              {...(filteredEnabledSlashItems[slashIndex]
+                ? { value: filteredEnabledSlashItems[slashIndex].id }
                 : {})}
             >
               <CommandInput
@@ -2265,13 +2280,18 @@ export const ScriptrEditor = forwardRef<
                     key={group.category}
                   >
                     {group.commands.map((item) => {
-                      const index = filteredSlashItems.findIndex(
+                      const enabledIndex = filteredEnabledSlashItems.findIndex(
                         (candidate) => candidate.id === item.id,
                       );
                       return (
                         <CommandItem
                           className="scriptr-editor__slash-item"
-                          data-selected={index === slashIndex || undefined}
+                          data-selected={
+                            enabledIndex >= 0 && enabledIndex === slashIndex
+                              ? true
+                              : undefined
+                          }
+                          {...(item.disabled ? { disabled: true } : {})}
                           key={item.id}
                           onMouseDown={(event) => event.preventDefault()}
                           onSelect={() => {
@@ -2283,7 +2303,9 @@ export const ScriptrEditor = forwardRef<
                         >
                           <CommandIconView icon={item.icon} />
                           <span>{item.label}</span>
-                          <small>{item.notation}</small>
+                          <small>
+                            {item.unavailableReason ?? item.notation}
+                          </small>
                         </CommandItem>
                       );
                     })}
@@ -2303,7 +2325,7 @@ export const ScriptrEditor = forwardRef<
         resolvedScriptureProvider ? (
           <ScriptureCommandDialog
             mode={commandWorkflow.type}
-            onCancel={() => setCommandWorkflow(undefined)}
+            onCancel={closeCommandWorkflow}
             onSelect={(address, translationIds) => {
               const block =
                 commandWorkflow.type === 'scripture'
@@ -2326,7 +2348,7 @@ export const ScriptrEditor = forwardRef<
               }).content?.[0];
               if (content)
                 void editor.chain().focus().insertContent(content).run();
-              setCommandWorkflow(undefined);
+              closeCommandWorkflow();
             }}
             provider={resolvedScriptureProvider}
           />
@@ -2350,7 +2372,7 @@ export const ScriptrEditor = forwardRef<
             <ImageUploader
               createBlockId={() => createAuthoredId('image')}
               imageHost={resolvedImageHost}
-              onCancel={() => setCommandWorkflow(undefined)}
+              onCancel={closeCommandWorkflow}
               onUploaded={(block) => {
                 const content = canonicalToEditorJson({
                   version: 2,
@@ -2358,7 +2380,7 @@ export const ScriptrEditor = forwardRef<
                 }).content?.[0];
                 if (content)
                   void editor.chain().focus().insertContent(content).run();
-                setCommandWorkflow(undefined);
+                closeCommandWorkflow();
               }}
             />
           </DialogContent>
@@ -2385,7 +2407,7 @@ export const ScriptrEditor = forwardRef<
               createBlockId={() => createAuthoredId(commandWorkflow.type)}
               kind={commandWorkflow.type}
               mediaHost={resolvedMediaHost}
-              onCancel={() => setCommandWorkflow(undefined)}
+              onCancel={closeCommandWorkflow}
               onUploaded={(block) => {
                 const content = canonicalToEditorJson({
                   version: 2,
@@ -2393,7 +2415,7 @@ export const ScriptrEditor = forwardRef<
                 }).content?.[0];
                 if (content)
                   void editor.chain().focus().insertContent(content).run();
-                setCommandWorkflow(undefined);
+                closeCommandWorkflow();
               }}
             />
           </DialogContent>
@@ -2403,7 +2425,7 @@ export const ScriptrEditor = forwardRef<
       {commandWorkflow?.type === 'bookmark' && resolvedBookmarkProvider ? (
         <Dialog
           onOpenChange={(open) => {
-            if (!open) setCommandWorkflow(undefined);
+            if (!open) closeCommandWorkflow();
           }}
           open
         >
@@ -2423,9 +2445,9 @@ export const ScriptrEditor = forwardRef<
                 }).content?.[0];
                 if (content)
                   void editor.chain().focus().insertContent(content).run();
-                setCommandWorkflow(undefined);
+                closeCommandWorkflow();
               }}
-              onCancel={() => setCommandWorkflow(undefined)}
+              onCancel={closeCommandWorkflow}
               provider={resolvedBookmarkProvider}
             />
           </DialogContent>
@@ -2770,7 +2792,7 @@ export const ScriptrEditor = forwardRef<
                       .setTextSelection({ from, to })
                       .unsetLink()
                       .run();
-                    setCommandWorkflow(undefined);
+                    closeCommandWorkflow();
                   }}
                   size="sm"
                   type="button"

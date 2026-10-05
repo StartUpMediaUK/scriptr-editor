@@ -4,13 +4,15 @@ import { defineScriptr } from '../config.js';
 import { createCommandCatalogue } from './catalogue.js';
 
 describe('command catalogue', () => {
-  it('groups portable defaults and excludes missing provider workflows', () => {
+  it('groups portable defaults and keeps missing provider workflows discoverable', () => {
     const catalogue = defineScriptr().commands;
 
     expect(catalogue.groups().map((group) => group.label)).toEqual([
       'Basic',
+      'Scripture',
       'Annotation',
       'Layout',
+      'Media',
     ]);
     expect(catalogue.all.find((item) => item.id === 'heading-1')).toMatchObject(
       {
@@ -18,7 +20,15 @@ describe('command catalogue', () => {
         icon: 'heading',
       },
     );
-    expect(catalogue.all.some((item) => item.id === 'scripture')).toBe(false);
+    expect(catalogue.all.find((item) => item.id === 'scripture')).toMatchObject(
+      {
+        disabled: true,
+        unavailableReason: 'Requires host setup',
+      },
+    );
+    expect(catalogue.search('verse').map((item) => item.id)).toContain(
+      'scripture',
+    );
     expect(catalogue.search('link').map((item) => item.id)).toContain('link');
   });
 
@@ -34,6 +44,9 @@ describe('command catalogue', () => {
       'web-bookmark',
     );
     expect(catalogue.groups().at(-1)?.label).toBe('Media');
+    expect(
+      catalogue.all.find((item) => item.id === 'web-bookmark'),
+    ).not.toHaveProperty('disabled');
   });
 
   it('validates extension category and identifier collisions', () => {

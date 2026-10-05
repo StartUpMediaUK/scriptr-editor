@@ -40,6 +40,8 @@ export type ScriptrCommand = {
   readonly notation: string;
   readonly icon: CommandIcon;
   readonly keywords: readonly string[];
+  readonly disabled?: true | undefined;
+  readonly unavailableReason?: string | undefined;
 };
 
 export type CommandGroup = {
@@ -244,10 +246,17 @@ export function createCommandCatalogue(options: {
   readonly features: ScriptrFeatures;
   readonly extensions?: readonly ScriptrCommand[] | undefined;
 }): CommandCatalogue {
-  const available = builtins.filter(
-    (item) => item.feature === undefined || options.features[item.feature],
+  const commands = builtins.map(
+    ({ feature, ...item }): ScriptrCommand =>
+      feature === undefined || options.features[feature]
+        ? item
+        : {
+            ...item,
+            disabled: true,
+            unavailableReason: 'Requires host setup',
+          },
   );
-  const ids = new Set(available.map((item) => item.id));
+  const ids = new Set(commands.map((item) => item.id));
   const extensions = (options.extensions ?? []).map((item) => {
     if (item.category !== 'extension')
       throw new Error(
@@ -257,7 +266,7 @@ export function createCommandCatalogue(options: {
     ids.add(item.id);
     return item;
   });
-  const all = Object.freeze([...available, ...extensions]);
+  const all = Object.freeze([...commands, ...extensions]);
   const search = (query = '') => {
     const needle = normalize(query);
     if (!needle) return all;

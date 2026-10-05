@@ -571,11 +571,15 @@ describe('ScriptrEditor', () => {
     expect(screen.getByText('Basic')).toBeInTheDocument();
     expect(screen.getByText('Annotation')).toBeInTheDocument();
     expect(screen.getByText('Layout')).toBeInTheDocument();
+    expect(screen.getAllByText('Scripture')).toHaveLength(2);
     expect(screen.getByText('#')).toBeInTheDocument();
     expect(
       screen.getAllByRole('option')[0]?.querySelector('svg'),
     ).not.toBeNull();
     expect(screen.queryByText('Large heading')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: /Scripture Requires host setup/ }),
+    ).toHaveAttribute('data-disabled', 'true');
 
     fireEvent.keyDown(editor, { key: 'ArrowDown' });
     expect(screen.getByRole('option', { name: /Heading 1/ })).toHaveAttribute(
@@ -594,6 +598,9 @@ describe('ScriptrEditor', () => {
       screen.getByRole('button', { name: 'Add Reference' }),
     ).toBeDisabled();
     expect(onCommand).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(editor).toHaveFocus());
   });
 
   it('inserts editable columns and heading toggles from slash commands', async () => {
