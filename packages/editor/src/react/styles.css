@@ -282,6 +282,10 @@
 .scriptr-editor__accent-control {
   font-family: var(--scriptr-font-accent, 'Playfair Display', ui-serif, serif);
 }
+[data-scriptr-presentation]
+  :is(.scriptr-editor__accent, .scriptr-renderer__accent) {
+  font-size: var(--scriptr-size-accent);
+}
 .scriptr-editor__reference-anchor,
 .scriptr-renderer__reference {
   font-family: var(--scriptr-font-reference, inherit);
@@ -292,7 +296,8 @@ button.scriptr-renderer__reference {
   padding: 0;
   border: 0;
   color: inherit;
-  font: inherit;
+  font-family: var(--scriptr-font-reference, inherit);
+  font-size: var(--scriptr-size-reference, inherit);
   cursor: pointer;
 }
 

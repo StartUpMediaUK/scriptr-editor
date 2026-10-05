@@ -3,6 +3,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { createPresentationController } from './controller.js';
 
 describe('presentation controller', () => {
+  it('uses the selected theme as a new typography starting point', () => {
+    const controller = createPresentationController(
+      {},
+      {
+        typography: { body: { fontId: 'system-serif', size: 24 } },
+      },
+    );
+    controller.update({ themeId: 'modern-sans' });
+    expect(controller.getSnapshot().preferences.typography.body).toEqual({
+      fontId: 'system-sans',
+      size: 18,
+    });
+  });
   it('resolves theme, developer defaults, and user settings in order', () => {
     const controller = createPresentationController(
       {

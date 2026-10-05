@@ -786,6 +786,7 @@ describe('ScriptrEditor', () => {
 
     fireEvent.keyDown(summary, { key: 'ArrowRight' });
     await waitFor(() => expect(details.open).toBe(true));
+    expect(summary.isConnected).toBe(true);
     fireEvent.keyDown(summary, { key: 'ArrowLeft' });
     await waitFor(() => expect(details.open).toBe(false));
   });

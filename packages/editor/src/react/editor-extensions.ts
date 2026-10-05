@@ -447,6 +447,9 @@ const Toggle = Node.create({
       return {
         dom,
         contentDOM: dom,
+        ignoreMutation(mutation) {
+          return mutation.type === 'attributes' && mutation.target === dom;
+        },
         update(updatedNode) {
           if (updatedNode.type !== currentNode.type) return false;
           currentNode = updatedNode;

@@ -39,25 +39,41 @@ export function ScriptrPresentationProvider({
 }: ScriptrPresentationProviderProps) {
   const internalController = useMemo(
     () => createPresentationController(configuration, value ?? defaultValue),
-    [configuration],
+    [configuration, value],
   );
   const controller = externalController ?? internalController;
 
   useEffect(() => {
-    if (value) controller.replace(value);
-  }, [controller, value]);
+    if (value && externalController) externalController.replace(value);
+  }, [externalController, value]);
   useEffect(
     () =>
-      onChange
+      onChange && value === undefined
         ? controller.subscribe(() =>
             onChange(controller.getSnapshot().preferences),
           )
         : undefined,
-    [controller, onChange],
+    [controller, onChange, value],
   );
 
+  const contextController = useMemo<PresentationController>(() => {
+    if (value === undefined) return controller;
+    const propose = (change: (proposal: PresentationController) => void) => {
+      const proposal = createPresentationController(configuration, value);
+      change(proposal);
+      onChange?.(proposal.getSnapshot().preferences);
+    };
+    return {
+      getSnapshot: () => controller.getSnapshot(),
+      subscribe: (listener) => controller.subscribe(listener),
+      update: (patch) => propose((proposal) => proposal.update(patch)),
+      replace: (next) => propose((proposal) => proposal.replace(next)),
+      reset: () => propose((proposal) => proposal.reset()),
+    };
+  }, [configuration, controller, onChange, value]);
+
   return (
-    <PresentationContext.Provider value={controller}>
+    <PresentationContext.Provider value={contextController}>
       {children}
     </PresentationContext.Provider>
   );

@@ -1,5 +1,5 @@
 import { Monitor, Moon, Settings2, Sun } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { ColourScheme, TimeFormat, TypographyRole } from 'scriptr-editor';
 import { useScriptrPresentation } from 'scriptr-editor/react';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ const labels: Record<TypographyRole, [string, string]> = {
 const sizes = [12, 14, 16, 18, 20, 24, 30, 36, 48];
 
 export function SettingsPanel() {
-  const { preferences, fonts, themes, update, reset } =
+  const { preferences, fonts, themes, cssVariables, update, reset } =
     useScriptrPresentation();
   const [advanced, setAdvanced] = useState(false);
   const updateType = (
@@ -50,17 +50,20 @@ export function SettingsPanel() {
       typography: { [role]: { ...preferences.typography[role], ...patch } },
     });
   const typeRow = (role: TypographyRole) => (
-    <Field className="settings-type" key={role}>
-      <div className="settings-type__heading">
+    <Field className="gap-3" key={role}>
+      <div className="flex flex-col gap-1">
         <FieldLabel>{labels[role][0]}</FieldLabel>
         <FieldDescription>{labels[role][1]}</FieldDescription>
       </div>
-      <div className="settings-type__controls">
+      <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-2">
         <Select
           value={preferences.typography[role].fontId}
           onValueChange={(fontId) => fontId && updateType(role, { fontId })}
         >
-          <SelectTrigger aria-label={`${labels[role][0]} family`}>
+          <SelectTrigger
+            className="w-full min-w-0"
+            aria-label={`${labels[role][0]} family`}
+          >
             <SelectValue>
               {(fontId: string) =>
                 fonts.find((font) => font.id === fontId)?.label ?? fontId
@@ -83,7 +86,10 @@ export function SettingsPanel() {
             size && updateType(role, { size: Number(size) })
           }
         >
-          <SelectTrigger aria-label={`${labels[role][0]} size`}>
+          <SelectTrigger
+            className="w-full"
+            aria-label={`${labels[role][0]} size`}
+          >
             <SelectValue>{(size: string) => `${size}px`}</SelectValue>
           </SelectTrigger>
           <SelectContent align="end">
@@ -98,7 +104,7 @@ export function SettingsPanel() {
         </Select>
       </div>
       <p
-        className="settings-type__preview"
+        className="m-0 break-words rounded-lg border bg-muted/30 p-3 leading-relaxed"
         style={{
           fontFamily: `var(--scriptr-font-${role})`,
           fontSize: `var(--scriptr-size-${role})`,
@@ -121,15 +127,20 @@ export function SettingsPanel() {
       >
         <Settings2 />
       </SheetTrigger>
-      <SheetContent className="settings-sheet">
-        <SheetHeader>
+      <SheetContent
+        className="w-full! max-w-lg! gap-0 font-sans"
+        data-scriptr-presentation=""
+        data-colour-scheme={preferences.colourScheme}
+        style={cssVariables as CSSProperties}
+      >
+        <SheetHeader className="shrink-0 border-b p-5 pr-12">
           <SheetTitle>Editor settings</SheetTitle>
           <SheetDescription>
-            Change the reading and writing experience.
+            Changes apply immediately. Preview each font below.
           </SheetDescription>
         </SheetHeader>
-        <ScrollArea className="settings-scroll">
-          <FieldGroup className="settings-fields">
+        <ScrollArea className="min-h-0 flex-1">
+          <FieldGroup className="gap-7 p-5">
             <Field>
               <FieldLabel>Time format</FieldLabel>
               <Select
@@ -162,7 +173,8 @@ export function SettingsPanel() {
               <FieldLabel>Colour scheme</FieldLabel>
               <ToggleGroup
                 aria-label="Colour scheme"
-                className="settings-schemes"
+                className="grid w-full grid-cols-3"
+                variant="outline"
                 value={[preferences.colourScheme]}
                 onValueChange={(values) =>
                   values[0] &&
@@ -178,16 +190,11 @@ export function SettingsPanel() {
                 ).map(([value, Icon]) => (
                   <ToggleGroupItem
                     aria-label={`${value} colour scheme`}
-                    className="settings-scheme"
+                    className="min-h-11 w-full gap-2"
                     key={value}
                     value={value}
                   >
-                    <span
-                      className="settings-scheme__preview"
-                      data-scheme={value}
-                    >
-                      <Icon />
-                    </span>
+                    <Icon data-icon="inline-start" />
                     <span>{value[0]!.toUpperCase() + value.slice(1)}</span>
                   </ToggleGroupItem>
                 ))}
@@ -195,9 +202,13 @@ export function SettingsPanel() {
             </Field>
             <Field>
               <FieldLabel>Theme</FieldLabel>
+              <FieldDescription>
+                Changing theme resets custom font choices.
+              </FieldDescription>
               <ToggleGroup
                 aria-label="Theme"
-                className="settings-themes"
+                className="grid w-full grid-cols-2"
+                variant="outline"
                 value={[preferences.themeId]}
                 onValueChange={(values) =>
                   values[0] && update({ themeId: values[0] })
@@ -205,24 +216,31 @@ export function SettingsPanel() {
               >
                 {themes.map((theme) => (
                   <ToggleGroupItem
-                    className="settings-theme"
+                    className="h-auto min-h-20 w-full flex-col gap-1 py-3"
                     key={theme.id}
                     value={theme.id}
                   >
-                    <span className="settings-theme__swatches">
-                      <i />
-                      <i />
+                    <span
+                      aria-hidden="true"
+                      className="text-2xl"
+                      style={{
+                        fontFamily: fonts.find(
+                          (font) => font.id === theme.typography.heading.fontId,
+                        )?.family,
+                      }}
+                    >
+                      Aa
                     </span>
                     {theme.label}
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
             </Field>
-            <Field className="settings-interface">
+            <Field>
               <div>
-                <FieldLabel>Contrast</FieldLabel>
+                <FieldLabel>Document contrast</FieldLabel>
                 <FieldDescription>
-                  Adjust colours and borders across the interface.
+                  Adjust the contrast of the writing and reading surfaces.
                 </FieldDescription>
               </div>
               <output>{preferences.contrast}%</output>
@@ -230,7 +248,7 @@ export function SettingsPanel() {
                 aria-label="Contrast"
                 min={50}
                 max={150}
-                value={preferences.contrast}
+                value={[preferences.contrast]}
                 onValueChange={(contrast) =>
                   update({
                     contrast:
@@ -241,13 +259,15 @@ export function SettingsPanel() {
                 }
               />
             </Field>
-            <section className="settings-typography">
-              <header>
+            <section className="flex flex-col gap-5">
+              <header className="flex items-center justify-between gap-3">
                 <div>
-                  <h3>Typography</h3>
-                  <p>Configure the document's font roles.</p>
+                  <h3 className="m-0 text-sm font-medium">Typography</h3>
+                  <p className="m-0 text-sm text-muted-foreground">
+                    Configure the document's font roles.
+                  </p>
                 </div>
-                <FieldLabel className="settings-advanced">
+                <FieldLabel className="flex items-center gap-2">
                   Advanced{' '}
                   <Switch checked={advanced} onCheckedChange={setAdvanced} />
                 </FieldLabel>
@@ -257,7 +277,7 @@ export function SettingsPanel() {
             </section>
           </FieldGroup>
         </ScrollArea>
-        <div className="settings-footer">
+        <div className="shrink-0 border-t p-5">
           <Button onClick={reset} variant="outline">
             Reset settings
           </Button>

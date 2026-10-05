@@ -171,7 +171,13 @@ export function createPresentationController(
       commit({
         ...user,
         ...patch,
-        typography: { ...user.typography, ...patch.typography },
+        typography: {
+          ...(patch.themeId !== undefined &&
+          patch.themeId !== snapshot.preferences.themeId
+            ? {}
+            : user.typography),
+          ...patch.typography,
+        },
       }),
     replace: commit,
     reset: () => commit({}),
