@@ -133,6 +133,10 @@ import { createEditorExtensions } from './editor-extensions.js';
 import { ImageUploader } from './image-block.js';
 import { MediaUploader } from './media-block.js';
 import { ReferenceEditor } from './reference-editor.js';
+import {
+  remapPastedReferences,
+  updateReferenceMetadata,
+} from './reference-metadata.js';
 import type { ReactExtensionRenderer } from './renderer.js';
 import { ScriptureCommandDialog } from './scripture-command-dialog.js';
 
@@ -761,7 +765,7 @@ export const ScriptrEditor = forwardRef<
   );
   const currentDocument = value ?? initialDocument;
   const documentRef = useRef(currentDocument);
-  documentRef.current = currentDocument;
+  if (value !== undefined) documentRef.current = value;
   const resolvedScriptureProvider =
     scriptureProvider ?? configuration?.capabilities.scripture;
   const resolvedMediaHost = mediaHost ?? configuration?.capabilities.media;
@@ -953,6 +957,7 @@ export const ScriptrEditor = forwardRef<
     autofocus,
     immediatelyRender: false,
     editorProps: {
+      transformPasted: remapPastedReferences,
       attributes: {
         'aria-label': ariaLabel,
         class: 'scriptr-editor__content',
@@ -1071,15 +1076,16 @@ export const ScriptrEditor = forwardRef<
     },
     onUpdate({ editor: updatedEditor }) {
       setSlashState(updateSlashQuery(updatedEditor));
-      if (!onChange) return;
       const editorJson = updatedEditor.getJSON();
-      onChange(
-        editorJsonToCanonical(editorJson, documentRef.current.references),
-        {
-          origin: 'user',
-          editorJson,
-        },
+      const nextDocument = editorJsonToCanonical(
+        editorJson,
+        documentRef.current.references,
       );
+      documentRef.current = nextDocument;
+      onChange?.(nextDocument, {
+        origin: 'user',
+        editorJson,
+      });
     },
     onSelectionUpdate({ editor: updatedEditor }) {
       setSlashState(updateSlashQuery(updatedEditor));
@@ -1266,24 +1272,15 @@ export const ScriptrEditor = forwardRef<
         void editor
           .chain()
           .focus()
-          .setMark('referenceAnchor', { referenceId: reference.id })
+          .setMark('referenceAnchor', {
+            referenceId: reference.id,
+            referenceData: JSON.stringify(reference),
+          })
           .run();
       },
       updateReference: (reference) => {
         if (!editor || !documentRef.current.references?.[reference.id]) return;
-        const references = {
-          ...documentRef.current.references,
-          [reference.id]: reference,
-        };
-        const nextDocument = editorJsonToCanonical(
-          editor.getJSON(),
-          references,
-        );
-        documentRef.current = nextDocument;
-        onChange?.(nextDocument, {
-          origin: 'user',
-          editorJson: editor.getJSON(),
-        });
+        updateReferenceMetadata(editor, reference);
       },
       removeReference: (referenceId) => {
         if (!editor) return;
@@ -2502,16 +2499,11 @@ export const ScriptrEditor = forwardRef<
                     .setTextSelection(range)
                     .setMark('referenceAnchor', {
                       referenceId: reference.id,
+                      referenceData: JSON.stringify(reference),
                     })
                     .run();
                 } else {
-                  const editorJson = editor.getJSON();
-                  const nextDocument = editorJsonToCanonical(
-                    editorJson,
-                    references,
-                  );
-                  documentRef.current = nextDocument;
-                  onChange?.(nextDocument, { origin: 'user', editorJson });
+                  updateReferenceMetadata(editor, reference);
                 }
                 closeCommandWorkflow();
               }}

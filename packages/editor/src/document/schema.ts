@@ -381,7 +381,7 @@ const referenceTextInlineSchema = z
     marks: z.array(referenceTextMarkSchema).optional(),
   })
   .strict();
-const referenceSchema = z
+export const referenceSchema = z
   .object({
     id: nonEmptyId,
     title: z.string().trim().min(1).optional(),

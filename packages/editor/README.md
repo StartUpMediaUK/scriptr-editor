@@ -127,6 +127,8 @@ After deliberate picker selection, call `editorRef.current.insertScripture(block
 
 `ScriptrEditorHandle` exposes `addReference`, `updateReference`, and `removeReference` for the current text selection. `ReferenceEditor` provides the deliberately shallow annotation surface: paragraphs, emphasis, underline, lists, and external links only. Removing a Reference preserves its selected source text; deleting its final anchor automatically removes the orphaned definition.
 
+Reference content travels with its anchor in private editor/clipboard metadata, so undo/redo and copying between editor instances retain the annotation. Pasting assigns new Reference identities to avoid collisions with existing annotations. Invalid clipboard annotations are discarded while their text is retained. This does not change the canonical document format or expose private editor metadata in read-only output.
+
 Internal links use opaque host-owned target IDs. `DocumentLinkPicker` searches a supplied `DocumentTargetProvider`, while `setInternalDocumentLink` applies the selected target to the current editor selection. `extractInternalDocumentLinks` returns the target, containing block, inline path, surrounding context, and character offsets so consuming applications can build backlink and exact-navigation features without putting those concerns in the editor package.
 
 ## Media and bookmarks

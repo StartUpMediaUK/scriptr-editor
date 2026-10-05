@@ -2,6 +2,7 @@ import type { JSONContent } from '@tiptap/core';
 import { z } from 'zod';
 
 import { createDocumentCodec } from '../document/codec.js';
+import { parseReferenceMetadata } from './reference-metadata.js';
 import type {
   Block,
   CanonicalDocument,
@@ -238,10 +239,34 @@ function toTiptapContent(node: EditorNode): JSONContent {
 export function canonicalToEditorJson(
   document: CanonicalDocument,
 ): JSONContent {
-  return toTiptapContent({
-    type: 'doc',
-    content: document.content.map(blockToEditor),
+  const enrich = (node: EditorNode): EditorNode => ({
+    ...node,
+    ...(node.marks
+      ? {
+          marks: node.marks.map((mark) => {
+            const id = mark.attrs?.referenceId;
+            const reference =
+              typeof id === 'string' ? document.references?.[id] : undefined;
+            return mark.type === 'referenceAnchor' && reference
+              ? {
+                  ...mark,
+                  attrs: {
+                    ...mark.attrs,
+                    referenceData: JSON.stringify(reference),
+                  },
+                }
+              : mark;
+          }),
+        }
+      : {}),
+    ...(node.content ? { content: node.content.map(enrich) } : {}),
   });
+  return toTiptapContent(
+    enrich({
+      type: 'doc',
+      content: document.content.map(blockToEditor),
+    }),
+  );
 }
 
 function stringAttr(node: EditorNode, key: string): string | undefined {
@@ -592,9 +617,20 @@ export function editorJsonToCanonical(
       return block ? [block] : [];
     },
   );
+  const embeddedReferences: Record<string, Reference> = {};
+  const collect = (node: EditorNode) => {
+    for (const mark of node.marks ?? []) {
+      if (mark.type !== 'referenceAnchor') continue;
+      const reference = parseReferenceMetadata(mark.attrs?.referenceData);
+      if (reference && reference.id === mark.attrs?.referenceId)
+        embeddedReferences[reference.id] = reference;
+    }
+    node.content?.forEach(collect);
+  };
+  collect(editorDocument);
   const { content, references: reconciledReferences } = reconcileReferenceData(
     parsedContent,
-    references,
+    { ...references, ...embeddedReferences },
   );
   return createDocumentCodec().parse(
     reconciledReferences

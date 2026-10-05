@@ -92,7 +92,7 @@ describe('ScriptrEditor', () => {
       ).toBe('Revised source'),
     );
 
-    fireEvent.click(anchor);
+    fireEvent.click(screen.getByText('anchored words'));
     expect(dialog).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Remove Reference' }));
     await waitFor(() => {

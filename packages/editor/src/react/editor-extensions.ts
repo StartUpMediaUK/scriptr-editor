@@ -6,6 +6,7 @@ import TaskList from '@tiptap/extension-task-list';
 import Underline from '@tiptap/extension-underline';
 import UniqueID from '@tiptap/extension-unique-id';
 import StarterKit from '@tiptap/starter-kit';
+import { parseReferenceMetadata } from './reference-metadata.js';
 import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
 import type { MediaHost } from '../host/media.js';
@@ -210,7 +211,21 @@ const ReferenceAnchor = Mark.create({
   name: 'referenceAnchor',
   inclusive: true,
   addAttributes() {
-    return { referenceId: { default: null } };
+    return {
+      referenceId: { default: null },
+      referenceData: {
+        default: null,
+        parseHTML: (element) => {
+          const data = element.getAttribute('data-scriptr-reference-data');
+          const reference = parseReferenceMetadata(data);
+          return reference ? JSON.stringify(reference) : null;
+        },
+        renderHTML: (attributes) =>
+          typeof attributes.referenceData === 'string'
+            ? { 'data-scriptr-reference-data': attributes.referenceData }
+            : {},
+      },
+    };
   },
   parseHTML() {
     return [{ tag: 'span[data-scriptr-reference]' }];
