@@ -13,10 +13,10 @@
     "fumadocs-core": "16.15.9",
     "fumadocs-mdx": "15.4.0",
     "fumadocs-ui": "16.15.9",
-    "next": "16.3.4",
+    "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "scriptr-editor": "workspace:*"
+    "@startupmedia/scriptr-editor": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

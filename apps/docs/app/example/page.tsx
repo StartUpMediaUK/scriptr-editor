@@ -1,5 +1,5 @@
-import { createDocumentCodec } from 'scriptr-editor/document';
-import 'scriptr-editor/styles.css';
+import { createDocumentCodec } from '@startupmedia/scriptr-editor/document';
+import '@startupmedia/scriptr-editor/styles.css';
 import { WritingExample } from '@/components/writing-example';
 
 export default function ExamplePage() {

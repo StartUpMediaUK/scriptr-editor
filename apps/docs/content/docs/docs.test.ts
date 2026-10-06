@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createLocalScriptureProvider,
   parseLocalScriptureDataset,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 
 const contentRoot = resolve(import.meta.dirname);
 

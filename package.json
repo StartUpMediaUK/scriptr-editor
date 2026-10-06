@@ -6,19 +6,20 @@
   "license": "MIT",
   "packageManager": "pnpm@11.19.0",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.14.0"
   },
   "scripts": {
     "build": "turbo run build",
-    "budgets:check": "pnpm --filter scriptr-editor budgets:check",
+    "budgets:check": "pnpm --filter @startupmedia/scriptr-editor budgets:check",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm budgets:check && pnpm package:check && pnpm licenses:check",
     "dev": "pnpm --filter @scriptr/example-vite-react dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "licenses:check": "node scripts/check-licenses.mjs",
-    "lint": "pnpm --filter scriptr-editor build && eslint .",
-    "package:check": "pnpm --filter scriptr-editor package:check",
-    "test": "turbo run test",
+    "lint": "pnpm --filter @startupmedia/scriptr-editor build && eslint .",
+    "package:check": "pnpm --filter @startupmedia/scriptr-editor package:check",
+    "test": "pnpm test:tooling && turbo run test",
+    "test:tooling": "node --test scripts/*.test.mjs",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

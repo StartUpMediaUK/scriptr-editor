@@ -5,7 +5,7 @@ description: Supply normalized private datasets or a host-managed remote provide
 
 ## Provider contract
 
-`ScriptureProvider` from `scriptr-editor/host` supplies `listTranslations`, `getStructure`, `canonicalizeAddress` and `getPassage`. Its passage result includes text, attribution and a cache policy; optional ordered `verses` preserve verse boundaries for markers. Provider implementations own licensing and text access. Hosts own storage, caching and credentials.
+`ScriptureProvider` from `@startupmedia/scriptr-editor/host` supplies `listTranslations`, `getStructure`, `canonicalizeAddress` and `getPassage`. Its passage result includes text, attribution and a cache policy; optional ordered `verses` preserve verse boundaries for markers. Provider implementations own licensing and text access. Hosts own storage, caching and credentials.
 
 Pass the same provider to the editor and renderer. Scripture blocks persist the address and translation selection, not a copy of licensed passage text. Provider failures retain the authored address rather than deleting the block.
 
@@ -43,14 +43,14 @@ import datasetJson from './private-scripture.json';
 import {
   createLocalScriptureProvider,
   parseLocalScriptureDataset,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 
 export const scriptureProvider = createLocalScriptureProvider(
   parseLocalScriptureDataset(datasetJson),
 );
 ```
 
-Translation IDs must be unique. Book keys use `canonicalBookDefinitions`/`canonicalBooks` exported from `scriptr-editor/scripture`, not localized names or alphabetical order. Chapter and verse keys are positive, one-based integer strings. Verse values must be nonempty text. Optional `copyright` and `license` metadata describe your source; they do not grant redistribution rights.
+Translation IDs must be unique. Book keys use `canonicalBookDefinitions`/`canonicalBooks` exported from `@startupmedia/scriptr-editor/scripture`, not localized names or alphabetical order. Chapter and verse keys are positive, one-based integer strings. Verse values must be nonempty text. Optional `copyright` and `license` metadata describe your source; they do not grant redistribution rights.
 
 `coverage: 'complete'` requires all 66 canonical books and every canonical chapter. It does not certify textual fidelity or that every possible verse is present. `partial` accepts deliberate subsets. Missing verses inside a requested passage produce a not-found failure; they are not silently filled from another translation.
 

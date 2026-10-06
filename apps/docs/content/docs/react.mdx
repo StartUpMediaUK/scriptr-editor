@@ -8,19 +8,22 @@ description: Use the same canonical document and capabilities for editable and r
 Use React and React DOM 18.3.1 or supported React 19 versions together. The package is ESM-only. Development and SSR tooling require Node 20.19 or newer.
 
 ```sh
-pnpm add scriptr-editor react react-dom
+pnpm add @startupmedia/scriptr-editor react react-dom
 ```
 
 The command assumes a published version is available. For the current repository, use its workspace dependency or install the validated tarball; no release is published by these examples.
 
-Import `scriptr-editor/styles.css` once in your application stylesheet or entry point. The stylesheet is precompiled; the consumer does not need to scan private package source with Tailwind.
+Import `@startupmedia/scriptr-editor/styles.css` once in your application stylesheet or entry point. The stylesheet is precompiled; the consumer does not need to scan private package source with Tailwind.
 
 ## Controlled editor
 
 ```tsx
 import { useState } from 'react';
-import type { CanonicalDocument } from 'scriptr-editor/document';
-import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
+import type { CanonicalDocument } from '@startupmedia/scriptr-editor/document';
+import {
+  ScriptrEditor,
+  ScriptrRenderer,
+} from '@startupmedia/scriptr-editor/react';
 
 const initialDocument: CanonicalDocument = {
   version: 2,

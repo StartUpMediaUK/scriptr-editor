@@ -6,7 +6,7 @@ description: Persist portable canonical v2 documents and validate them at applic
 ## Persist canonical data
 
 ```ts
-import { createDocumentCodec } from 'scriptr-editor/document';
+import { createDocumentCodec } from '@startupmedia/scriptr-editor/document';
 
 const codec = createDocumentCodec();
 const document = codec.deserialize(storedJson);
@@ -23,7 +23,7 @@ The codec includes deterministic canonical v1-to-v2 migration. Preserve the orig
 
 Register persisted extensions with the same configuration when loading and editing. Extensions own versioned payload schemas and forward migrations; choose collision-resistant names. React extension renderers are separate from pure document validation. Missing or failed extension rendering should preserve portable identity/data rather than deleting it.
 
-Use public APIs from `scriptr-editor/extensions`, `defineReactExtension` and the codec/configuration contracts. Do not import internal engine adapters to make a consumer fork. Application import/export orchestration remains outside the package.
+Use public APIs from `@startupmedia/scriptr-editor/extensions`, `defineReactExtension` and the codec/configuration contracts. Do not import internal engine adapters to make a consumer fork. Application import/export orchestration remains outside the package.
 
 ## Retained identity
 

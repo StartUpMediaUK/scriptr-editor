@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createLocalScriptureProvider,
   parseLocalScriptureDataset,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 
 execFileSync(process.execPath, [
   fileURLToPath(

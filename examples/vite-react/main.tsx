@@ -11,13 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PACKAGE_NAME } from 'scriptr-editor';
-import type { CanonicalDocument } from 'scriptr-editor/document';
+import { PACKAGE_NAME } from '@startupmedia/scriptr-editor';
+import type { CanonicalDocument } from '@startupmedia/scriptr-editor/document';
 import {
   ScriptureProviderError,
   type ImageUploadInput,
   type ScriptureProvider,
-} from 'scriptr-editor/host';
+} from '@startupmedia/scriptr-editor/host';
 import {
   ScriptrEditor,
   ScriptrPresentationProvider,
@@ -25,13 +25,13 @@ import {
   ScriptrRenderer,
   ScripturePicker,
   defineReactExtension,
-} from 'scriptr-editor/react';
+} from '@startupmedia/scriptr-editor/react';
 import {
   createLocalScriptureProvider,
   formatScriptureAddress,
   parseLocalScriptureDataset,
   type ScriptureStructure,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 import { SettingsPanel } from './settings-panel';
 import './styles.css';
 import { developmentMediaHost } from './development-media-host';

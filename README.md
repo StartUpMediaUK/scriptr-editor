@@ -1,14 +1,14 @@
 # Scriptr Editor workspace
 
-This monorepo contains the reusable `scriptr-editor` package, its documentation application, and supported integration examples.
+This monorepo contains the reusable `@startupmedia/scriptr-editor` package, its documentation application, and supported integration examples.
 
 ## Workspace
 
-- `packages/editor` — the publishable `scriptr-editor` package;
+- `packages/editor` — the publishable `@startupmedia/scriptr-editor` package;
 - `apps/docs` — the private Fumadocs application;
 - `examples/vite-react` — the interactive Vite and React development harness.
 
-Use Node.js 20.19 or newer and pnpm 11.19.0.
+Use Node.js 22.14 or newer and pnpm 11.19.0 for workspace development. The published editor retains Node.js 20.19+ runtime support.
 
 ```sh
 pnpm install

@@ -4,27 +4,27 @@ title: Public API guide
 
 Only `package.json#exports` entry points are public. Importing `dist/*` is unsupported.
 
-## `scriptr-editor/document`
+## `@startupmedia/scriptr-editor/document`
 
 Use `createDocumentCodec` for all persistence boundaries. It validates, normalizes, migrates, serializes and deserializes Canonical Document v2, including the built-in v1-to-v2 migration. `findDocumentLocations` creates engine-neutral navigation results; `extractInternalDocumentLinks` creates host-indexable relationship edges. Persist canonical documents, never Tiptap JSON.
 
 `defineScriptr` assembles feature choices, Host capabilities, extensions, and the configured document codec once. Its resolved `features` enable portable workflows directly and provider-backed workflows only when the required capability is present. Provider credentials and application authentication never belong in this public configuration.
 
-## `scriptr-editor/commands`
+## `@startupmedia/scriptr-editor/commands`
 
 `createCommandCatalogue` returns the package-owned command catalogue in Basic, Scripture, Annotation, Layout, Media, and Extension order. Each stable command has a label, icon identifier, written notation, and search keywords. The catalogue filters provider-backed commands using resolved `ScriptrFeatures`, groups search results deterministically, and rejects conflicting Extension command identifiers.
 
-## `scriptr-editor/server`
+## `@startupmedia/scriptr-editor/server`
 
 `createScriptrServer` assembles server-only provider handlers. The framework-neutral Scripture transport preserves typed provider failures and cancellation without exposing provider credentials to browser code. Host applications own HTTP routing, authentication, authorization, and callback URLs.
 
-## `scriptr-editor/react`
+## `@startupmedia/scriptr-editor/react`
 
 `ScriptrEditor` is the controlled/uncontrolled writing surface. Pass the result of `defineScriptr` through `configuration` to expose its capability-aware command set. Scripture, translation comparison, Reference, external-link, internal-link, image, video, audio, and web-bookmark commands open package-owned workflows automatically. Direct provider props remain available for focused integrations. Its ref provides focus, history, block movement, deliberate Scripture, comparison, media, bookmark and extension insertion, Reference and internal-link operations, and canonical-location navigation. `ScriptrRenderer` produces read-only authored output. The picker, uploader, composer, and authored block-content components remain composable for custom Host surfaces.
 
-Import `scriptr-editor/styles.css` once. The renderer and editor accept the same provider and extension capabilities to preserve semantic parity.
+Import `@startupmedia/scriptr-editor/styles.css` once. The renderer and editor accept the same provider and extension capabilities to preserve semantic parity.
 
-## `scriptr-editor/scripture`
+## `@startupmedia/scriptr-editor/scripture`
 
 Canonical book data, address parsing/formatting/validation, offline structure types, the provider conformance assertion, a deterministic fake provider, and the normalized local-dataset provider live here. Ordinary typed text is never recognized automatically. Provider credentials and remote licensing/cache policy remain host-owned.
 
@@ -64,7 +64,7 @@ import privateDataset from './private-scripture.json';
 import {
   createLocalScriptureProvider,
   parseLocalScriptureDataset,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 
 const scriptureProvider = createLocalScriptureProvider(
   parseLocalScriptureDataset(privateDataset),
@@ -79,11 +79,11 @@ The repository includes a tested Host-side adapter example at `examples/vite-rea
 
 The adapter requests plain-text passages, maps canonical addresses to USFM identifiers, preserves configured copyright attribution, prohibits passage caching by default, and converts license, missing-content, rate-limit, and availability failures into `ScriptureProviderError`. Hosts must verify their accepted YouVersion licenses and current display requirements; the adapter does not grant content access or place an App Key in browser code.
 
-## `scriptr-editor/host`
+## `@startupmedia/scriptr-editor/host`
 
 `ScriptureProvider`, `DocumentTargetProvider`, `ImageHost`, `MediaHost`, and `BookmarkProvider` are capability contracts. Pass stable provider objects and honour cancellation. `MediaHost` is the shared image/video/audio seam; `ImageHost` remains as a compatible image-only seam. Bookmark providers resolve normalized HTTP(S) URLs to portable metadata while network fetching and sanitization remain in host code. No credentials or environment variables belong in the package.
 
-## `scriptr-editor/extensions`
+## `@startupmedia/scriptr-editor/extensions`
 
 `defineExtension` binds a collision-resistant name and independent version to a JSON schema, forward migrations, and editable/read-only logic. `createExtensionRegistry` validates persisted extension blocks and rejects conflicts. React extension renderers may contribute namespaced slash items that return canonical Extension Blocks.
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ScriptureProviderError } from 'scriptr-editor/host';
-import { assertScriptureProviderConformance } from 'scriptr-editor/scripture';
+import type { ScriptureProviderError } from '@startupmedia/scriptr-editor/host';
+import { assertScriptureProviderConformance } from '@startupmedia/scriptr-editor/scripture';
 
 import { createYouVersionScriptureProvider } from './youversion-provider';
 

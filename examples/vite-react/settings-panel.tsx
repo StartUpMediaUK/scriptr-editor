@@ -1,7 +1,11 @@
 import { Monitor, Moon, Settings2, Sun } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
-import type { ColourScheme, TimeFormat, TypographyRole } from 'scriptr-editor';
-import { useScriptrPresentation } from 'scriptr-editor/react';
+import type {
+  ColourScheme,
+  TimeFormat,
+  TypographyRole,
+} from '@startupmedia/scriptr-editor';
+import { useScriptrPresentation } from '@startupmedia/scriptr-editor/react';
 import { Button } from '@/components/ui/button';
 import {
   Field,

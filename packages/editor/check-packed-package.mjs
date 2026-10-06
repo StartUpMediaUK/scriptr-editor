@@ -130,21 +130,21 @@ try {
     [
       '--input-type=module',
       '--eval',
-      "import { PACKAGE_NAME, defineScriptr } from 'scriptr-editor'; import { createCommandCatalogue } from 'scriptr-editor/commands'; import { DOCUMENT_VERSION } from 'scriptr-editor/document'; import { defineExtension } from 'scriptr-editor/extensions'; import { BookmarkComposer, MediaUploader, ScriptrRenderer } from 'scriptr-editor/react'; import { parseReferenceQuery } from 'scriptr-editor/scripture'; import { createScriptrServer } from 'scriptr-editor/server'; await import('scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineScriptr}:${typeof createCommandCatalogue}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof MediaUploader}:${typeof BookmarkComposer}:${typeof parseReferenceQuery}:${typeof createScriptrServer}`);",
+      "import { PACKAGE_NAME, defineScriptr } from '@startupmedia/scriptr-editor'; import { createCommandCatalogue } from '@startupmedia/scriptr-editor/commands'; import { DOCUMENT_VERSION } from '@startupmedia/scriptr-editor/document'; import { defineExtension } from '@startupmedia/scriptr-editor/extensions'; import { BookmarkComposer, MediaUploader, ScriptrRenderer } from '@startupmedia/scriptr-editor/react'; import { parseReferenceQuery } from '@startupmedia/scriptr-editor/scripture'; import { createScriptrServer } from '@startupmedia/scriptr-editor/server'; await import('@startupmedia/scriptr-editor/host'); process.stdout.write(`${PACKAGE_NAME}:${DOCUMENT_VERSION}:${typeof defineScriptr}:${typeof createCommandCatalogue}:${typeof defineExtension}:${typeof ScriptrRenderer}:${typeof MediaUploader}:${typeof BookmarkComposer}:${typeof parseReferenceQuery}:${typeof createScriptrServer}`);",
     ],
     { cwd: fixtureDirectory, encoding: 'utf8' },
   );
 
   if (
     importedName !==
-    'scriptr-editor:2:function:function:function:function:function:function:function:function'
+    '@startupmedia/scriptr-editor:2:function:function:function:function:function:function:function:function'
   ) {
     throw new Error(`Unexpected package import result: ${importedName}`);
   }
 
   writeFileSync(
     join(fixtureDirectory, 'consumer.ts'),
-    "import { defineScriptr } from 'scriptr-editor';\nimport type { CanonicalDocument, ScriptureProvider } from 'scriptr-editor';\nimport type { BookmarkProvider, MediaHost } from 'scriptr-editor/host';\nimport type { ScriptrEditorHandle } from 'scriptr-editor/react';\nimport { createScriptrServer } from 'scriptr-editor/server';\nconst document: CanonicalDocument = { version: 2, content: [] };\nconst provider: ScriptureProvider | undefined = undefined;\nconst media: MediaHost | undefined = undefined;\nconst bookmarks: BookmarkProvider | undefined = undefined;\nconst handle: ScriptrEditorHandle | undefined = undefined;\nconst client = defineScriptr();\nconst server = createScriptrServer({});\nvoid [document, provider, media, bookmarks, handle, client, server];\n",
+    "import { defineScriptr } from '@startupmedia/scriptr-editor';\nimport type { CanonicalDocument, ScriptureProvider } from '@startupmedia/scriptr-editor';\nimport type { BookmarkProvider, MediaHost } from '@startupmedia/scriptr-editor/host';\nimport type { ScriptrEditorHandle } from '@startupmedia/scriptr-editor/react';\nimport { createScriptrServer } from '@startupmedia/scriptr-editor/server';\nconst document: CanonicalDocument = { version: 2, content: [] };\nconst provider: ScriptureProvider | undefined = undefined;\nconst media: MediaHost | undefined = undefined;\nconst bookmarks: BookmarkProvider | undefined = undefined;\nconst handle: ScriptrEditorHandle | undefined = undefined;\nconst client = defineScriptr();\nconst server = createScriptrServer({});\nvoid [document, provider, media, bookmarks, handle, client, server];\n",
   );
   writeFileSync(
     join(fixtureDirectory, 'tsconfig.json'),
@@ -165,7 +165,10 @@ try {
   });
 
   const installedDeclaration = readFileSync(
-    join(fixtureDirectory, 'node_modules/scriptr-editor/dist/index.d.ts'),
+    join(
+      fixtureDirectory,
+      'node_modules/@startupmedia/scriptr-editor/dist/index.d.ts',
+    ),
     'utf8',
   );
 
@@ -179,9 +182,9 @@ try {
     import assert from 'node:assert/strict';
     import { createElement, StrictMode } from 'react';
     import { renderToString } from 'react-dom/server';
-    import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
-    import { createDocumentCodec } from 'scriptr-editor/document';
-    import { createLocalScriptureProvider, parseLocalScriptureDataset } from 'scriptr-editor/scripture';
+    import { ScriptrEditor, ScriptrRenderer } from '@startupmedia/scriptr-editor/react';
+    import { createDocumentCodec } from '@startupmedia/scriptr-editor/document';
+    import { createLocalScriptureProvider, parseLocalScriptureDataset } from '@startupmedia/scriptr-editor/scripture';
     const document = createDocumentCodec().parse({ version: 2, content: [{ id: 'p', type: 'paragraph', content: [{ type: 'text', text: 'Packed consumer text' }] }] });
     assert.match(renderToString(createElement(StrictMode, null, createElement(ScriptrRenderer, { document }))), /Packed consumer text/);
     assert.equal(typeof renderToString(createElement(StrictMode, null, createElement(ScriptrEditor, { defaultValue: document }))), 'string');

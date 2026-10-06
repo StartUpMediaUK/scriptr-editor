@@ -18,6 +18,11 @@ const allowedLicenses = new Set([
 // `spawndamnit` is MIT licensed but does not declare the license in its
 // published package metadata: https://github.com/cspotcode/spawndamnit
 const packageLicenseExceptions = new Map([['spawndamnit', 'MIT']]);
+// Next.js uses this platform-specific libvips binary in the private docs app.
+// It is not part of the published editor package: https://sharp.pixelplumbing.com/install/#licensing
+const packageLicenseAllowances = new Map([
+  ['@img/sharp-libvips-linux-x64', new Set(['LGPL-3.0-or-later'])],
+]);
 const pnpmCli = process.env.npm_execpath;
 
 if (!pnpmCli) {
@@ -56,7 +61,10 @@ for (const [license, packages] of Object.entries(report)) {
     const effectiveLicense =
       packageLicenseExceptions.get(dependency.name) ?? license;
 
-    if (!allowedLicenses.has(effectiveLicense)) {
+    if (
+      !allowedLicenses.has(effectiveLicense) &&
+      !packageLicenseAllowances.get(dependency.name)?.has(license)
+    ) {
       failures.push(`${dependency.name}: ${license}`);
     }
   }

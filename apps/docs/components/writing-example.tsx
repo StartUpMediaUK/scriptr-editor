@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import type { CanonicalDocument } from 'scriptr-editor/document';
+import type { CanonicalDocument } from '@startupmedia/scriptr-editor/document';
 import {
   ScriptrEditor,
   ScriptrPresentationProvider,
   ScriptrPresentationSurface,
   ScriptrRenderer,
-} from 'scriptr-editor/react';
+} from '@startupmedia/scriptr-editor/react';
 
 /** Serializable data crosses the framework boundary, not host callbacks. */
 export function WritingExample({

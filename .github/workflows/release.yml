@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   verify-release:
-    if: ${{ inputs.publish }}
+    if: ${{ inputs.publish && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     environment: npm
     steps:
@@ -28,9 +28,15 @@ jobs:
           node-version: 22
           cache: pnpm
           registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@11.6.2
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - run: pnpm publish --no-git-checks --provenance
-        working-directory: packages/editor
+      - run: pnpm audit --prod
+      - run: pnpm --dir packages/editor pack --pack-destination "$RUNNER_TEMP/scriptr-release"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: ${{ runner.temp }}/scriptr-release/*.tgz
+      - run: npm publish "$RUNNER_TEMP/scriptr-release/"*.tgz --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

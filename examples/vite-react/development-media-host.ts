@@ -2,7 +2,7 @@ import type {
   HostedMedia,
   MediaHost,
   MediaUploadInput,
-} from 'scriptr-editor/host';
+} from '@startupmedia/scriptr-editor/host';
 
 // Session-only test storage; real applications supply their own durable host.
 const assets = new Map<string, HostedMedia>();

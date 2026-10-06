@@ -1,9 +1,9 @@
-import type { ScriptureProvider } from 'scriptr-editor/host';
-import { createScriptrServer } from 'scriptr-editor/server';
+import type { ScriptureProvider } from '@startupmedia/scriptr-editor/host';
+import { createScriptrServer } from '@startupmedia/scriptr-editor/server';
 import {
   createRemoteScriptureProvider,
   type ScriptureTransport,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 
 /** In-process transport for contract tests; not an HTTP/security implementation. */
 export function createTransportRecipe(provider: ScriptureProvider) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDocumentCodec } from 'scriptr-editor/document';
+import { createDocumentCodec } from '@startupmedia/scriptr-editor/document';
 import {
   createTimedNoteRenderer,
   timedNoteRegistration,

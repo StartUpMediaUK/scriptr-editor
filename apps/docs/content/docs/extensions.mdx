@@ -12,8 +12,11 @@ The executable consumer recipe is `examples/vite-react/extension-recipe.tsx`; it
 `createTimedNoteRenderer` uses `defineReactExtension` to provide editable/read-only output and a namespaced slash item. Register the persistence definition with your codec/configuration and the React definition with editor/renderer props:
 
 ```tsx
-import { defineScriptr } from 'scriptr-editor';
-import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
+import { defineScriptr } from '@startupmedia/scriptr-editor';
+import {
+  ScriptrEditor,
+  ScriptrRenderer,
+} from '@startupmedia/scriptr-editor/react';
 import {
   createTimedNoteRenderer,
   timedNoteRegistration,

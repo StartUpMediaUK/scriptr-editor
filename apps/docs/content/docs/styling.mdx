@@ -9,7 +9,7 @@ Your global CSS may include:
 
 ```css
 @import 'tailwindcss';
-@import 'scriptr-editor/styles.css';
+@import '@startupmedia/scriptr-editor/styles.css';
 ```
 
 The Tailwind import is for applications using Tailwind; package CSS itself is already compiled. A non-Tailwind consumer can import only the package stylesheet from its JavaScript entry point. Framework CSS import rules still apply.
@@ -25,7 +25,7 @@ import {
   ScriptrEditor,
   ScriptrPresentationProvider,
   ScriptrPresentationSurface,
-} from 'scriptr-editor/react';
+} from '@startupmedia/scriptr-editor/react';
 
 <ScriptrPresentationProvider>
   <ScriptrPresentationSurface>
@@ -36,6 +36,6 @@ import {
 
 Wrap the renderer in the same presentation context to keep typography and theme aligned. `useScriptrPresentation` exposes the resolved preferences, `update` and `reset` to your own settings panel. Controlled preferences use `value` and `onChange`; the application owns their persistence.
 
-Themes, fonts and overrides use the documented presentation contracts exported from `scriptr-editor`. Use scoped semantic `--scriptr-*` tokens for deliberate overrides instead of rewriting the editor's layout or reaching into private component classes. Package portals inherit their owning presentation context, so multiple differently themed editor instances remain independent.
+Themes, fonts and overrides use the documented presentation contracts exported from `@startupmedia/scriptr-editor`. Use scoped semantic `--scriptr-*` tokens for deliberate overrides instead of rewriting the editor's layout or reaching into private component classes. Package portals inherit their owning presentation context, so multiple differently themed editor instances remain independent.
 
 The CSS does not fetch remote fonts. Self-host the selected fonts if exact typography is required; otherwise declared fallbacks apply. Respect font licenses and reduced-motion settings. Arbitrary authored text/background colors can reduce contrast; the default palette cannot guarantee accessibility for every host override.

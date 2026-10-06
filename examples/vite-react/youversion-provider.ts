@@ -1,14 +1,14 @@
-import type { ScriptureAddress } from 'scriptr-editor/document';
+import type { ScriptureAddress } from '@startupmedia/scriptr-editor/document';
 import type {
   PassageText,
   ScriptureProvider,
   ScriptureTranslation,
-} from 'scriptr-editor/host';
-import { ScriptureProviderError } from 'scriptr-editor/host';
+} from '@startupmedia/scriptr-editor/host';
+import { ScriptureProviderError } from '@startupmedia/scriptr-editor/host';
 import {
   validateScriptureAddress,
   type ScriptureStructure,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 
 export type YouVersionBible = ScriptureTranslation & {
   /** Numeric Bible version identifier assigned by YouVersion. */

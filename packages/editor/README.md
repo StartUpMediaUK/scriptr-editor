@@ -1,4 +1,4 @@
-# scriptr-editor
+# @startupmedia/scriptr-editor
 
 Reusable rich-text editor infrastructure for Scripture-aware writing applications.
 
@@ -6,7 +6,7 @@ The package is under active development. It provides Canonical Document v2 contr
 
 ## Boundary
 
-`scriptr-editor` owns rich-text editing, canonical documents and migrations, provider-neutral Scripture references, translation comparisons, lightweight References, internal-document-link primitives, image, video, audio and web-bookmark primitives, extensions, and read-only rendering.
+`@startupmedia/scriptr-editor` owns rich-text editing, canonical documents and migrations, provider-neutral Scripture references, translation comparisons, lightweight References, internal-document-link primitives, image, video, audio and web-bookmark primitives, extensions, and read-only rendering.
 
 Consuming applications own accounts, Pages, workspaces, storage, search, synchronization, sharing, and preferences. Host capabilities are injected through typed APIs. The package does not depend directly on YouVersion or another Scripture provider.
 
@@ -14,7 +14,7 @@ Consuming applications own accounts, Pages, workspaces, storage, search, synchro
 
 Requirements:
 
-- Node.js 20.19 or newer
+- Node.js 22.14 or newer for workspace development (Node.js 20.19+ for package consumers)
 - pnpm 11.19.0
 
 From the repository root:
@@ -30,7 +30,7 @@ The Vite development harness demonstrates the public editor APIs and maintained 
 ## Foundation interfaces
 
 ```ts
-import { defineScriptr } from 'scriptr-editor';
+import { defineScriptr } from '@startupmedia/scriptr-editor';
 
 export const scriptr = defineScriptr({
   capabilities: {
@@ -44,7 +44,7 @@ const document = scriptr.documents.deserialize(storedJson);
 const portableJson = scriptr.documents.serialize(document);
 ```
 
-Keep credentials in server-only application code. `createScriptrServer` from `scriptr-editor/server` exposes framework-neutral provider handlers that an application can place behind its authenticated routes.
+Keep credentials in server-only application code. `createScriptrServer` from `@startupmedia/scriptr-editor/server` exposes framework-neutral provider handlers that an application can place behind its authenticated routes.
 
 Consumer guides are available in the repository's [documentation source](https://github.com/StartUpMediaUK/scriptr-editor/tree/main/apps/docs/content/docs), with a runnable Next.js example in the documentation application. These repository links remain usable from the packed README; documentation source is not shipped in the npm artifact.
 
@@ -57,8 +57,11 @@ Production integration, canonical search-result navigation, extension failure is
 Import the package stylesheet once in the consuming application, then pass a canonical document to the controlled editor.
 
 ```tsx
-import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
-import 'scriptr-editor/styles.css';
+import {
+  ScriptrEditor,
+  ScriptrRenderer,
+} from '@startupmedia/scriptr-editor/react';
+import '@startupmedia/scriptr-editor/styles.css';
 
 <ScriptrEditor
   configuration={scriptr}
@@ -80,11 +83,11 @@ The stylesheet never fetches fonts or other remote assets. To match the prototyp
 Scripture access is provider-neutral. A host supplies translations, lightweight book/chapter/verse structure, canonicalization, passage text, attribution, and cache policy through `ScriptureProvider`. The structure can be retained locally so deliberate reference selection remains available offline.
 
 ```tsx
-import { ScripturePicker } from 'scriptr-editor/react';
+import { ScripturePicker } from '@startupmedia/scriptr-editor/react';
 import {
   createFakeScriptureProvider,
   parseReferenceQuery,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 
 <ScripturePicker structure={localStructure} onSelect={insertReference} />;
 ```
@@ -98,7 +101,7 @@ import datasetJson from './private-scripture.json';
 import {
   createLocalScriptureProvider,
   parseLocalScriptureDataset,
-} from 'scriptr-editor/scripture';
+} from '@startupmedia/scriptr-editor/scripture';
 
 const scriptureProvider = createLocalScriptureProvider(
   parseLocalScriptureDataset(datasetJson),

@@ -6,8 +6,8 @@ description: Exercise browser/server provider contracts without creating an appl
 `examples/vite-react/transport-recipe.ts` is an executable in-process contract recipe. It connects a server-side provider through `createScriptrServer` to `createRemoteScriptureProvider`. Its tests preserve canonicalization, translation metadata, passage text, verse boundaries, attribution and typed failures, and reject already-aborted dispatch.
 
 ```ts
-import { createScriptrServer } from 'scriptr-editor/server';
-import { createRemoteScriptureProvider } from 'scriptr-editor/scripture';
+import { createScriptrServer } from '@startupmedia/scriptr-editor/server';
+import { createRemoteScriptureProvider } from '@startupmedia/scriptr-editor/scripture';
 
 const server = createScriptrServer({ scripture: serverProvider });
 if (!server.scripture) throw new Error('Scripture provider is required.');

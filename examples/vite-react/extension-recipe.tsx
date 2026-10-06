@@ -1,6 +1,6 @@
-import type { ExtensionRegistration } from 'scriptr-editor/extensions';
-import type { JsonValue } from 'scriptr-editor/document';
-import { defineReactExtension } from 'scriptr-editor/react';
+import type { ExtensionRegistration } from '@startupmedia/scriptr-editor/extensions';
+import type { JsonValue } from '@startupmedia/scriptr-editor/document';
+import { defineReactExtension } from '@startupmedia/scriptr-editor/react';
 
 type TimedNote = { positionSeconds: number; label: string };
 

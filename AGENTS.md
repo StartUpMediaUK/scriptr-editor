@@ -8,7 +8,7 @@
 
 ## Package boundary
 
-Build `scriptr-editor` as reusable, application-agnostic editor infrastructure. It owns rich-text primitives, canonical documents and migrations, Scripture provider contracts and reference UI, Scripture and comparison blocks, lightweight References, internal-document-link primitives, images, extension APIs, and read-only rendering.
+Build `@startupmedia/scriptr-editor` as reusable, application-agnostic editor infrastructure. It owns rich-text primitives, canonical documents and migrations, Scripture provider contracts and reference UI, Scripture and comparison blocks, lightweight References, internal-document-link primitives, images, extension APIs, and read-only rendering.
 
 Keep application concerns in consuming applications. Represent users, authentication, workspaces, Pages, journals, search indexes, backlinks, offline sync, storage, sharing, import/export orchestration, and preferences only through neutral data and callback contracts when the editor needs them.
 
