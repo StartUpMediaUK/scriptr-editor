@@ -2,7 +2,7 @@
 @import 'shadcn/tailwind.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'scriptr-editor/styles.css';
+@import '@startupmedia/scriptr-editor/styles.css';
 
 :root {
   color-scheme: light;
