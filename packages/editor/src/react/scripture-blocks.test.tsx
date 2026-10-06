@@ -76,7 +76,7 @@ describe('ScriptureBlockContent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add translation' }));
     fireEvent.click(
-      await screen.findByRole('menuitem', { name: 'Berean Standard Bible' }),
+      await screen.findByRole('button', { name: 'Berean Standard Bible' }),
     );
     expect(onChange).toHaveBeenCalledWith({
       ...block,

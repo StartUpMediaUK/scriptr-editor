@@ -48,6 +48,9 @@ describe('ScripturePicker', () => {
       />,
     );
     expect(screen.getByText('New Testament')).toBeInTheDocument();
+    expect(
+      screen.getByRole('listbox', { name: 'Bible books' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Old Testament')).not.toBeInTheDocument();
     expect(screen.getByRole('option', { name: '1 John' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '3 John' })).toBeInTheDocument();
@@ -62,6 +65,7 @@ describe('ScripturePicker', () => {
       />,
     );
     expect(screen.getByText(/no available John 1:52/i)).toBeInTheDocument();
+    expect(screen.getByRole('listbox', { name: 'Verses' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Insert reference' }),
     ).toBeDisabled();

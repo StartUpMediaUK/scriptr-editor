@@ -100,6 +100,21 @@ export function useScriptrPresentation(): ResolvedPresentation & {
   };
 }
 
+/** Private overlay bridge; editors without a presentation provider retain host CSS. */
+export function usePresentationPortalProps() {
+  const controller = useContext(PresentationContext);
+  const snapshot = useSyncExternalStore(
+    (listener) => controller?.subscribe(listener) ?? (() => undefined),
+    () => controller?.getSnapshot(),
+    () => controller?.getSnapshot(),
+  );
+  return {
+    'data-scriptr-presentation': snapshot ? '' : undefined,
+    'data-colour-scheme': snapshot?.preferences.colourScheme,
+    style: snapshot?.cssVariables as CSSProperties | undefined,
+  };
+}
+
 export function ScriptrPresentationSurface({
   children,
   className,

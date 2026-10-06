@@ -135,6 +135,10 @@ Internal links use opaque host-owned target IDs. `DocumentLinkPicker` searches a
 
 Media remains host-managed. Pass one `MediaHost` through `defineScriptr` to enable `/image`, `/video`, and `/audio`; the host validates file type, size and quota, reports upload progress, resolves durable asset IDs and decides what removal notifications mean for storage cleanup. The legacy `ImageHost` remains supported for image-only integrations. `ScriptrEditorHandle` also exposes `insertImage`, `insertVideo`, and `insertAudio` for custom host surfaces.
 
+Image crops are non-destructive display frames: square (1:1), landscape (16:9), portrait (4:5), or the original intrinsic ratio. The image settings width field preserves the selected ratio; direct resize handles are currently deferred. Editable and read-only rendering use the same crop. The example app's replacement host stores browser object URLs only for the current session; consuming applications must supply durable storage.
+
+Audio waveforms are derived in the browser from the resolved file’s decoded samples, including all channels. Bar heights show the peak envelope over equal time intervals, scaled relative to the file’s largest peak; silence remains a flat baseline. The waveform is transient, not persisted in the document. Analysis downloads and decodes the complete file, so long recordings incur additional bandwidth and memory. Cross-origin sources must permit fetch access through CORS. Unsupported decoding or inaccessible sources show “Waveform unavailable” without fabricated bars; playback and seeking remain independent of analysis.
+
 Pass a `BookmarkProvider` to enable `/web bookmark`. It receives a normalized HTTP(S) URL and returns safe portable metadata; fetching, sanitizing, caching, authentication and rate limits remain host responsibilities. `BookmarkComposer`, `MediaUploader`, and their block-content components are exported for hosts that want to compose different surrounding UI. Persisted blocks contain only portable identity, source and presentation metadata—never credentials or quota state.
 
 ## Releases

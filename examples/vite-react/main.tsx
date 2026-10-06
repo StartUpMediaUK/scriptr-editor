@@ -15,6 +15,7 @@ import { PACKAGE_NAME } from 'scriptr-editor';
 import type { CanonicalDocument } from 'scriptr-editor/document';
 import {
   ScriptureProviderError,
+  type ImageUploadInput,
   type ScriptureProvider,
 } from 'scriptr-editor/host';
 import {
@@ -33,6 +34,7 @@ import {
 } from 'scriptr-editor/scripture';
 import { SettingsPanel } from './settings-panel';
 import './styles.css';
+import { developmentMediaHost } from './development-media-host';
 
 const initialDocument: CanonicalDocument = {
   version: 2,
@@ -106,7 +108,7 @@ const initialDocument: CanonicalDocument = {
             {
               id: 'study-column-observation-heading',
               type: 'heading',
-              level: 3,
+              level: 2,
               content: [{ type: 'text', text: 'Observation' }],
             },
             {
@@ -122,7 +124,7 @@ const initialDocument: CanonicalDocument = {
             {
               id: 'study-column-application-heading',
               type: 'heading',
-              level: 3,
+              level: 2,
               content: [{ type: 'text', text: 'Application' }],
             },
             {
@@ -601,28 +603,40 @@ const demoDocumentProvider = {
 };
 
 const demoImageHost = {
-  upload: () =>
-    Promise.reject(new Error('Uploads are disabled in this fixture.')),
-  resolve: (assetId: string) =>
-    Promise.resolve(
-      assetId === 'development-open-bible'
-        ? {
-            assetId,
-            src: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="900" height="480" viewBox="0 0 900 480"%3E%3Crect width="900" height="480" rx="18" fill="%23eee9df"/%3E%3Cpath d="M450 105c-74-48-158-49-250-17v264c92-32 176-31 250 17 74-48 158-49 250-17V88c-92-32-176-31-250 17Z" fill="%23fffdf8" stroke="%23c8bda9" stroke-width="4"/%3E%3Cpath d="M450 105v264" stroke="%23c8bda9" stroke-width="4"/%3E%3C/svg%3E',
-            width: 900,
-            height: 480,
-          }
-        : undefined,
-    ),
+  upload: async (input: ImageUploadInput) => {
+    const media = await developmentMediaHost.upload({
+      ...input,
+      kind: 'image',
+    });
+    return {
+      assetId: media.assetId,
+      src: media.src,
+      width: media.width ?? 1,
+      height: media.height ?? 1,
+    };
+  },
+  resolve: async (assetId: string) => {
+    const uploaded = await developmentMediaHost.resolve(assetId);
+    if (uploaded?.kind === 'image')
+      return {
+        assetId: uploaded.assetId,
+        src: uploaded.src,
+        width: uploaded.width ?? 1,
+        height: uploaded.height ?? 1,
+      };
+    return assetId === 'development-open-bible'
+      ? {
+          assetId,
+          src: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="900" height="480" viewBox="0 0 900 480"%3E%3Crect width="900" height="480" rx="18" fill="%23eee9df"/%3E%3Cpath d="M450 105c-74-48-158-49-250-17v264c92-32 176-31 250 17 74-48 158-49 250-17V88c-92-32-176-31-250 17Z" fill="%23fffdf8" stroke="%23c8bda9" stroke-width="4"/%3E%3Cpath d="M450 105v264" stroke="%23c8bda9" stroke-width="4"/%3E%3C/svg%3E',
+          width: 900,
+          height: 480,
+        }
+      : undefined;
+  },
   onRemoved: () => undefined,
 };
 
-const demoMediaHost = {
-  upload: () =>
-    Promise.reject(new Error('Uploads are disabled in this fixture.')),
-  resolve: () => Promise.resolve(undefined),
-  onRemoved: () => undefined,
-};
+const demoMediaHost = developmentMediaHost;
 
 const demoBookmarkProvider = {
   resolve: (url: string) =>
@@ -755,7 +769,7 @@ function DevelopmentHarness({
   return (
     <main className="page-shell">
       <article className="document" aria-labelledby="page-title">
-        <p className="kicker">Development harness</p>
+        <p className="kicker text-primary">Development harness</p>
         <div className="harness-header">
           <span id="page-title">{PACKAGE_NAME}</span>
           <div className="harness-actions">

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import '@testing-library/jest-dom/vitest';
+
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +9,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 afterEach(cleanup);
 
 import { createPresentationController } from '../presentation/index.js';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+} from '../components/ui/popover.js';
 import {
   ScriptrPresentationProvider,
   ScriptrPresentationSurface,
@@ -23,6 +30,42 @@ function Inspector() {
 }
 
 describe('React presentation adapter', () => {
+  it('keeps portalled overlays scoped to their provider and updates them live', () => {
+    const first = createPresentationController(undefined, {
+      colourScheme: 'dark',
+    });
+    const second = createPresentationController(undefined, {
+      colourScheme: 'light',
+    });
+    render(
+      <>
+        <ScriptrPresentationProvider controller={first}>
+          <Popover defaultOpen>
+            <PopoverContent>
+              <PopoverTitle>First overlay</PopoverTitle>
+            </PopoverContent>
+          </Popover>
+        </ScriptrPresentationProvider>
+        <ScriptrPresentationProvider controller={second}>
+          <Popover defaultOpen>
+            <PopoverContent>
+              <PopoverTitle>Second overlay</PopoverTitle>
+            </PopoverContent>
+          </Popover>
+        </ScriptrPresentationProvider>
+      </>,
+    );
+    const firstOverlay = screen.getByRole('dialog', { name: 'First overlay' });
+    const secondOverlay = screen.getByRole('dialog', {
+      name: 'Second overlay',
+    });
+    expect(firstOverlay).toHaveAttribute('data-colour-scheme', 'dark');
+    expect(secondOverlay).toHaveAttribute('data-colour-scheme', 'light');
+    act(() => first.update({ colourScheme: 'system', contrast: 125 }));
+    expect(firstOverlay).toHaveAttribute('data-colour-scheme', 'system');
+    expect(secondOverlay).toHaveAttribute('data-colour-scheme', 'light');
+  });
+
   it('proposes controlled changes without applying them until the host accepts them', () => {
     const onChange = vi.fn();
     const { rerender } = render(

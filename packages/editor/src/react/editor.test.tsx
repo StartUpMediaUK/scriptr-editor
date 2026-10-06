@@ -32,6 +32,58 @@ const document: CanonicalDocument = {
 afterEach(cleanup);
 
 describe('ScriptrEditor', () => {
+  it('does not intercept media downloads as authored external links', async () => {
+    render(
+      <ScriptrEditor
+        defaultValue={{
+          version: 2,
+          content: [
+            {
+              id: 'image',
+              type: 'image',
+              assetId: 'example-image',
+              alignment: 'center',
+              src: 'https://example.com/image.png',
+              alt: 'Example',
+            },
+          ],
+        }}
+      />,
+    );
+    const download = await screen.findByRole('link', {
+      name: 'Download image',
+    });
+    const surface = await screen.findByRole('textbox', {
+      name: 'Document editor',
+    });
+    let intercepted = true;
+    surface.addEventListener(
+      'click',
+      (event) => {
+        intercepted = event.defaultPrevented;
+        event.preventDefault();
+      },
+      { once: true },
+    );
+    fireEvent.click(download);
+    expect(intercepted).toBe(false);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('names the empty multiline writing surface explicitly', async () => {
+    render(
+      <ScriptrEditor
+        defaultValue={{
+          version: 2,
+          content: [{ id: 'empty', type: 'paragraph', content: [] }],
+        }}
+      />,
+    );
+    expect(
+      await screen.findByRole('textbox', { name: 'Document editor' }),
+    ).toHaveAttribute('aria-multiline', 'true');
+  });
+
   it('normalizes safe external links and rejects unsafe schemes', () => {
     expect(normalizeExternalUrl('example.com/path')).toBe(
       'https://example.com/path',
@@ -81,6 +133,12 @@ describe('ScriptrEditor', () => {
 
     fireEvent.click(anchor);
     const dialog = screen.getByRole('dialog', { name: 'Edit Reference' });
+    expect(dialog.querySelectorAll('[data-slot="dialog-close"]')).toHaveLength(
+      1,
+    );
+    expect(
+      screen.getByLabelText('Reference name').parentElement,
+    ).not.toHaveClass('scriptr-editor__workflow-field');
     fireEvent.change(screen.getByLabelText('Reference name'), {
       target: { value: 'Revised source' },
     });
@@ -304,6 +362,27 @@ describe('ScriptrEditor', () => {
       );
     });
     expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+  });
+
+  it('hands gutter insertion focus to a workflow without restoring its trigger', async () => {
+    render(
+      <ScriptrEditor
+        defaultValue={document}
+        bookmarkProvider={{
+          resolve: () =>
+            Promise.resolve({ url: 'https://example.com', title: 'Example' }),
+        }}
+      />,
+    );
+    fireEvent.click(await screen.findByLabelText('Insert block'));
+    fireEvent.click(screen.getByRole('option', { name: /Web bookmark/ }));
+    await act(async () => {
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+    });
+    expect(screen.getByRole('textbox', { name: 'Bookmark URL' })).toHaveFocus();
+    expect(globalThis.document.documentElement.style.overflow).toBe('');
   });
 
   it('creates an empty uncontrolled document when no value is supplied', async () => {
@@ -591,6 +670,11 @@ describe('ScriptrEditor', () => {
     expect(
       screen.getByRole('dialog', { name: 'Add Reference' }),
     ).toHaveTextContent('Reference name');
+    expect(
+      screen
+        .getByRole('dialog', { name: 'Add Reference' })
+        .querySelectorAll('[data-slot="dialog-close"]'),
+    ).toHaveLength(1);
     expect(screen.getByRole('dialog', { name: 'Add Reference' })).toHaveClass(
       'scriptr-editor__inspector',
     );
@@ -739,6 +823,12 @@ describe('ScriptrEditor', () => {
     expect(
       screen.getByRole('dialog', { name: 'Add web bookmark' }),
     ).toBeInTheDocument();
+    await act(async () => {
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+    });
+    expect(screen.getByRole('textbox', { name: 'Bookmark URL' })).toHaveFocus();
   });
 
   it('persists a toggle disclosure state change', async () => {

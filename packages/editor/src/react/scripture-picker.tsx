@@ -162,6 +162,7 @@ export function ScripturePicker({
       {!book && result.books.length ? (
         <ScrollArea className="scriptr-scripture-picker__book-groups">
           <div
+            aria-label="Bible books"
             className="scriptr-scripture-picker__book-groups-content"
             role="listbox"
           >
@@ -204,6 +205,7 @@ export function ScripturePicker({
       ) : options.length ? (
         <ScrollArea className="scriptr-scripture-picker__options">
           <div
+            aria-label={result.stage === 'chapter' ? 'Chapters' : 'Verses'}
             className="scriptr-scripture-picker__options-content"
             role="listbox"
           >

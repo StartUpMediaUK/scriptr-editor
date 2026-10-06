@@ -24,6 +24,9 @@ describe('DocumentLinkPicker', () => {
   it('searches host documents and returns an opaque target', async () => {
     const onSelect = vi.fn();
     render(<DocumentLinkPicker onSelect={onSelect} provider={provider} />);
+    expect(
+      screen.getByRole('button', { name: 'Show options' }),
+    ).toBeInTheDocument();
     fireEvent.change(
       screen.getByRole('combobox', { name: 'Search documents' }),
       {

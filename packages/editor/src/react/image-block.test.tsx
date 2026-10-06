@@ -26,6 +26,80 @@ const image = {
 };
 
 describe('ImageBlockContent', () => {
+  it('reports synchronous replacement validation failures and allows retrying the same file', async () => {
+    const validate = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('Image rejected');
+      })
+      .mockImplementation(() => undefined);
+    const replace = vi.fn(() =>
+      Promise.resolve({
+        assetId: 'new-image',
+        src: 'https://example.com/new.png',
+        width: 300,
+        height: 150,
+      }),
+    );
+    const onChange = vi.fn();
+    render(
+      <ImageBlockContent
+        block={{ ...image, src: 'https://example.com/old.png' }}
+        editable
+        imageHost={{
+          validate,
+          replace,
+          upload: vi.fn(),
+          resolve: vi.fn(),
+          onRemoved: vi.fn(),
+        }}
+        onChange={onChange}
+      />,
+    );
+    const input = screen.getByLabelText('Replace image file');
+    const file = new File(['image'], 'new.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Image rejected',
+    );
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assetId: 'new-image',
+          src: 'https://example.com/new.png',
+        }),
+      ),
+    );
+    expect(replace).toHaveBeenCalledWith(
+      'asset-1',
+      expect.objectContaining({ file }),
+    );
+  });
+  it('keeps the crop frame without exposing resize handles', () => {
+    const onChange = vi.fn();
+    render(
+      <ImageBlockContent
+        block={{
+          ...image,
+          src: 'https://example.com/image.png',
+          width: 400,
+          height: 200,
+          cropRatio: 'square',
+        }}
+        editable
+        onChange={onChange}
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: /Resize image from/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('img').parentElement).toHaveStyle({
+      aspectRatio: '1',
+    });
+    expect(onChange).not.toHaveBeenCalled();
+  });
   it('resolves host-owned assets and preserves authored presentation', async () => {
     const resolve = vi.fn(() =>
       Promise.resolve({
@@ -68,7 +142,13 @@ describe('ImageBlockContent', () => {
     expect(
       screen.getByRole('button', { name: 'Expand image' }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText('Replace image file')).toHaveAttribute(
+      'hidden',
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Image settings' }));
+    expect(
+      screen.getByRole('dialog', { name: 'Image settings' }),
+    ).toHaveAttribute('data-scriptr-ui');
     fireEvent.change(screen.getByLabelText('Alternative text'), {
       target: { value: 'An annotated Bible' },
     });

@@ -15,7 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { Button } from '../components/ui/button.js';
+import { Button, buttonVariants } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Field, FieldGroup, FieldLabel } from '../components/ui/field.js';
 import {
@@ -66,6 +66,12 @@ export function ImageBlockContent({
   const [resolved, setResolved] = useState<HostedImage>();
   const [unavailable, setUnavailable] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
+  const [natural, setNatural] = useState<{
+    src: string;
+    width: number;
+    height: number;
+  }>();
+  const [replacementError, setReplacementError] = useState<string>();
   const figureRef = useRef<HTMLElement>(null);
   const replacementRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -73,6 +79,7 @@ export function ImageBlockContent({
     const controller = new AbortController();
     void imageHost.resolve(block.assetId, controller.signal).then(
       (image) => {
+        if (controller.signal.aborted) return;
         setResolved(image);
         setUnavailable(!image);
       },
@@ -83,6 +90,38 @@ export function ImageBlockContent({
     return () => controller.abort();
   }, [block.assetId, block.src, imageHost]);
   const src = safeImageSource(block.src ?? resolved?.src);
+  const originalWidth =
+    natural && natural.src === src
+      ? natural.width
+      : (resolved?.width ?? block.width);
+  const originalHeight =
+    natural && natural.src === src
+      ? natural.height
+      : (resolved?.height ?? block.height);
+  const ratio =
+    block.cropRatio === 'square'
+      ? 1
+      : block.cropRatio === 'landscape'
+        ? 16 / 9
+        : block.cropRatio === 'portrait'
+          ? 4 / 5
+          : originalWidth && originalHeight
+            ? originalWidth / originalHeight
+            : undefined;
+  const clampWidth = (width: number) => {
+    const maximum =
+      figureRef.current?.parentElement?.clientWidth || Number.POSITIVE_INFINITY;
+    return Math.round(
+      Math.max(Math.min(160, maximum), Math.min(maximum, width)),
+    );
+  };
+  const commitWidth = (width: number) =>
+    onChange?.({
+      ...block,
+      width: clampWidth(width),
+      ...(ratio ? { height: Math.round(clampWidth(width) / ratio) } : {}),
+      alignment: block.alignment === 'wide' ? 'center' : block.alignment,
+    });
   const caption = block.caption
     ?.map((inline) => (inline.type === 'text' ? inline.text : '\n'))
     .join('');
@@ -100,12 +139,27 @@ export function ImageBlockContent({
       data-crop-ratio={block.cropRatio ?? 'original'}
     >
       {src ? (
-        <img
-          alt={block.alt}
-          height={block.height ?? resolved?.height}
-          src={src}
-          width={block.width ?? resolved?.width}
-        />
+        <div
+          className="relative"
+          data-image-frame
+          style={{ aspectRatio: ratio }}
+        >
+          <img
+            alt={block.alt}
+            className="object-cover"
+            style={ratio ? { height: '100%', width: '100%' } : undefined}
+            onLoad={(event) =>
+              setNatural({
+                src,
+                width: event.currentTarget.naturalWidth,
+                height: event.currentTarget.naturalHeight,
+              })
+            }
+            height={block.height ?? resolved?.height}
+            src={src}
+            width={block.width ?? resolved?.width}
+          />
+        </div>
       ) : (
         <div className="scriptr-image__placeholder" role="status">
           {unavailable || !imageHost ? 'Image unavailable' : 'Loading image…'}
@@ -182,8 +236,7 @@ export function ImageBlockContent({
                     min={160}
                     onChange={(event) => {
                       const width = event.currentTarget.valueAsNumber;
-                      if (Number.isFinite(width))
-                        onChange?.({ ...block, width });
+                      if (Number.isFinite(width)) commitWidth(width);
                     }}
                     step={20}
                     type="number"
@@ -231,15 +284,14 @@ export function ImageBlockContent({
             <Maximize2 />
           </Button>
           {src ? (
-            <Button
+            <a
               aria-label="Download image"
-              nativeButton={false}
-              render={<a download href={src} />}
-              size="icon-sm"
-              variant="ghost"
+              download
+              href={src}
+              className={buttonVariants({ size: 'icon-sm', variant: 'ghost' })}
             >
               <Download />
-            </Button>
+            </a>
           ) : null}
           <Popover>
             <PopoverTrigger
@@ -265,17 +317,22 @@ export function ImageBlockContent({
                 Copy
               </Button>
               <Button
+                disabled={!imageHost}
                 onClick={() => replacementRef.current?.click()}
                 variant="ghost"
               >
                 <RefreshCw />
                 Replace
               </Button>
-              <Button onClick={onDuplicate} variant="ghost">
+              <Button
+                disabled={!onDuplicate}
+                onClick={onDuplicate}
+                variant="ghost"
+              >
                 <CopyPlus />
                 Duplicate
               </Button>
-              <Button onClick={onRemove} variant="ghost">
+              <Button disabled={!onRemove} onClick={onRemove} variant="ghost">
                 <Trash2 />
                 Delete
               </Button>
@@ -286,12 +343,20 @@ export function ImageBlockContent({
       {editable ? (
         <input
           accept="image/*"
-          className="sr-only"
+          aria-label="Replace image file"
+          hidden
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = '';
             if (!file || !imageHost) return;
+            setReplacementError(undefined);
+            if (!file.type.startsWith('image/')) {
+              setReplacementError('Choose an image file.');
+              return;
+            }
             const controller = new AbortController();
-            void Promise.resolve(imageHost.validate?.(file))
+            void Promise.resolve()
+              .then(() => imageHost.validate?.(file))
               .then(() =>
                 imageHost.replace
                   ? imageHost.replace(block.assetId, {
@@ -308,12 +373,24 @@ export function ImageBlockContent({
                   width: image.width,
                   height: image.height,
                 }),
+              )
+              .catch((error: unknown) =>
+                setReplacementError(
+                  error instanceof Error
+                    ? error.message
+                    : 'Image replacement failed.',
+                ),
               );
           }}
           ref={replacementRef}
           tabIndex={-1}
           type="file"
         />
+      ) : null}
+      {replacementError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {replacementError}
+        </p>
       ) : null}
       {editable && captionOpen ? (
         <Input

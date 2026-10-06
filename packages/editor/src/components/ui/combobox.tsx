@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Combobox as ComboboxPrimitive } from '@base-ui/react';
 import { cn } from 'cn';
+import { usePresentationPortalProps } from '../../react/presentation.js';
 
 import { Button } from './button.js';
 import {
@@ -37,6 +38,7 @@ function ComboboxTrigger({
 function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
   return (
     <ComboboxPrimitive.Clear
+      aria-label="Clear selection"
       data-slot="combobox-clear"
       render={<InputGroupButton variant="ghost" size="icon-xs" />}
       className={cn(className)}
@@ -70,6 +72,7 @@ function ComboboxInput({
             size="icon-xs"
             variant="ghost"
             render={<ComboboxTrigger />}
+            aria-label="Show options"
             data-slot="input-group-button"
             className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
             disabled={disabled}
@@ -95,6 +98,7 @@ function ComboboxContent({
     ComboboxPrimitive.Positioner.Props,
     'side' | 'align' | 'sideOffset' | 'alignOffset' | 'anchor'
   >) {
+  const presentation = usePresentationPortalProps();
   return (
     <ComboboxPrimitive.Portal>
       <ComboboxPrimitive.Positioner
@@ -106,6 +110,8 @@ function ComboboxContent({
         className="isolate z-50"
       >
         <ComboboxPrimitive.Popup
+          {...presentation}
+          data-scriptr-ui=""
           data-slot="combobox-content"
           data-chips={!!anchor}
           className={cn(
@@ -113,6 +119,7 @@ function ComboboxContent({
             className,
           )}
           {...props}
+          style={{ ...presentation.style, ...props.style }}
         />
       </ComboboxPrimitive.Positioner>
     </ComboboxPrimitive.Portal>

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { Button } from '../components/ui/button.js';
+import { Button, buttonVariants } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import {
   Popover,
@@ -31,6 +31,7 @@ import {
 import { createDocumentCodec } from '../document/codec.js';
 import type { AudioBlock, VideoBlock } from '../document/types.js';
 import type { HostedMedia, MediaHost, MediaKind } from '../host/media.js';
+import { useAudioWaveform } from './use-audio-waveform.js';
 
 type AuthoredMediaBlock = VideoBlock | AudioBlock;
 
@@ -76,6 +77,7 @@ export function MediaBlockContent({
   const [speed, setSpeed] = useState(1);
   const [volume, setVolume] = useState(1);
   const [progress, setProgress] = useState(0);
+  const [replacementError, setReplacementError] = useState<string>();
   const mediaRef = useRef<HTMLAudioElement>(null);
   const figureRef = useRef<HTMLElement>(null);
   const replacementRef = useRef<HTMLInputElement>(null);
@@ -86,6 +88,7 @@ export function MediaBlockContent({
     const controller = new AbortController();
     void mediaHost.resolve(block.assetId, controller.signal).then(
       (media) => {
+        if (controller.signal.aborted) return;
         setResolved(media?.kind === block.type ? media : undefined);
         setUnavailable(media?.kind !== block.type);
       },
@@ -108,7 +111,14 @@ export function MediaBlockContent({
     return () => controller.abort();
   }, [mediaHost, posterAssetId]);
 
-  const source = safeMediaSource(block.src ?? resolved?.src);
+  const source = safeMediaSource(
+    block.src ??
+      (resolved?.assetId === block.assetId ? resolved?.src : undefined),
+  );
+  const waveform = useAudioWaveform(
+    block.type === 'audio' ? source : undefined,
+  );
+  const peakScale = Math.max(...(waveform?.peaks ?? []), 0);
   const status =
     unavailable || (!source && !mediaHost) ? 'unavailable' : 'loading';
   const title = block.title;
@@ -175,16 +185,38 @@ export function MediaBlockContent({
               ref={mediaRef}
               src={source}
             />
-            <div className="scriptr-audio__waveform">
-              <span aria-hidden="true">
-                {Array.from({ length: 54 }, (_, index) => (
-                  <i
-                    data-played={index / 54 <= progress ? '' : undefined}
-                    key={index}
-                    style={{ height: `${22 + ((index * 17) % 70)}%` }}
-                  />
-                ))}
-              </span>
+            <div
+              className="scriptr-audio__waveform"
+              data-waveform-state={waveform?.status}
+            >
+              {waveform?.status === 'ready' ? (
+                <span aria-hidden="true">
+                  {waveform.peaks.map((peak, index) => (
+                    <i
+                      className="min-h-0.5"
+                      data-amplitude={peak}
+                      data-played={
+                        (index + 1) / waveform.peaks.length <= progress
+                          ? ''
+                          : undefined
+                      }
+                      key={index}
+                      style={{
+                        height: `${peakScale ? (peak / peakScale) * 100 : 0}%`,
+                      }}
+                    />
+                  ))}
+                </span>
+              ) : (
+                <span
+                  role="status"
+                  className="justify-center text-xs text-muted-foreground"
+                >
+                  {waveform?.status === 'unavailable'
+                    ? 'Waveform unavailable'
+                    : 'Loading waveform…'}
+                </span>
+              )}
               <input
                 aria-label="Seek audio"
                 max="1"
@@ -304,15 +336,14 @@ export function MediaBlockContent({
             <Maximize2 />
           </Button>
           {source ? (
-            <Button
+            <a
               aria-label="Download media"
-              nativeButton={false}
-              render={<a download href={source} />}
-              size="icon-sm"
-              variant="ghost"
+              download
+              href={source}
+              className={buttonVariants({ size: 'icon-sm', variant: 'ghost' })}
             >
               <Download />
-            </Button>
+            </a>
           ) : null}
           <Popover>
             <PopoverTrigger
@@ -340,17 +371,22 @@ export function MediaBlockContent({
                 Copy
               </Button>
               <Button
+                disabled={!mediaHost}
                 onClick={() => replacementRef.current?.click()}
                 variant="ghost"
               >
                 <RefreshCw />
                 Replace
               </Button>
-              <Button onClick={onDuplicate} variant="ghost">
+              <Button
+                disabled={!onDuplicate}
+                onClick={onDuplicate}
+                variant="ghost"
+              >
                 <CopyPlus />
                 Duplicate
               </Button>
-              <Button onClick={onRemove} variant="ghost">
+              <Button disabled={!onRemove} onClick={onRemove} variant="ghost">
                 <Trash2 />
                 Delete
               </Button>
@@ -361,19 +397,30 @@ export function MediaBlockContent({
       {editable ? (
         <input
           accept={`${block.type}/*`}
-          className="sr-only"
+          aria-label={`Replace ${block.type} file`}
+          hidden
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
+            event.currentTarget.value = '';
             if (!file || !mediaHost) return;
+            setReplacementError(undefined);
+            if (!file.type.startsWith(`${block.type}/`)) {
+              setReplacementError(`Choose a ${block.type} file.`);
+              return;
+            }
             const input = { kind: block.type, file } as const;
-            void Promise.resolve(mediaHost.validate?.(input))
+            void Promise.resolve()
+              .then(() => mediaHost.validate?.(input))
               .then(() =>
                 block.assetId && mediaHost.replace
                   ? mediaHost.replace(block.assetId, input)
                   : mediaHost.upload(input),
               )
               .then((media) => {
-                if (media.kind !== block.type) return;
+                if (media.kind !== block.type)
+                  throw new Error(
+                    `The media host returned ${media.kind}, not ${block.type}.`,
+                  );
                 onChange?.({
                   ...block,
                   assetId: media.assetId,
@@ -386,12 +433,24 @@ export function MediaBlockContent({
                       }
                     : {}),
                 });
-              });
+              })
+              .catch((error: unknown) =>
+                setReplacementError(
+                  error instanceof Error
+                    ? error.message
+                    : 'Media replacement failed.',
+                ),
+              );
           }}
           ref={replacementRef}
           tabIndex={-1}
           type="file"
         />
+      ) : null}
+      {replacementError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {replacementError}
+        </p>
       ) : null}
       {editable && captionOpen ? (
         <Input

@@ -601,7 +601,6 @@ export function ScriptureBlockContent({
                           ]);
                           setTranslationMenuOpen(false);
                         }}
-                        role="menuitem"
                         size="sm"
                         type="button"
                         variant="ghost"

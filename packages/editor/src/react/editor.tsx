@@ -45,10 +45,12 @@ import {
   X,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Field, FieldGroup, FieldLabel } from '../components/ui/field.js';
 import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -350,7 +352,7 @@ function removeSlashQuery(editor: Editor) {
   const query = updateSlashQuery(editor);
   if (query === undefined) return;
   const from = $from.pos - query.length - 1;
-  editor.chain().focus().deleteRange({ from, to: $from.pos }).run();
+  editor.chain().deleteRange({ from, to: $from.pos }).run();
 }
 
 function moveCurrentBlockView(view: EditorView, direction: -1 | 1) {
@@ -760,6 +762,7 @@ export const ScriptrEditor = forwardRef<
   },
   forwardedRef,
 ) {
+  const editorId = useId();
   const [initialDocument] = useState(
     () => value ?? defaultValue ?? emptyDocument,
   );
@@ -939,6 +942,7 @@ export const ScriptrEditor = forwardRef<
   >('left');
   const [customColourOpen, setCustomColourOpen] = useState(false);
   const insertTriggerRef = useRef<HTMLButtonElement>(null);
+  const insertMenuSelectionRef = useRef(false);
   const activeBlockPositionRef = useRef(-1);
   const tiptapEditorRef = useRef<Editor | null>(null);
   const slashQueryRef = useRef<string | undefined>(undefined);
@@ -960,6 +964,8 @@ export const ScriptrEditor = forwardRef<
       transformPasted: remapPastedReferences,
       attributes: {
         'aria-label': ariaLabel,
+        role: editable ? 'textbox' : 'region',
+        ...(editable ? { 'aria-multiline': 'true' } : {}),
         class: 'scriptr-editor__content',
         dir: 'auto',
         spellcheck: 'true',
@@ -1162,6 +1168,8 @@ export const ScriptrEditor = forwardRef<
     const editInlineAnnotation = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
+      if (target.closest('.scriptr-editor__context-toolbar, a[download]'))
+        return;
       const reference = target.closest<HTMLElement>('[data-scriptr-reference]');
       if (reference && editor.view.dom.contains(reference)) {
         event.preventDefault();
@@ -1417,7 +1425,7 @@ export const ScriptrEditor = forwardRef<
       {editable ? (
         <BubbleMenu
           editor={editor}
-          className="scriptr-editor__bubble"
+          className="scriptr-editor__bubble z-30"
           options={{ placement: 'top' }}
           shouldShow={({ state }) =>
             !state.selection.empty &&
@@ -1796,6 +1804,7 @@ export const ScriptrEditor = forwardRef<
             <Popover
               onOpenChange={(open) => {
                 if (open) {
+                  insertMenuSelectionRef.current = false;
                   setBlockMenuOpen(false);
                   const triggerBounds =
                     insertTriggerRef.current?.getBoundingClientRect();
@@ -1838,6 +1847,11 @@ export const ScriptrEditor = forwardRef<
               </PopoverTrigger>
               {insertMenuOpen ? (
                 <PopoverContent
+                  finalFocus={() =>
+                    insertMenuSelectionRef.current
+                      ? false
+                      : insertTriggerRef.current
+                  }
                   align={insertMenuSide === 'left' ? 'start' : 'end'}
                   className="scriptr-editor__insert-menu"
                   collisionAvoidance={{
@@ -1870,6 +1884,7 @@ export const ScriptrEditor = forwardRef<
                                 {...(item.disabled ? { disabled: true } : {})}
                                 key={item.id}
                                 onSelect={() => {
+                                  insertMenuSelectionRef.current = true;
                                   item.run(editor);
                                   setInsertMenuOpen(false);
                                 }}
@@ -2250,6 +2265,7 @@ export const ScriptrEditor = forwardRef<
             className="scriptr-editor__slash-positioner"
             collisionAvoidance={{ side: 'flip', align: 'shift' }}
             initialFocus={false}
+            finalFocus={false}
             positionMethod="fixed"
             side="bottom"
             sideOffset={4}
@@ -2465,13 +2481,17 @@ export const ScriptrEditor = forwardRef<
                 : 'Edit Reference'
             }
             className="scriptr-editor__inspector"
+            showCloseButton={false}
           >
-            <DialogHeader>
-              <DialogTitle>
-                {commandWorkflow.mode === 'create'
-                  ? 'Add Reference'
-                  : 'Edit Reference'}
-              </DialogTitle>
+            <DialogHeader className="flex-row items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <p className="scriptr-scripture-picker__eyebrow">Reference</p>
+                <DialogTitle className="font-semibold [font-family:var(--scriptr-font-body)]">
+                  {commandWorkflow.mode === 'create'
+                    ? 'Add Reference'
+                    : 'Edit Reference'}
+                </DialogTitle>
+              </div>
               <DialogClose
                 aria-label="Close Reference editor"
                 render={<Button size="icon-sm" variant="ghost" />}
@@ -2479,6 +2499,7 @@ export const ScriptrEditor = forwardRef<
                 <X />
               </DialogClose>
             </DialogHeader>
+            <Separator />
             <form
               onSubmit={(event) => {
                 event.preventDefault();
@@ -2508,37 +2529,48 @@ export const ScriptrEditor = forwardRef<
                 closeCommandWorkflow();
               }}
             >
-              <label className="scriptr-editor__workflow-field">
-                <span className="sr-only">Reference name</span>
-                <Input
-                  aria-label="Reference name"
-                  autoFocus
-                  onChange={(event) =>
-                    setCommandWorkflow({
-                      ...commandWorkflow,
-                      reference: {
-                        ...commandWorkflow.reference,
-                        title: event.currentTarget.value,
-                      },
-                    })
-                  }
-                  placeholder="Source, article, or note title"
-                  value={commandWorkflow.reference.title ?? ''}
-                />
-              </label>
-              <label className="scriptr-editor__workflow-field">
-                <span className="sr-only">Description</span>
-                <ReferenceEditor
-                  onChange={(reference) =>
-                    setCommandWorkflow({ ...commandWorkflow, reference })
-                  }
-                  reference={commandWorkflow.reference}
-                />
-              </label>
+              <FieldGroup className="gap-4">
+                <Field>
+                  <FieldLabel
+                    className="sr-only"
+                    htmlFor={`${editorId}-reference-name`}
+                  >
+                    Reference name
+                  </FieldLabel>
+                  <Input
+                    id={`${editorId}-reference-name`}
+                    aria-label="Reference name"
+                    autoFocus
+                    onChange={(event) =>
+                      setCommandWorkflow({
+                        ...commandWorkflow,
+                        reference: {
+                          ...commandWorkflow.reference,
+                          title: event.currentTarget.value,
+                        },
+                      })
+                    }
+                    placeholder="Source, article, or note title"
+                    value={commandWorkflow.reference.title ?? ''}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel>Description</FieldLabel>
+                  <ReferenceEditor
+                    className="[&_.scriptr-reference-editor__content]:min-h-24"
+                    onChange={(reference) =>
+                      setCommandWorkflow({ ...commandWorkflow, reference })
+                    }
+                    reference={commandWorkflow.reference}
+                  />
+                </Field>
+              </FieldGroup>
               <DialogFooter>
                 {commandWorkflow.mode === 'create' &&
                 commandWorkflow.range.from === commandWorkflow.range.to ? (
-                  <p role="status">Select text to create a Reference.</p>
+                  <p className="text-xs text-muted-foreground" role="status">
+                    Select text to create a Reference.
+                  </p>
                 ) : null}
                 <Button
                   onClick={closeCommandWorkflow}
