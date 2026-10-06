@@ -1,0 +1,16 @@
+---
+title: Canonical Document v2
+---
+
+Canonical Document v2 is the current portable persistence contract. It retains every v1 block and mark and adds Column Layout, Toggle, audio, video, and Web Bookmark blocks. `createDocumentCodec` migrates valid v1 documents by changing only the root version before v2 validation.
+
+## New blocks
+
+- `columns` contains two to four identified columns, each holding ordinary Blocks in reading order;
+- `toggle` contains inline summary content, optional heading level 1–3, optional authored default-open state, and nested Blocks;
+- `video` and `audio` contain either stable Host asset identity or an allowed external URL plus authored presentation metadata;
+- `webBookmark` contains its URL and a sanitized display snapshot.
+
+Structural IDs remain unique across the complete nested document. Reference anchors in nested content obey the same definition and orphan rules as top-level content. Provider credentials, OAuth callback URLs, expiring authorization URLs, user identity, storage records, and live remote responses are never persisted.
+
+See [the v1 contract](/docs/reference/canonical-document-v1) for migration and compatibility work.

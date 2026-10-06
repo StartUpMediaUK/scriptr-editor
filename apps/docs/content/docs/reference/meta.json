@@ -1,0 +1,11 @@
+{
+  "title": "Reference",
+  "pages": [
+    "api",
+    "architecture",
+    "canonical-document-v1",
+    "canonical-document-v2",
+    "production-hardening",
+    "package-policy"
+  ]
+}

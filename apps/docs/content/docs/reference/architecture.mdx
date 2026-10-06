@@ -1,0 +1,47 @@
+---
+title: Architecture contracts
+---
+
+## Modules and seams
+
+The canonical document module is the package's persistence seam. Its interface is `createDocumentCodec`, which validates, normalizes, migrates, serializes, and deserializes documents. Callers do not coordinate these operations separately.
+
+Pure document types, schemas, normalization, migrations, and edge extraction live beneath that interface and import neither React nor host adapters. The React editor translates between Canonical Documents and editor-engine state. The renderer consumes Canonical Documents directly so editing chrome cannot leak into authored output.
+
+True external behaviour crosses typed host seams:
+
+- Scripture providers resolve translation metadata, structure, addresses, passages, attribution, and cache policy.
+- document target providers search and resolve opaque host-owned document targets;
+- image hosts upload, resolve, and receive removal notifications for host-owned assets.
+
+The package owns the interfaces and test contract helpers. Consuming applications own concrete adapters and policy.
+
+## Public entry points
+
+The complete supported entry-point list is maintained in the [documentation overview](/docs). Each entry point is declared in `package.json#exports`.
+
+Anything else is private implementation. Consumers must not import `dist` paths.
+
+## Extension contract
+
+An extension definition owns one namespaced Extension Block type, its current data schema, optional data migrations, and both editable and read-only render functions. The codec validates registered extension data. Valid unknown Extension Blocks are preserved so an application can move documents without installing every extension; rendering them requires a host fallback.
+
+Names use reverse-domain or similarly collision-resistant identifiers. Extension versions are positive integers and independent from the Canonical Document version.
+
+## CSS strategy
+
+Package styles use a `scriptr-editor` class namespace and package-owned CSS custom properties. Defaults follow the package design system. Hosts may set documented tokens for bounded appearance preferences, but structural measures, hierarchy, surfaces, interaction states, and responsive behaviour remain package-owned. Styles ship through the explicit `scriptr-editor/styles.css` export and perform no runtime asset requests.
+
+## Dependency policy
+
+Runtime dependencies must increase module depth rather than expose pass-through wrappers. Zod validates persistence and host seams. React and React DOM remain peers. Tiptap/ProseMirror power the React adapter but do not enter the canonical document module or persisted representation.
+
+Concrete Scripture SDKs, application frameworks, storage clients, and authentication libraries remain host dependencies. All runtime and development dependencies must pass the repository's license policy and packed-artifact checks.
+
+## Compatibility guarantees
+
+Package interfaces follow semantic versioning once published. Canonical Document versions follow explicit migrations and are independent from package versions. A reader must either parse a supported version, migrate an older supported version, or return a typed issue; it must not silently reinterpret data.
+
+Serialization is deterministic for equal normalized documents. Optional fields with no semantic value are removed during normalization. Unknown registered-independent Extension Blocks are preserved. Unknown core Blocks and Marks are rejected because their semantics cannot be rendered safely.
+
+The package is ESM-only, supports the Node and browser ranges in [package policy](/docs/reference/package-policy), and treats TypeScript declarations as part of its public interface.

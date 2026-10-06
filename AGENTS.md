@@ -2,9 +2,9 @@
 
 ## Read first
 
-- Treat `docs/prototype/Scriptr.html` as the authoritative visual and interaction reference. Inspect it before changing user-facing editor behaviour or styling.
-- Treat the current approved plan in `docs/plans/` as the delivery sequence. Complete only the audited phase; record audits beneath that plan's `audits/` directory and wait for explicit approval before starting the next phase.
-- Use `docs/development/development-guideline.md` as background engineering guidance. Where it describes an application stack or domain, this file's package-specific rules take precedence.
+- Inspect the existing editor surfaces and Vite example before changing user-facing behaviour or styling. Preserve the established typography, spacing, surfaces and contextual controls.
+- Use `apps/docs/content/docs` for public API, integration, compatibility and migration guidance. Update affected guides with contract changes.
+- Keep private plans, audits, scratch material and local datasets in ignored `.local/` files or a separate private repository.
 
 ## Package boundary
 
@@ -31,7 +31,7 @@ Do not couple the package to YouVersion. Scripture access must pass through a pr
 - Keep modules focused; move reusable pure logic into domain modules rather than UI components.
 - Add tests for persisted data, migrations, transforms, provider contracts, commands, keyboard behaviour, accessibility, and renderer parity in proportion to risk.
 - Maintain keyboard, pointer, touch, screen-reader, reduced-motion, light, and dark-mode behaviour for every interactive primitive.
-- Keep the UI writing-first. Follow the prototype's typography, spacing, surfaces, borders, contextual controls, responsive behaviour, and restrained accent use.
+- Keep the UI writing-first. Preserve the established typography, spacing, surfaces, borders, contextual controls, responsive behaviour, and restrained accent use.
 
 ## Configuration and environment
 
@@ -41,6 +41,6 @@ Do not couple the package to YouVersion. Scripture access must pass through a pr
 
 ## Quality gate
 
-Before presenting a phase for audit, run every repository check defined by `package.json`, including formatting, linting, type checking, tests, build, package validation, and license checks. Inspect the packed npm artifact whenever package exports or dependencies change.
+Before requesting review, run the full `pnpm check` quality gate. Inspect the packed npm artifact whenever package exports or dependencies change.
 
-Record the completed scope, commands and results, known limitations, design decisions, and audit outcome in the phase audit file. Stop after the phase and wait for explicit approval.
+Report the completed scope, verification results and material limitations in the change description. Publishing requires explicit maintainer approval.

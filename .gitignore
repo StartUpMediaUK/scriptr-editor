@@ -13,3 +13,9 @@ examples/vite-react/generated/
 .env
 .env.*
 !.env.example
+
+# Private working notes and generated verification output
+/docs/
+/.local/
+/test-results/
+/playwright-report/

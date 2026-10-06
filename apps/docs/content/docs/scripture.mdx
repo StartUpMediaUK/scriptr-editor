@@ -58,9 +58,9 @@ The provider exposes available books in canonical Genesis-to-Revelation order re
 
 Verse text preserves internal newlines; leading/trailing whitespace is trimmed. Plain-text datasets cannot recover absent poetry breaks, headings, italics or footnotes. This format does not accept arbitrary HTML. Richer provider formatting requires a separately agreed contract rather than guessing missing structure.
 
-## Development CSV conversion
+## Development fixtures
 
-The repository's `scripts/build-development-scripture-data.mjs` converts its known Open Scriptorium CSV fixtures into generated local JSON for `examples/vite-react`. This is a separate development script, not a release importer or a universal CSV converter. Adapt your own script for your source. Private datasets should not be bundled into a public browser build unless their distribution is intended and permitted.
+The repository's `scripts/build-development-scripture-data.mjs` generates three small synthetic datasets for `examples/vite-react`. Sample A, B and C contain invented development text, not Bible translations. Their partial coverage includes Genesis 1, Psalms 23, John 3 and Romans 8 so the example can demonstrate picking, comparison and unavailable passages without distributing external datasets. Source conversion remains host-owned. Private datasets should not be bundled into a public browser build unless their distribution is intended and permitted.
 
 ## YouVersion adapter
 

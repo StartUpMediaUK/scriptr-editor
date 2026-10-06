@@ -24,7 +24,10 @@ describe('consumer documentation', () => {
       'transport',
       'release',
     ];
-    expect(meta).toEqual({ title: 'Scriptr Editor', pages: expectedPages });
+    expect(meta).toEqual({
+      title: 'Scriptr Editor',
+      pages: [...expectedPages, 'reference'],
+    });
     const overview = readFileSync(resolve(contentRoot, 'index.mdx'), 'utf8');
     for (const name of expectedPages) {
       expect(existsSync(resolve(contentRoot, `${name}.mdx`))).toBe(true);

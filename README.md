@@ -16,4 +16,4 @@ pnpm check
 pnpm dev
 ```
 
-The implementation plan and phase audits live in `docs/plans`. Publication requires an explicit approved release audit and separate owner authorization.
+Consumer guides live in `apps/docs/content/docs`. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and release checks. Private working notes belong in ignored `.local/` files or a separate private repository.

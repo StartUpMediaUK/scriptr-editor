@@ -1,0 +1,59 @@
+---
+title: Canonical Document v1
+---
+
+The Canonical Document is the portable persistence and rendering input owned by `scriptr-editor`. Its JSON shape is validated by `canonicalDocumentSchema` and consumed through `createDocumentCodec`; consumers should use the codec rather than coordinating schema, migration, and extension validation themselves.
+
+## Root
+
+```ts
+type CanonicalDocument = {
+  version: 1;
+  content: Block[];
+  references?: Record<string, Reference>;
+};
+```
+
+Version `1` is a document-format version, not the npm package version. All structural IDs are non-empty and unique across blocks and nested list items.
+
+## Inline content and marks
+
+Text and hard breaks form inline content. Text may carry bold, italic, underline, strikethrough, inline-code, external-link, internal-document-link, and Reference-anchor marks. External links require absolute URLs. Internal document targets are opaque host identifiers.
+
+Marks describe authored meaning. Temporary selection, search highlighting, provider loading, and other interaction state are not persisted.
+
+## Core blocks
+
+Version 1 supports:
+
+- paragraph and heading levels 1–6;
+- blockquote, code block, callout, and divider;
+- recursively nested bullet, numbered, and checklist lists;
+- Scripture Block with a Scripture Address and one translation identifier;
+- Translation Comparison with a Scripture Address, ordered unique translations, and one-/two-column layout;
+- image with host asset identity, optional resolved URL and dimensions, alt text, alignment, and shallow caption;
+- namespaced Extension Block with an independent positive version and JSON-compatible data.
+
+Scripture blocks persist addresses and deliberate translation configuration, not resolved passage text or provider credentials.
+
+## Scripture Address
+
+An address stores a canonical book identifier, positive chapter, and optional positive start/end verses. An end verse requires a start verse and cannot precede it. Book can identify a whole book, book plus chapter identifies a chapter, and verse fields narrow the address to a verse or range. The canonical book catalogue and provider conformance rules build on this shape without coupling it to a concrete Scripture provider.
+
+## References
+
+A Reference definition contains one or more shallow paragraph/list-item blocks. Its text permits only bold, italic, underline, and external-link marks. Nested References, complex blocks, images, Scripture content, and internal document links are structurally impossible.
+
+Every Reference definition must have at least one matching anchor mark, and every anchor must have a definition. Removing the final anchor therefore requires removing the definition in the same document transaction.
+
+## Extensions
+
+Registered extension data is validated and migrated to the definition's current extension version during codec parsing. A structurally valid unknown Extension Block is preserved unchanged so documents remain portable when an extension is unavailable. Unknown core Blocks and Marks are rejected.
+
+An extension definition supplies both editable and read-only render functions. Consumers should provide an unavailable-extension fallback when rendering an unknown Extension Block.
+
+## Serialization and migration
+
+Serialization parses and normalizes first, then recursively sorts object keys before JSON encoding. Equal normalized documents produce byte-identical JSON.
+
+The migration registry advances one declared version edge at a time, verifies each produced version, rejects missing/duplicate/non-advancing migrations, rejects future documents, and is a no-op when a document already matches the supported version.

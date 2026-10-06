@@ -1,0 +1,23 @@
+---
+title: Production hardening and integration
+---
+
+## Budgets and compatibility
+
+The package targets current evergreen desktop and mobile browsers, Node 20.19+ SSR, React 18/19 Strict Mode, keyboard/touch input, RTL text, IME composition, reduced motion, and multiple editor instances. The current emitted-file budgets are 900,000 bytes of JavaScript and 120,000 bytes of CSS, enforced by `packages/editor/check-budgets.mjs`. These are not compressed transfer or consumer-bundle measurements. Explicit ESM entry points allow consumers to import document, host, Scripture, extension or React surfaces. Declared support targets remain distinct from the release audit's actually exercised runtime and browser matrix.
+
+Canonical location lookup is pure and engine-independent. A host can index `findDocumentLocations(document, query)`, open its document, then call `editorRef.current.navigateTo(location)` to focus, scroll, select, and briefly highlight the result. Reference results use `kind: 'reference'` with `referenceId`; internal links use `kind: 'internalLink'` with `targetId`; Scripture results use the block ID and `kind: 'scripture'`.
+
+## Neutral host recipe
+
+Provide only capabilities a feature needs: `ScriptureProvider`, `DocumentTargetProvider`, `MediaHost` (or the compatible image-only `ImageHost`), and `BookmarkProvider`. Store the returned Canonical Document in the host's own persistence layer. The editor neither knows nor requires accounts, Pages, routing, quotas, syncing, or sharing.
+
+Register custom persisted content with a collision-resistant extension name, schema, version, sequential migrations, and editable/read-only renderers. Insert an `ExtensionBlock` using `insertExtension`, or contribute a namespaced `slashItems` entry whose `createBlock` returns the canonical block. Duplicate contributed IDs are rejected. Unknown blocks remain portable; failed or missing read-only renderers produce an isolated fallback. Extension migration routes must be unambiguous and move strictly forward.
+
+## Second-consumer example
+
+A podcast product can use the same package for episode notes: inject its own document lookup and image storage, omit Scripture if unused, and register `com.example.podcast.timestamp` as an Extension Block. Its application owns episodes and playback navigation. The Scriptr application can consume the editor with a YouVersion-backed provider and Page lookup. Neither consumer is imported by this package and neither extension requires a core fork.
+
+## Failure and lifecycle expectations
+
+Async providers must honour abort signals. Media resolution and Scripture rendering retain authored identity when unavailable. Bookmark metadata fetches should run through a trusted server-side resolver that applies URL allow-lists, redirect limits, response-size limits, timeouts, and sanitization. Extension rendering errors are reported through `onRenderError` and contained to the failed block. Hosts should unmount editors when documents close, avoid recreating provider objects per render, and treat media removal as a cleanup signal rather than proof an asset is unreferenced.

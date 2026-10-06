@@ -1,0 +1,26 @@
+---
+title: Package policy
+---
+
+## Public surface
+
+Only paths declared by `package.json#exports` are supported public APIs. Consumers must not import `dist` internals. A documented exported API follows semantic versioning; implementation files do not.
+
+The canonical document format has its own explicit version and migration policy. Package versions and document versions are independent.
+
+## Dependencies
+
+- React and React DOM are peer dependencies so hosts retain one renderer instance.
+- Runtime dependencies must provide material package value, be actively maintained, be compatible with MIT distribution, and pass the repository license check.
+- Development-only tooling belongs in `devDependencies` and must not appear in the packed runtime dependency graph.
+- Host services, storage clients, application frameworks, and concrete Scripture providers do not belong in the core package.
+
+## Compatibility
+
+The supported runtime baseline is Node.js 20.19 or newer for package tooling and server-side rendering. Browser support targets current evergreen desktop and mobile browsers. Keyboard, touch-size, screen-reader semantics, reduced motion, RTL direction, responsive layout, light/dark tokens, SSR, and React Strict Mode are release acceptance criteria.
+
+The package publishes ESM and TypeScript declarations. CommonJS output is not currently supported.
+
+## Releases
+
+Releases use semantic versioning, Changesets, npm provenance, and public access. CI validates formatting, lint, types, tests, builds, package shape, clean-consumer imports, and dependency licenses. Publishing requires explicit owner approval.

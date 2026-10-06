@@ -1,0 +1,92 @@
+---
+title: Public API guide
+---
+
+Only `package.json#exports` entry points are public. Importing `dist/*` is unsupported.
+
+## `scriptr-editor/document`
+
+Use `createDocumentCodec` for all persistence boundaries. It validates, normalizes, migrates, serializes and deserializes Canonical Document v2, including the built-in v1-to-v2 migration. `findDocumentLocations` creates engine-neutral navigation results; `extractInternalDocumentLinks` creates host-indexable relationship edges. Persist canonical documents, never Tiptap JSON.
+
+`defineScriptr` assembles feature choices, Host capabilities, extensions, and the configured document codec once. Its resolved `features` enable portable workflows directly and provider-backed workflows only when the required capability is present. Provider credentials and application authentication never belong in this public configuration.
+
+## `scriptr-editor/commands`
+
+`createCommandCatalogue` returns the package-owned command catalogue in Basic, Scripture, Annotation, Layout, Media, and Extension order. Each stable command has a label, icon identifier, written notation, and search keywords. The catalogue filters provider-backed commands using resolved `ScriptrFeatures`, groups search results deterministically, and rejects conflicting Extension command identifiers.
+
+## `scriptr-editor/server`
+
+`createScriptrServer` assembles server-only provider handlers. The framework-neutral Scripture transport preserves typed provider failures and cancellation without exposing provider credentials to browser code. Host applications own HTTP routing, authentication, authorization, and callback URLs.
+
+## `scriptr-editor/react`
+
+`ScriptrEditor` is the controlled/uncontrolled writing surface. Pass the result of `defineScriptr` through `configuration` to expose its capability-aware command set. Scripture, translation comparison, Reference, external-link, internal-link, image, video, audio, and web-bookmark commands open package-owned workflows automatically. Direct provider props remain available for focused integrations. Its ref provides focus, history, block movement, deliberate Scripture, comparison, media, bookmark and extension insertion, Reference and internal-link operations, and canonical-location navigation. `ScriptrRenderer` produces read-only authored output. The picker, uploader, composer, and authored block-content components remain composable for custom Host surfaces.
+
+Import `scriptr-editor/styles.css` once. The renderer and editor accept the same provider and extension capabilities to preserve semantic parity.
+
+## `scriptr-editor/scripture`
+
+Canonical book data, address parsing/formatting/validation, offline structure types, the provider conformance assertion, a deterministic fake provider, and the normalized local-dataset provider live here. Ordinary typed text is never recognized automatically. Provider credentials and remote licensing/cache policy remain host-owned.
+
+### Normalized local Scripture datasets
+
+`parseLocalScriptureDataset` validates host-supplied JSON before `createLocalScriptureProvider` exposes it through the ordinary `ScriptureProvider` interface. Scriptr does not parse CSV, connect to a database, or prescribe how a Host creates this JSON.
+
+```json
+{
+  "version": 1,
+  "translations": [
+    {
+      "id": "PRIVATE",
+      "name": "Private Translation",
+      "abbreviation": "PRV",
+      "languageTag": "en",
+      "attribution": "Private translation",
+      "coverage": "partial",
+      "books": {
+        "GEN": {
+          "1": {
+            "1": "In the beginning…"
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+Book keys use the exported canonical identifiers `GEN`, `EXO`, `LEV`, through `REV`. JSON property order is irrelevant: the provider always exposes books in the package-owned Genesis-to-Revelation order. Chapter and verse keys are positive one-based integers represented as JSON object keys.
+
+Set `coverage` to `complete` only when all 66 canonical books and every chapter are present. Set it to `partial` for a deliberate subset. Validation rejects unknown book identifiers, invalid chapter or verse keys, empty text, duplicate translation IDs, missing complete-translation books or chapters, and chapters beyond the canonical book structure. Zod issues include the exact failing data path.
+
+```ts
+import privateDataset from './private-scripture.json';
+import {
+  createLocalScriptureProvider,
+  parseLocalScriptureDataset,
+} from 'scriptr-editor/scripture';
+
+const scriptureProvider = createLocalScriptureProvider(
+  parseLocalScriptureDataset(privateDataset),
+);
+```
+
+Translation order follows the `translations` array. Each translation requires an ID, name, abbreviation, BCP 47 language tag, attribution, coverage declaration, and books. Optional `copyright` and `license` metadata document the Host's redistribution obligations; the Host remains responsible for verifying and honoring them.
+
+### YouVersion Host adapter
+
+The repository includes a tested Host-side adapter example at `examples/vite-react/youversion-provider.ts`. It deliberately remains outside the reusable editor package: the Host supplies its licensed Bible metadata, locally retained canonical structure, and a server-mediated request function which owns the YouVersion App Key.
+
+The adapter requests plain-text passages, maps canonical addresses to USFM identifiers, preserves configured copyright attribution, prohibits passage caching by default, and converts license, missing-content, rate-limit, and availability failures into `ScriptureProviderError`. Hosts must verify their accepted YouVersion licenses and current display requirements; the adapter does not grant content access or place an App Key in browser code.
+
+## `scriptr-editor/host`
+
+`ScriptureProvider`, `DocumentTargetProvider`, `ImageHost`, `MediaHost`, and `BookmarkProvider` are capability contracts. Pass stable provider objects and honour cancellation. `MediaHost` is the shared image/video/audio seam; `ImageHost` remains as a compatible image-only seam. Bookmark providers resolve normalized HTTP(S) URLs to portable metadata while network fetching and sanitization remain in host code. No credentials or environment variables belong in the package.
+
+## `scriptr-editor/extensions`
+
+`defineExtension` binds a collision-resistant name and independent version to a JSON schema, forward migrations, and editable/read-only logic. `createExtensionRegistry` validates persisted extension blocks and rejects conflicts. React extension renderers may contribute namespaced slash items that return canonical Extension Blocks.
+
+## Compatibility
+
+The package is ESM-only, supports Node 20.19+, React 18.3/19, TypeScript declarations, and current evergreen browsers. Public TypeScript shapes follow semantic versioning after `0.1.0`; Canonical Document versions change only through explicit migrations. Unknown valid Extension Blocks are preserved, while unknown core content is rejected.

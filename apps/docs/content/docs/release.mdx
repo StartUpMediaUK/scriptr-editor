@@ -5,7 +5,7 @@ description: Separate tested implementation behavior from pending release certif
 
 ## Current status
 
-Phase 17 and the main implementation plan are approved as complete, with the documented verification limits accepted. Publication and live application replacement remain separate, unapproved decisions. No npm publication occurs as part of documentation or local package validation.
+The editor implementation is complete, with the verification limits below accepted for the current candidate. npm publication and live application integration remain pending. No npm publication occurs as part of documentation or local package validation.
 
 The package declares ESM exports, React/React DOM 18.3.1 or React 19 peer compatibility, and Node 20.19+ tooling support. A declared range is not proof every runtime/peer combination has been exercised locally.
 
@@ -14,9 +14,9 @@ The package declares ESM exports, React/React DOM 18.3.1 or React 19 peer compat
 - Repository formatting, lint, TypeScript, unit/component tests and production builds.
 - Deterministic document migration and serialization, provider contract tests, commands and history coverage.
 - Packed-artifact ESM/type resolution, consumer import/SSR checks and dependency license policy.
-- Playwright Chromium interaction, responsive, dark theme, emulated touch, reduced motion and forced-color checks recorded in the phase audits.
+- Playwright Chromium interaction, responsive, dark theme, emulated touch, reduced motion and forced-color checks performed during development.
 
-Prior audits do not certify live screen-reader behavior, physical touch devices, every OS IME or every browser engine. Automated accessibility scans also cannot certify arbitrary user-authored colors and host extensions.
+Development verification does not certify live screen-reader behavior, physical touch devices, every OS IME or every browser engine. Automated accessibility scans also cannot certify arbitrary user-authored colors and host extensions.
 
 ## Exercised runtime matrix
 
@@ -34,8 +34,8 @@ Two unused React-19-only private authoring modules are excluded from the runtime
 
 The implementation is a candidate for owner review, not authorization to publish. Live licensed provider verification, physical-device/screen-reader testing and cross-engine certification are not claimed. A release must explicitly accept or resolve those limits and select its version/publication authority.
 
-The release audit inventories provider/example coverage, framework boundaries, migration guidance, the exercised runtime/peer matrix and unresolved verification limits. Live YouVersion validation requires a licensed host and credentials. The docs and harness should not imply otherwise.
+Release review covers provider/example coverage, framework boundaries, migration guidance, the exercised runtime/peer matrix and unresolved verification limits. Live YouVersion validation requires a licensed host and credentials. The docs and harness should not imply otherwise.
 
 Current emitted-file ceilings are 900,000 bytes of JavaScript and 120,000 bytes of CSS, enforced by `check-budgets.mjs`. These measure package build output, not gzip transfer size or an application's final bundle. Vite's existing large-chunk warning remains a consumer-bundling consideration.
 
-Run `pnpm check` from the repository root before presenting the phase for audit. It covers formatting, lint, types, tests, builds, budgets, package/packed-artifact validation and licenses. Changesets/version selection and publication require the owner's release decision; neither a green test run nor this guide grants publication authority.
+Run `pnpm check` from the repository root before requesting review or preparing a release. It covers formatting, lint, types, tests, builds, budgets, package/packed-artifact validation and licenses. Changesets/version selection and publication require the owner's release decision; neither a green test run nor this guide grants publication authority.

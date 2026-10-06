@@ -10,7 +10,6 @@ export default tseslint.config(
       '**/.turbo/**',
       '**/coverage/**',
       '**/dist/**',
-      'docs/prototype/**',
     ],
   },
   eslint.configs.recommended,

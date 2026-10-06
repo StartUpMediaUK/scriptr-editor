@@ -183,13 +183,13 @@ const initialDocument: CanonicalDocument = {
       id: 'scripture-romans',
       type: 'scripture',
       address: { book: 'ROM', chapter: 8, verseStart: 28 },
-      translationId: 'KJV',
+      translationId: 'SAMPLE_A',
     },
     {
       id: 'comparison-romans',
       type: 'translationComparison',
       address: { book: 'ROM', chapter: 8, verseStart: 28 },
-      translationIds: ['KJV', 'BSB', 'WEBBE'],
+      translationIds: ['SAMPLE_A', 'SAMPLE_B', 'SAMPLE_C'],
       layout: 'twoColumn',
     },
     {
@@ -409,7 +409,7 @@ const workbenchScenarios: readonly WorkbenchScenario[] = [
   {
     id: 'scripture',
     label: 'Scripture',
-    description: 'Real local passages, comparison, and address editing.',
+    description: 'Synthetic samples, comparison, and address editing.',
     document: {
       version: 2,
       content: [
@@ -423,13 +423,13 @@ const workbenchScenarios: readonly WorkbenchScenario[] = [
           id: 'scripture-single',
           type: 'scripture',
           address: { book: 'JHN', chapter: 3, verseStart: 16, verseEnd: 17 },
-          translationId: 'BSB',
+          translationId: 'SAMPLE_B',
         },
         {
           id: 'scripture-comparison',
           type: 'translationComparison',
           address: { book: 'PSA', chapter: 23, verseStart: 1, verseEnd: 4 },
-          translationIds: ['KJV', 'BSB', 'WEBBE'],
+          translationIds: ['SAMPLE_A', 'SAMPLE_B', 'SAMPLE_C'],
           layout: 'twoColumn',
         },
       ],
@@ -952,7 +952,7 @@ function DevelopmentHarness({
                     id: `scripture-${Date.now()}`,
                     type: 'scripture',
                     address,
-                    translationId: 'KJV',
+                    translationId: 'SAMPLE_A',
                   },
                 ],
               }));

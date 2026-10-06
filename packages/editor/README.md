@@ -25,7 +25,7 @@ pnpm check
 pnpm dev
 ```
 
-The Vite development harness follows the design system in `docs/prototype/Scriptr.html`, which is authoritative for user-facing visual and interaction decisions.
+The Vite development harness demonstrates the public editor APIs and maintained design system. Consumer guides and runnable framework examples live in `apps/docs`.
 
 ## Foundation interfaces
 
@@ -48,9 +48,9 @@ Keep credentials in server-only application code. `createScriptrServer` from `sc
 
 Consumer guides are available in the repository's [documentation source](https://github.com/StartUpMediaUK/scriptr-editor/tree/main/apps/docs/content/docs), with a runnable Next.js example in the documentation application. These repository links remain usable from the packed README; documentation source is not shipped in the npm artifact.
 
-See the [API guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/docs/api.md), [canonical document guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/docs/canonical-document-v1.md), and [architecture guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/docs/architecture.md) for persisted formats, extension contracts and host seams.
+See the [API guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/apps/docs/content/docs/reference/api.mdx), [canonical document guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/apps/docs/content/docs/reference/canonical-document-v1.mdx), and [architecture guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/apps/docs/content/docs/reference/architecture.mdx) for persisted formats, extension contracts and host seams.
 
-Production integration, canonical search-result navigation, extension failure isolation and bundle budgets are documented in the [production integration guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/docs/production-hardening.md).
+Production integration, canonical search-result navigation, extension failure isolation and bundle budgets are documented in the [production integration guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/apps/docs/content/docs/reference/production-hardening.mdx).
 
 ## React editor
 
@@ -105,7 +105,7 @@ const scriptureProvider = createLocalScriptureProvider(
 );
 ```
 
-The provider ignores JSON property order and exposes canonical books from Genesis through Revelation. See `docs/api.md` in the repository for the normalized dataset fields, coverage rules, canonical identifiers, and validation behavior.
+The provider ignores JSON property order and exposes canonical books from Genesis through Revelation. See the [API reference](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/apps/docs/content/docs/reference/api.mdx) for the normalized dataset fields, coverage rules, canonical identifiers, and validation behavior.
 
 Pass the same provider to editable and read-only contexts so Scripture and Translation Comparison blocks resolve identically and always retain their address when passage text is unavailable:
 
