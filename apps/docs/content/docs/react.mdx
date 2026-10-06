@@ -1,0 +1,59 @@
+---
+title: React integration
+description: Use the same canonical document and capabilities for editable and read-only output.
+---
+
+## Install and import
+
+Use React and React DOM 18.3.1 or supported React 19 versions together. The package is ESM-only. Development and SSR tooling require Node 20.19 or newer.
+
+```sh
+pnpm add scriptr-editor react react-dom
+```
+
+The command assumes a published version is available. For the current repository, use its workspace dependency or install the validated tarball; no release is published by these examples.
+
+Import `scriptr-editor/styles.css` once in your application stylesheet or entry point. The stylesheet is precompiled; the consumer does not need to scan private package source with Tailwind.
+
+## Controlled editor
+
+```tsx
+import { useState } from 'react';
+import type { CanonicalDocument } from 'scriptr-editor/document';
+import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
+
+const initialDocument: CanonicalDocument = {
+  version: 2,
+  content: [{ id: 'opening', type: 'paragraph', content: [] }],
+};
+
+export function WritingSurface() {
+  const [document, setDocument] = useState(initialDocument);
+  return (
+    <>
+      <ScriptrEditor value={document} onChange={setDocument} />
+      <ScriptrRenderer document={document} />
+    </>
+  );
+}
+```
+
+`onChange` supplies a canonical document. Persist it through a document codec in your own storage layer. An uncontrolled editor may use `defaultValue`; do not pass both controlled and uncontrolled values.
+
+Use `defineScriptr({ capabilities })` to assemble feature availability and pass the result as `configuration` to the editor. The renderer does not accept that configuration object: pass the same `scriptureProvider`, `mediaHost`, `imageHost`, `documentTargetProvider` and extension renderers explicitly where relevant. Reuse provider instances rather than recreating them on every keystroke.
+
+Do not copy editor DOM or Tiptap JSON into storage. Do not implement a second read-only rendering tree that loses Scripture identity, annotations or media presentation.
+
+## Vite
+
+Import package CSS in `main.tsx` or your global stylesheet. `examples/vite-react` is a runnable development consumer using public APIs. From the repository root, run `pnpm dev`. Its scenario fixtures and local asset storage are development tools, not production application features.
+
+## Next.js App Router
+
+The documentation application includes a runnable [Next.js consumer example](/example). Its server page validates canonical data and passes it to a small client boundary with controlled editing and read-only output. Changes are intentionally in-memory, not saved. Run `pnpm --filter @scriptr/docs dev` from the repository root to open it locally.
+
+Place the interactive editor in a module with `'use client'`. Import package CSS from the root layout's stylesheet. Pass serializable canonical data across the server/client boundary, not provider objects or functions. Construct browser-facing capabilities in the client module; keep credentials and upstream requests on the server.
+
+Read-only rendering is SSR-compatible, but Scripture and host-resolved media use client effects to resolve content. Server HTML retains authored identity/loading states; it does not claim to prefetch protected passage text. If initial server-rendered passage text is required, that needs a separately designed host integration.
+
+Unmount the editor when its document closes. Handle saves, save errors and concurrent document versions in the application. The editor does not supply autosave storage, conflict resolution or offline synchronization.

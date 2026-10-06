@@ -13,6 +13,14 @@ import { join, resolve } from 'node:path';
 const projectRoot = resolve(import.meta.dirname);
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'scriptr-editor-pack-'));
 const pnpmCli = process.env.npm_execpath;
+const runtimePaths = [process.execPath];
+for (let index = 2; index < process.argv.length; index += 2) {
+  if (process.argv[index] !== '--runtime' || !process.argv[index + 1])
+    throw new Error(
+      'Use --runtime followed by an absolute Node executable path.',
+    );
+  runtimePaths.push(resolve(process.argv[index + 1]));
+}
 
 if (!pnpmCli) {
   throw new Error('pnpm did not provide its CLI path to the package check.');
@@ -86,16 +94,37 @@ try {
     );
   }
 
+  if (
+    contents.some((file) =>
+      /package\/dist\/components\/ui\/(message-scroller|questionnaire)\./.test(
+        file,
+      ),
+    )
+  )
+    throw new Error(
+      'Development-only React 19 UI modules leaked into the runtime artifact.',
+    );
+
   const fixtureDirectory = join(temporaryDirectory, 'fixture');
   mkdirSync(fixtureDirectory);
   writeFileSync(
     join(fixtureDirectory, 'package.json'),
     JSON.stringify({ private: true, type: 'module' }),
   );
-  runPnpm(['install', '--ignore-scripts', tarballPath], {
-    cwd: fixtureDirectory,
-    stdio: 'inherit',
-  });
+  runPnpm(
+    [
+      'install',
+      '--ignore-scripts',
+      '--strict-peer-dependencies',
+      tarballPath,
+      'react@18.3.1',
+      'react-dom@18.3.1',
+    ],
+    {
+      cwd: fixtureDirectory,
+      stdio: 'inherit',
+    },
+  );
   const importedName = execFileSync(
     'node',
     [
@@ -144,6 +173,50 @@ try {
     throw new Error(
       'Installed package does not contain expected declarations.',
     );
+  }
+
+  const smoke = `
+    import assert from 'node:assert/strict';
+    import { createElement, StrictMode } from 'react';
+    import { renderToString } from 'react-dom/server';
+    import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
+    import { createDocumentCodec } from 'scriptr-editor/document';
+    import { createLocalScriptureProvider, parseLocalScriptureDataset } from 'scriptr-editor/scripture';
+    const document = createDocumentCodec().parse({ version: 2, content: [{ id: 'p', type: 'paragraph', content: [{ type: 'text', text: 'Packed consumer text' }] }] });
+    assert.match(renderToString(createElement(StrictMode, null, createElement(ScriptrRenderer, { document }))), /Packed consumer text/);
+    assert.equal(typeof renderToString(createElement(StrictMode, null, createElement(ScriptrEditor, { defaultValue: document }))), 'string');
+    const provider = createLocalScriptureProvider(parseLocalScriptureDataset({ version: 1, translations: [{ id: 'fixture', name: 'Fixture', abbreviation: 'F', languageTag: 'en', attribution: 'Fixture', coverage: 'partial', books: { GEN: { '1': { '1': 'Packed fixture verse' } } } }] }));
+    assert.equal((await provider.getPassage({ book: 'GEN', chapter: 1, verseStart: 1 }, 'fixture')).text, 'Packed fixture verse');
+    process.stdout.write(process.version);
+  `;
+  for (const reactVersion of ['18.3.1', '19.3.0']) {
+    if (reactVersion !== '18.3.1')
+      runPnpm(
+        [
+          'add',
+          '--ignore-scripts',
+          '--strict-peer-dependencies',
+          `react@${reactVersion}`,
+          `react-dom@${reactVersion}`,
+        ],
+        {
+          cwd: fixtureDirectory,
+          stdio: 'inherit',
+        },
+      );
+    for (const runtimePath of new Set(runtimePaths)) {
+      const version = execFileSync(
+        runtimePath,
+        ['--input-type=module', '--eval', smoke],
+        {
+          cwd: fixtureDirectory,
+          encoding: 'utf8',
+        },
+      );
+      console.log(
+        `Packed SSR/provider smoke passed: Node ${version}, React ${reactVersion}.`,
+      );
+    }
   }
 
   const archives = readdirSync(temporaryDirectory).filter((file) =>

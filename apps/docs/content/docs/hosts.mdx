@@ -1,0 +1,34 @@
+---
+title: Media and host capabilities
+description: Implement application-owned storage and lookup without coupling the editor to a backend.
+---
+
+## Media
+
+`MediaHost` supports image, audio and video. Implement `upload`, `resolve` and `onRemoved`, with optional `validate` and `replace`. Upload inputs carry the media kind, a Blob and optional progress/abort handling. Results contain a stable asset ID, kind, source URL and applicable dimensions/duration metadata.
+
+Connect the host through `defineScriptr({ capabilities: { media: mediaHost } })` and the editor's `configuration`. Pass `mediaHost` separately to the renderer. Existing image-only integrations can continue using `ImageHost`.
+
+Validate content and permissions on the server, not only MIME labels supplied by a browser. Keep storage credentials out of the editor. Resolve stable IDs to current accessible URLs, and avoid persisting expiring URLs as the only usable identity. Replacement should preserve access to previous assets when undo/history or other documents still reference them.
+
+`onRemoved` is a cleanup notification, not permission to immediately destroy shared data. The application decides reference counting, retention and garbage collection.
+
+Replacement opens a file chooser, validates the selected kind, calls the host and displays failures without discarding the previous block. Retry may select the same file. Controls requiring absent host/callback capabilities are disabled.
+
+The Vite harness stores replacement files as browser object URLs for the current session. They are not durable storage and stop working after that session ends. Do not ship this development host as production persistence.
+
+## Image crops and audio waveforms
+
+Image crop presets control a non-destructive cover-fit frame: square 1:1, landscape 16:9, portrait 4:5, or original intrinsic ratio. Width edits preserve that ratio. Direct resize handles are deferred. The source file is not rewritten or exported as a cropped bitmap.
+
+Audio bars are derived from decoded samples across channels, not a generic pattern. Analysis fetches and decodes the complete file, so long recordings consume additional bandwidth and memory. Cross-origin servers must allow CORS. Unsupported codecs or inaccessible sources show an unavailable state without fabricated bars; playback remains independent. The compact peak envelope is not a calibrated loudness meter.
+
+Video currently uses native browser playback controls. Further custom player and caption visual design remains deferred.
+
+## Other host capabilities
+
+`DocumentTargetProvider` supplies search/lookup for opaque document IDs. The host owns navigation, indexing and backlinks; pass link-opening callbacks to the renderer.
+
+`BookmarkProvider` supplies portable metadata for normalized HTTP(S) URLs. Resolve metadata on a trusted server with SSRF protection, redirect/size limits, sanitization and timeouts. Do not fetch arbitrary user URLs with unrestricted server access.
+
+Lightweight References require no external provider. Their definitions live in the canonical document and are deliberately limited annotations, not nested application documents. Removing an annotation preserves its anchored text.

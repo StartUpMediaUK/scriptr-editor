@@ -1,0 +1,32 @@
+---
+title: Documents and migration
+description: Persist portable canonical v2 documents and validate them at application boundaries.
+---
+
+## Persist canonical data
+
+```ts
+import { createDocumentCodec } from 'scriptr-editor/document';
+
+const codec = createDocumentCodec();
+const document = codec.deserialize(storedJson);
+const portableJson = codec.serialize(document);
+```
+
+For an already parsed unknown value, use `codec.parse(value)`. Invalid input throws `DocumentValidationError` with structured issues. Catch it at the application's load/save boundary and provide a recovery path; do not replace unreadable data with an empty document automatically.
+
+Canonical v2 stores serializable blocks, inline marks, stable identities and Reference definitions. Application state such as authentication, autosave status, playback position and waveform samples does not belong in it. The public codec gives deterministic serialization; it does not provide encryption, storage or synchronization.
+
+## Migration
+
+The codec includes deterministic canonical v1-to-v2 migration. Preserve the original stored payload before migrating and validate the result before saving. Do not reinterpret arbitrary Tiptap JSON as canonical v1. Unknown future document versions are not silently downgraded.
+
+Register persisted extensions with the same configuration when loading and editing. Extensions own versioned payload schemas and forward migrations; choose collision-resistant names. React extension renderers are separate from pure document validation. Missing or failed extension rendering should preserve portable identity/data rather than deleting it.
+
+Use public APIs from `scriptr-editor/extensions`, `defineReactExtension` and the codec/configuration contracts. Do not import internal engine adapters to make a consumer fork. Application import/export orchestration remains outside the package.
+
+## Retained identity
+
+Scripture blocks retain addresses and translation choices even when text is unavailable. Media retains asset IDs. Internal document links retain opaque target IDs. Reference anchors and definitions travel together through canonical documents and supported editor clipboard/history operations.
+
+Pass the same capabilities and extension definitions to editable/read-only contexts. Renderer output excludes editing chrome; the canonical model remains the source of truth.

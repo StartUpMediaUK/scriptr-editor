@@ -1,6 +1,37 @@
 ---
 title: Scriptr Editor
-description: Documentation workspace reserved for the reusable Scripture-aware editor.
+description: Integrate the reusable Scripture-aware editor without coupling your application to its development harness.
 ---
 
-The documentation application is ready for content that will be written in a later audited phase.
+Scriptr Editor provides rich-text editing, portable canonical documents, Scripture references and comparisons, lightweight annotations, media blocks, extension seams and read-only rendering.
+
+Your application owns storage, authentication, workspaces, routing and synchronization. The editor receives only the capabilities it needs through typed props and provider contracts.
+
+The package is under development. These guides describe the current implementation, not a published replacement release or a guarantee of exhaustive browser certification.
+
+## Start here
+
+- [React integration](/docs/react): controlled editing, read-only rendering, and Vite/Next.js boundaries.
+- [Styling and presentation](/docs/styling): import the shipped CSS and configure typography and themes.
+- [Scripture providers](/docs/scripture): normalized private datasets, canonical book ordering and the YouVersion adapter.
+- [Media and host capabilities](/docs/hosts): replacement, asset lifetime, document links and bookmarks.
+- [Documents and migration](/docs/documents): validate and persist canonical v2 rather than editor-engine JSON.
+- [Extension recipes](/docs/extensions): separate payload registration, migration and React rendering.
+- [Scripture transport recipe](/docs/transport): exercise the server/browser seam without inventing a backend.
+- [Compatibility and release status](/docs/release): what is verified, what remains pending, and release authority.
+
+## Public entry points
+
+| Entry point                 | Purpose                                                   |
+| --------------------------- | --------------------------------------------------------- |
+| `scriptr-editor`            | Configuration and presentation contracts                  |
+| `scriptr-editor/document`   | Canonical documents, validation, migration and transforms |
+| `scriptr-editor/commands`   | Command catalogue                                         |
+| `scriptr-editor/host`       | Typed provider and host capabilities                      |
+| `scriptr-editor/scripture`  | Addresses, normalized datasets and provider transport     |
+| `scriptr-editor/extensions` | Persisted extension registration and migration            |
+| `scriptr-editor/react`      | Completed editor, renderer and feature components         |
+| `scriptr-editor/server`     | Framework-neutral Scripture transport handler             |
+| `scriptr-editor/styles.css` | Compiled editor styles, motion and scrollbar defaults     |
+
+Base shadcn controls are private implementation details. Build your application's controls in your own component library; do not import the editor's internal Select, Dialog or Button modules.

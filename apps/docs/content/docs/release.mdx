@@ -1,0 +1,41 @@
+---
+title: Compatibility and release status
+description: Separate tested implementation behavior from pending release certification.
+---
+
+## Current status
+
+Phase 17 and the main implementation plan are approved as complete, with the documented verification limits accepted. Publication and live application replacement remain separate, unapproved decisions. No npm publication occurs as part of documentation or local package validation.
+
+The package declares ESM exports, React/React DOM 18.3.1 or React 19 peer compatibility, and Node 20.19+ tooling support. A declared range is not proof every runtime/peer combination has been exercised locally.
+
+## Verified foundation
+
+- Repository formatting, lint, TypeScript, unit/component tests and production builds.
+- Deterministic document migration and serialization, provider contract tests, commands and history coverage.
+- Packed-artifact ESM/type resolution, consumer import/SSR checks and dependency license policy.
+- Playwright Chromium interaction, responsive, dark theme, emulated touch, reduced motion and forced-color checks recorded in the phase audits.
+
+Prior audits do not certify live screen-reader behavior, physical touch devices, every OS IME or every browser engine. Automated accessibility scans also cannot certify arbitrary user-authored colors and host extensions.
+
+## Exercised runtime matrix
+
+| Node runtime (Windows) | Editor tests with workspace React 19.1.1 | Packed React 18.3.1 SSR/provider smoke | Packed React 19.3.0 SSR/provider smoke |
+| ---------------------- | ---------------------------------------- | -------------------------------------- | -------------------------------------- |
+| 20.19.0                | 142 passed                               | Passed                                 | Passed                                 |
+| 22.14.0                | 142 passed                               | Passed                                 | Passed                                 |
+| 26.7.0                 | 142 passed in the full local gate        | Passed                                 | Passed                                 |
+
+Packed installs enforce strict peer dependencies. The smoke checks import the installed tarball, render the editor and renderer under React Strict Mode on the server, and resolve a local Scripture passage. They do not certify React 18 interactive browser behavior or every version within a peer range. The ordinary package gate repeats React 18/19 packed smoke checks under its invoking Node runtime; optional `--runtime` paths exercise additional installed Node executables without changing the system runtime.
+
+Two unused React-19-only private authoring modules are excluded from the runtime artifact; their dependency remains development-only. Public runtime components and APIs are unchanged.
+
+## Replacement decision
+
+The implementation is a candidate for owner review, not authorization to publish. Live licensed provider verification, physical-device/screen-reader testing and cross-engine certification are not claimed. A release must explicitly accept or resolve those limits and select its version/publication authority.
+
+The release audit inventories provider/example coverage, framework boundaries, migration guidance, the exercised runtime/peer matrix and unresolved verification limits. Live YouVersion validation requires a licensed host and credentials. The docs and harness should not imply otherwise.
+
+Current emitted-file ceilings are 900,000 bytes of JavaScript and 120,000 bytes of CSS, enforced by `check-budgets.mjs`. These measure package build output, not gzip transfer size or an application's final bundle. Vite's existing large-chunk warning remains a consumer-bundling consideration.
+
+Run `pnpm check` from the repository root before presenting the phase for audit. It covers formatting, lint, types, tests, builds, budgets, package/packed-artifact validation and licenses. Changesets/version selection and publication require the owner's release decision; neither a green test run nor this guide grants publication authority.

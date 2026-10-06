@@ -1,0 +1,42 @@
+---
+title: Extension recipes
+description: Register portable payloads independently from React rendering and migrate them explicitly.
+---
+
+The executable consumer recipe is `examples/vite-react/extension-recipe.tsx`; its tests run in the example application's ordinary typecheck/test gate. It defines a timed note for a hypothetical podcast product without importing episode storage or playback state into the editor.
+
+## Register persistence and rendering separately
+
+`timedNoteRegistration` implements `ExtensionRegistration`: a collision-resistant name, current payload version, `parseData` validator and forward migration routes. The example validates a nonnegative finite position and nonempty label without requiring the host to use a particular schema library. `defineExtension` is also available for hosts using Zod schemas.
+
+`createTimedNoteRenderer` uses `defineReactExtension` to provide editable/read-only output and a namespaced slash item. Register the persistence definition with your codec/configuration and the React definition with editor/renderer props:
+
+```tsx
+import { defineScriptr } from 'scriptr-editor';
+import { ScriptrEditor, ScriptrRenderer } from 'scriptr-editor/react';
+import {
+  createTimedNoteRenderer,
+  timedNoteRegistration,
+} from './extension-recipe';
+
+const configuration = defineScriptr({ extensions: [timedNoteRegistration] });
+const extensions = [createTimedNoteRenderer()];
+
+<ScriptrEditor
+  configuration={configuration}
+  extensions={extensions}
+  value={document}
+  onChange={setDocument}
+/>;
+<ScriptrRenderer document={document} extensions={extensions} />;
+```
+
+The import path is your copied/adapted host module, not an npm package export. The recipe's readonly and editable views intentionally show the same authored note; it does not implement seeking or application playback controls. Compose any application actions with your own UI components and callbacks.
+
+## Migrate payload versions
+
+The recipe migrates extension payload version 1 (`seconds`) to version 2 (`positionSeconds`). Canonical document version 2 is a separate version number. Parse stored data through the codec before handing it to the renderer; React rendering is not a substitute for persisted-data migration.
+
+Tests exercise migration, deterministic codec round-trip, invalid payload rejection, future registered-version rejection and slash-block creation. Keep backups before migrations. Unknown extension definitions preserve portable content; known definitions with unsupported payload versions fail validation rather than silently losing data.
+
+Do not build a consumer fork by importing private node views or changing engine JSON. Your extension must maintain its own migration and accessibility behavior; application navigation, playback, accounts and persistence remain host responsibilities.

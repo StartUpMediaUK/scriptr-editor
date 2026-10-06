@@ -1,0 +1,41 @@
+---
+title: Styling and presentation
+description: Import the shipped editor stylesheet and keep application controls independent.
+---
+
+## Import the stylesheet once
+
+Your global CSS may include:
+
+```css
+@import 'tailwindcss';
+@import 'scriptr-editor/styles.css';
+```
+
+The Tailwind import is for applications using Tailwind; package CSS itself is already compiled. A non-Tailwind consumer can import only the package stylesheet from its JavaScript entry point. Framework CSS import rules still apply.
+
+The package includes its editor layout, contextual controls, portalled component styling, motion rules, list markers and scrollbar defaults. Default WebKit scrollbar styling is global by design; Firefox uses its corresponding scrollbar properties. Hosts may deliberately override defaults after the import.
+
+Do not export or share the package's private shadcn primitives with your application. The development harness owns its own shadcn components and Tailwind setup. Reuse completed public feature components such as `ScripturePicker`, `ReferenceEditor` and `MediaUploader` rather than assembling dialogs from private primitives.
+
+## Presentation provider
+
+```tsx
+import {
+  ScriptrEditor,
+  ScriptrPresentationProvider,
+  ScriptrPresentationSurface,
+} from 'scriptr-editor/react';
+
+<ScriptrPresentationProvider>
+  <ScriptrPresentationSurface>
+    <ScriptrEditor defaultValue={document} />
+  </ScriptrPresentationSurface>
+</ScriptrPresentationProvider>;
+```
+
+Wrap the renderer in the same presentation context to keep typography and theme aligned. `useScriptrPresentation` exposes the resolved preferences, `update` and `reset` to your own settings panel. Controlled preferences use `value` and `onChange`; the application owns their persistence.
+
+Themes, fonts and overrides use the documented presentation contracts exported from `scriptr-editor`. Use scoped semantic `--scriptr-*` tokens for deliberate overrides instead of rewriting the editor's layout or reaching into private component classes. Package portals inherit their owning presentation context, so multiple differently themed editor instances remain independent.
+
+The CSS does not fetch remote fonts. Self-host the selected fonts if exact typography is required; otherwise declared fallbacks apply. Respect font licenses and reduced-motion settings. Arbitrary authored text/background colors can reduce contrast; the default palette cannot guarantee accessibility for every host override.

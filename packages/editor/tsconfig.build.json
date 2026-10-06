@@ -12,5 +12,11 @@
     "types": []
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/test-*.ts"]
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/test-*.ts",
+    "src/components/ui/message-scroller.tsx",
+    "src/components/ui/questionnaire.tsx"
+  ]
 }

@@ -46,9 +46,11 @@ const portableJson = scriptr.documents.serialize(document);
 
 Keep credentials in server-only application code. `createScriptrServer` from `scriptr-editor/server` exposes framework-neutral provider handlers that an application can place behind its authenticated routes.
 
-See `docs/api.md`, `docs/canonical-document-v1.md`, and `docs/architecture.md` for the public API, persisted format, extension contract, host seams, and compatibility policy.
+Consumer guides are available in the repository's [documentation source](https://github.com/StartUpMediaUK/scriptr-editor/tree/main/apps/docs/content/docs), with a runnable Next.js example in the documentation application. These repository links remain usable from the packed README; documentation source is not shipped in the npm artifact.
 
-Production integration, canonical search-result navigation, extension failure isolation, and bundle budgets are documented in `docs/production-hardening.md`.
+See the [API guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/docs/api.md), [canonical document guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/docs/canonical-document-v1.md), and [architecture guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/docs/architecture.md) for persisted formats, extension contracts and host seams.
+
+Production integration, canonical search-result navigation, extension failure isolation and bundle budgets are documented in the [production integration guide](https://github.com/StartUpMediaUK/scriptr-editor/blob/main/docs/production-hardening.md).
 
 ## React editor
 

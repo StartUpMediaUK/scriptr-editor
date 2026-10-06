@@ -1,4 +1,14 @@
 {
   "title": "Scriptr Editor",
-  "pages": ["index"]
+  "pages": [
+    "index",
+    "react",
+    "styling",
+    "scripture",
+    "hosts",
+    "documents",
+    "extensions",
+    "transport",
+    "release"
+  ]
 }

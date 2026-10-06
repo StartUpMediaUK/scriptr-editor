@@ -1,0 +1,71 @@
+---
+title: Scripture providers
+description: Supply normalized private datasets or a host-managed remote provider.
+---
+
+## Provider contract
+
+`ScriptureProvider` from `scriptr-editor/host` supplies `listTranslations`, `getStructure`, `canonicalizeAddress` and `getPassage`. Its passage result includes text, attribution and a cache policy; optional ordered `verses` preserve verse boundaries for markers. Provider implementations own licensing and text access. Hosts own storage, caching and credentials.
+
+Pass the same provider to the editor and renderer. Scripture blocks persist the address and translation selection, not a copy of licensed passage text. Provider failures retain the authored address rather than deleting the block.
+
+## Normalized private JSON
+
+You write the source-conversion script. The editor does not assume a CSV column layout, ingest CSV, provision a database or generate your private dictionary.
+
+This is a valid partial dataset containing Genesis 1:1:
+
+```json
+{
+  "version": 1,
+  "translations": [
+    {
+      "id": "private-kjv",
+      "name": "Private King James sample",
+      "abbreviation": "KJV",
+      "languageTag": "en",
+      "attribution": "King James Version — private sample dataset",
+      "coverage": "partial",
+      "books": {
+        "GEN": {
+          "1": {
+            "1": "In the beginning God created the heaven and the earth."
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+```ts
+import datasetJson from './private-scripture.json';
+import {
+  createLocalScriptureProvider,
+  parseLocalScriptureDataset,
+} from 'scriptr-editor/scripture';
+
+export const scriptureProvider = createLocalScriptureProvider(
+  parseLocalScriptureDataset(datasetJson),
+);
+```
+
+Translation IDs must be unique. Book keys use `canonicalBookDefinitions`/`canonicalBooks` exported from `scriptr-editor/scripture`, not localized names or alphabetical order. Chapter and verse keys are positive, one-based integer strings. Verse values must be nonempty text. Optional `copyright` and `license` metadata describe your source; they do not grant redistribution rights.
+
+`coverage: 'complete'` requires all 66 canonical books and every canonical chapter. It does not certify textual fidelity or that every possible verse is present. `partial` accepts deliberate subsets. Missing verses inside a requested passage produce a not-found failure; they are not silently filled from another translation.
+
+The provider exposes available books in canonical Genesis-to-Revelation order regardless of JSON property order. Translation choices retain the dataset's translation array order. Structure uses available verse coverage across translations, so a selectable address may still be unavailable in a particular partial translation.
+
+Verse text preserves internal newlines; leading/trailing whitespace is trimmed. Plain-text datasets cannot recover absent poetry breaks, headings, italics or footnotes. This format does not accept arbitrary HTML. Richer provider formatting requires a separately agreed contract rather than guessing missing structure.
+
+## Development CSV conversion
+
+The repository's `scripts/build-development-scripture-data.mjs` converts its known Open Scriptorium CSV fixtures into generated local JSON for `examples/vite-react`. This is a separate development script, not a release importer or a universal CSV converter. Adapt your own script for your source. Private datasets should not be bundled into a public browser build unless their distribution is intended and permitted.
+
+## YouVersion adapter
+
+`examples/vite-react/youversion-provider.ts` exports `createYouVersionScriptureProvider`. It is a reference adapter, not an exported package dependency or a built-in network client. Supply licensed Bible metadata, canonical structure and a server-mediated `request` function. Copy/adapt this example into the host that owns the integration.
+
+The adapter maps known upstream failures into `ScriptureProviderError`, rejects unconfigured translations and returns a forbidden cache policy. Its mocked tests do not certify a live licensed account or the upstream service. Keep app keys out of browser bundles and canonical documents. Live validation requires host credentials and explicit authorization; none are configured by this guide.
+
+For browser/server separation, `createRemoteScriptureProvider` and `createScriptureTransportHandler` provide a typed transport seam. `createScriptrServer` wraps the handler; it is not an HTTP server. The host still authenticates routes, validates transport inputs and applies licensing, timeouts and rate limits. Use `assertScriptureProviderConformance` with known fixture addresses to verify a custom provider before connecting it to the UI.

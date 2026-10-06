@@ -1,0 +1,27 @@
+---
+title: Scripture transport recipe
+description: Exercise browser/server provider contracts without creating an application backend.
+---
+
+`examples/vite-react/transport-recipe.ts` is an executable in-process contract recipe. It connects a server-side provider through `createScriptrServer` to `createRemoteScriptureProvider`. Its tests preserve canonicalization, translation metadata, passage text, verse boundaries, attribution and typed failures, and reject already-aborted dispatch.
+
+```ts
+import { createScriptrServer } from 'scriptr-editor/server';
+import { createRemoteScriptureProvider } from 'scriptr-editor/scripture';
+
+const server = createScriptrServer({ scripture: serverProvider });
+if (!server.scripture) throw new Error('Scripture provider is required.');
+const browserProvider = createRemoteScriptureProvider(server.scripture);
+```
+
+This deliberately runs in one process for tests. It is not an HTTP route, authentication mechanism, database API or production client/server deployment. In production the browser must not receive the server provider or its credentials.
+
+## Host-owned HTTP boundary
+
+Supply a `ScriptureTransport` function that posts a typed request to your own route and returns a validated `ScriptureTransportResponse`. Treat network JSON as unknown until you validate it. A TypeScript annotation or `response.json()` alone does not perform runtime validation.
+
+The route owns authentication, authorization/licensing, request validation, body-size limits, cancellation, upstream timeouts and rate limiting. Do not blindly spread untrusted route input into the provider handler. Do not expose raw upstream errors or app keys. Retry policies must respect typed `retryable` failures and service limits.
+
+Pass the abort signal through your fetch and provider request implementation. The recipe checks cancellation before dispatch and after the response, preventing a completed cancelled request from being presented as a successful result. Provider failures retain their reason and retryability across the transport.
+
+Keep app-specific route/security code in your application. The package intentionally does not provide a universal HTTP framework, private dataset database or credentials loader.
