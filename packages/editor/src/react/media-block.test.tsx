@@ -264,13 +264,14 @@ describe('media blocks', () => {
       screen.getByRole('button', { name: 'Playback speed' }),
     ).toHaveTextContent('1.25×');
     fireEvent.click(screen.getByRole('button', { name: 'Edit caption' }));
-    fireEvent.change(screen.getByLabelText('audio caption'), {
+    fireEvent.change(screen.getByLabelText('Audio transcript'), {
       target: { value: 'A transcript.' },
     });
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         transcript: [{ type: 'text', text: 'A transcript.' }],
       }),
+      { source: 'input' },
     );
   });
 });

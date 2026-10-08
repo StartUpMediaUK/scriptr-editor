@@ -168,6 +168,7 @@ describe('ImageBlockContent', () => {
       expect.objectContaining({
         caption: [{ type: 'text', text: 'Updated caption' }],
       }),
+      { source: 'input' },
     );
   });
 });

@@ -1,3 +1,9 @@
+import {
+  AnnotationContext,
+  FieldNavigationContext,
+  FieldHistoryContext,
+} from './annotation-content.js';
+import { mediaTextRegions, regionForAnchor } from './media-regions.js';
 import DragHandle from '@tiptap/extension-drag-handle-react';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { EditorState, NodeSelection, TextSelection } from '@tiptap/pm/state';
@@ -822,6 +828,7 @@ export const ScriptrEditor = forwardRef<
       ),
     [],
   );
+  const [fieldNavigation, setFieldNavigation] = useState<DocumentAnchor>();
   const [initialDocument] = useState(
     () => value ?? defaultValue ?? emptyDocument,
   );
@@ -1169,6 +1176,10 @@ export const ScriptrEditor = forwardRef<
             : 'input';
       previousRedoDepth.current = depth;
       const combined = EditorState.create({ doc: transaction.before }).tr;
+      combined.setMeta(
+        'scriptrFieldEdit',
+        transaction.getMeta('scriptrFieldEdit'),
+      );
       for (const change of [transaction, ...appendedTransactions])
         for (const step of change.steps) combined.step(step);
       const rawUndoDepth: unknown = undoDepth(updatedEditor.state);
@@ -1400,6 +1411,17 @@ export const ScriptrEditor = forwardRef<
           : false,
       navigateToAnchor: (anchor) => {
         if (!editor) return false;
+        const region = regionForAnchor(
+          mediaTextRegions(editor.state.doc),
+          anchor,
+        );
+        if (region) {
+          if (editor.isEditable) setFieldNavigation({ ...anchor });
+          const element = editor.view.nodeDOM(region.position);
+          if (element instanceof HTMLElement)
+            element.scrollIntoView?.({ block: 'nearest' });
+          return true;
+        }
         const position = positionForAnchor(editor.state.doc, anchor);
         if (position === undefined) return false;
         const transaction = editor.state.tr.setSelection(
@@ -2274,7 +2296,9 @@ export const ScriptrEditor = forwardRef<
                                 const chain = editor.chain().focus();
                                 void (colour
                                   ? chain
-                                      .setMark('highlightColour', { colour })
+                                      .setMark('highlightColour', {
+                                        colour,
+                                      })
                                       .run()
                                   : chain.unsetMark('highlightColour').run());
                               }
@@ -2394,7 +2418,22 @@ export const ScriptrEditor = forwardRef<
         </DragHandle>
       ) : null}
 
-      <EditorContent editor={editor} />
+      <AnnotationContext.Provider value={{ annotations, renderAnnotation }}>
+        <FieldNavigationContext.Provider value={fieldNavigation}>
+          <FieldHistoryContext.Provider
+            value={{
+              undo: () => {
+                editor?.commands.undo();
+              },
+              redo: () => {
+                editor?.commands.redo();
+              },
+            }}
+          >
+            <EditorContent editor={editor} />
+          </FieldHistoryContext.Provider>
+        </FieldNavigationContext.Provider>
+      </AnnotationContext.Provider>
       {[...annotationMounts].map(([container, id]) => {
         const annotation = annotations?.find(
           (candidate) => candidate.id === id,
@@ -2842,7 +2881,9 @@ export const ScriptrEditor = forwardRef<
                     .chain()
                     .focus()
                     .setTextSelection(commandWorkflow.range)
-                    .setMark('internalDocumentLink', { targetId: target.id })
+                    .setMark('internalDocumentLink', {
+                      targetId: target.id,
+                    })
                     .run();
                 } else {
                   void editor

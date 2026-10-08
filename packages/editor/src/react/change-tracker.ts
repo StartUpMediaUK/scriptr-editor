@@ -5,11 +5,18 @@ import type {
   DocumentChangeDetails,
 } from '../document/changes.js';
 import { anchorAtPosition, positionForAnchor } from './anchor-adapter.js';
+import type { DocumentAnchor } from '../document/anchors.js';
+import {
+  mediaTextRegions,
+  regionForAnchor,
+  textReplacement,
+} from './media-regions.js';
 
 type Token = {
   readonly id: string;
   readonly position: number;
   readonly blockId?: string | undefined;
+  readonly anchor?: DocumentAnchor | undefined;
 };
 type Snapshot = {
   readonly doc: EditorNode;
@@ -92,6 +99,7 @@ const summarize = (
   doc: EditorNode,
   tokens: readonly Token[],
 ): ContentContribution[] => {
+  const mediaRegions = mediaTextRegions(doc);
   const groups = new Map<string, Token[]>();
   for (const token of tokens) {
     const group = groups.get(token.id);
@@ -102,11 +110,16 @@ const summarize = (
     .map(([id, entries]) => {
       const anchors: ContentContribution['anchors'][number][] = [];
       for (const entry of [...entries].sort(
-        (a, b) => a.position - b.position,
+        (a, b) =>
+          a.position - b.position ||
+          (a.anchor?.offset ?? 0) - (b.anchor?.offset ?? 0),
       )) {
-        const anchor =
-          entry.blockId &&
-          doc.nodeAt(entry.position)?.attrs.id === entry.blockId
+        const anchor = entry.anchor
+          ? regionForAnchor(mediaRegions, entry.anchor)
+            ? entry.anchor
+            : undefined
+          : entry.blockId &&
+              doc.nodeAt(entry.position)?.attrs.id === entry.blockId
             ? {
                 blockId: entry.blockId,
                 field: 'block' as const,
@@ -139,8 +152,16 @@ export function createTransactionTracker(
   initial: EditorNode,
   seed: readonly ContentContribution[] = [],
 ) {
+  const initialRegions = mediaTextRegions(initial);
   const initialTokens = seed.flatMap((contribution) =>
     contribution.anchors.flatMap((anchor) => {
+      const region = regionForAnchor(initialRegions, anchor);
+      if (region)
+        return Array.from({ length: anchor.length }, (_, offset) => ({
+          id: contribution.id,
+          position: region.position,
+          anchor: { ...anchor, offset: anchor.offset + offset, length: 1 },
+        }));
       const position = positionForAnchor(initial, anchor);
       if (position === undefined)
         throw new RangeError(
@@ -207,8 +228,12 @@ export function createTransactionTracker(
           previous.doc,
           transaction.doc,
         );
+        const oldRegions = mediaTextRegions(previous.doc);
+        const newRegions = mediaTextRegions(transaction.doc);
+        const fieldTokens = previous.tokens.filter((token) => token.anchor);
         // Preserve surviving characters individually, including partial deletions and splits.
         tokens = previous.tokens.flatMap((token) => {
+          if (token.anchor) return [];
           if (token.blockId) {
             const position = positionForAnchor(transaction.doc, {
               blockId: token.blockId,
@@ -251,6 +276,116 @@ export function createTransactionTracker(
         const occupied = new Set(tokens.map((token) => token.position));
         let replacement = false;
         let deletion = false;
+        const fieldEdit: unknown = transaction.getMeta('scriptrFieldEdit');
+        const survivingFieldTokens: Token[] = [];
+        for (const oldRegion of oldRegions) {
+          const next = newRegions.find(
+            (region) =>
+              region.blockId === oldRegion.blockId &&
+              region.field === oldRegion.field,
+          );
+          const owned = fieldTokens.filter(
+            (token) =>
+              token.anchor?.blockId === oldRegion.blockId &&
+              token.anchor.field === oldRegion.field,
+          );
+          if (!next) {
+            if (source === 'external' && owned.length)
+              provenance = 'unresolved';
+            continue;
+          }
+          let change = textReplacement(oldRegion.text, next.text);
+          if (
+            source === 'paste' &&
+            typeof fieldEdit === 'object' &&
+            fieldEdit !== null &&
+            'blockId' in fieldEdit &&
+            fieldEdit.blockId === oldRegion.blockId &&
+            'field' in fieldEdit &&
+            fieldEdit.field === oldRegion.field &&
+            'replacement' in fieldEdit
+          ) {
+            const range = fieldEdit.replacement;
+            if (
+              typeof range === 'object' &&
+              range !== null &&
+              'offset' in range &&
+              'length' in range &&
+              typeof range.offset === 'number' &&
+              typeof range.length === 'number' &&
+              Number.isInteger(range.offset) &&
+              Number.isInteger(range.length) &&
+              range.offset >= 0 &&
+              range.length >= 0 &&
+              range.offset + range.length <= oldRegion.text.length
+            ) {
+              const insertedLength =
+                next.text.length - oldRegion.text.length + range.length;
+              if (
+                insertedLength >= 0 &&
+                oldRegion.text.slice(0, range.offset) ===
+                  next.text.slice(0, range.offset) &&
+                oldRegion.text.slice(range.offset + range.length) ===
+                  next.text.slice(range.offset + insertedLength)
+              )
+                change = {
+                  offset: range.offset,
+                  length: range.length,
+                  inserted: insertedLength,
+                };
+            }
+          }
+          const changed = change.length > 0 || change.inserted > 0;
+          deletion ||= change.length > 0;
+          replacement ||= change.length > 0 && change.inserted > 0;
+          const removed = owned.filter(
+            (token) =>
+              token.anchor &&
+              token.anchor.offset >= change.offset &&
+              token.anchor.offset < change.offset + change.length,
+          );
+          for (const token of owned) {
+            const anchor = token.anchor;
+            if (!anchor) continue;
+            if (
+              anchor.offset >= change.offset &&
+              anchor.offset < change.offset + change.length
+            ) {
+              if (source === 'external') provenance = 'unresolved';
+              continue;
+            }
+            survivingFieldTokens.push({
+              ...token,
+              position: next.position,
+              anchor: {
+                ...anchor,
+                offset:
+                  anchor.offset < change.offset
+                    ? anchor.offset
+                    : anchor.offset + change.inserted - change.length,
+              },
+            });
+          }
+          if (!changed || source === 'external') continue;
+          const owner =
+            source !== 'paste' && change.length > 0
+              ? removed[0]?.id
+              : undefined;
+          if (change.length > 0 && source !== 'paste' && !owner) continue;
+          const id = owner ?? `${prefix}:${++serial}`;
+          const target = owner ? inherited : inserted;
+          for (let offset = 0; offset < change.inserted; offset++)
+            target.push({
+              id,
+              position: next.position,
+              anchor: {
+                blockId: next.blockId,
+                field: next.field,
+                offset: change.offset + offset,
+                length: 1,
+              },
+            });
+        }
         for (const [index, step] of transaction.steps.entries()) {
           step.getMap().forEach((oldStart, oldEnd, newStart, newEnd) => {
             const oldText =
@@ -267,6 +402,7 @@ export function createTransactionTracker(
               const owner = previous.tokens.find(
                 (token) =>
                   !token.blockId &&
+                  !token.anchor &&
                   transaction.mapping.slice(0, index).map(token.position, 1) >=
                     oldStart &&
                   transaction.mapping.slice(0, index).map(token.position, 1) <
@@ -332,7 +468,12 @@ export function createTransactionTracker(
               });
           });
         }
-        tokens = [...tokens, ...inherited, ...inserted];
+        tokens = [
+          ...tokens,
+          ...survivingFieldTokens,
+          ...inherited,
+          ...inserted,
+        ];
         additions = summarize(transaction.doc, inserted);
         kinds = [
           ...(additions.length ? (['insertion'] as const) : []),

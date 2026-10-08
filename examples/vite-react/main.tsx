@@ -700,7 +700,24 @@ function DevelopmentHarness({
     (firstRegion ? { ...firstRegion, offset: 0, length: 0 } : undefined);
   const externalAnnotations =
     showAnnotations && annotationAnchor
-      ? [{ id: 'example-annotation', anchor: annotationAnchor }]
+      ? [
+          { id: 'example-annotation', anchor: annotationAnchor },
+          ...documentTextRegions(document)
+            .filter(
+              (region) =>
+                (region.field === 'caption' || region.field === 'transcript') &&
+                (region.blockId !== annotationAnchor.blockId ||
+                  region.field !== annotationAnchor.field),
+            )
+            .map((region) => ({
+              id: `field-${region.blockId}-${region.field}`,
+              anchor: {
+                ...region,
+                offset: Math.min(3, region.text.length),
+                length: 0,
+              },
+            })),
+        ]
       : [];
   const renderExternalAnnotation = () => (
     <span className="text-sm font-normal text-muted-foreground">

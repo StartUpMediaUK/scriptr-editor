@@ -1,3 +1,7 @@
+import {
+  annotationsForRegion,
+  renderAnnotatedContent,
+} from './annotation-content.js';
 import { Component, Fragment } from 'react';
 import type { ExternalAnnotationProps } from './annotations.js';
 import type { DocumentAnchor } from '../document/anchors.js';
@@ -338,85 +342,15 @@ function renderAnnotatedInline(
   props: ScriptrRendererProps,
   region: Pick<DocumentAnchor, 'blockId' | 'itemId' | 'field'>,
 ): ReactNode {
-  const length = content.reduce(
-    (total, inline) =>
-      total + (inline.type === 'text' ? inline.text.length : 1),
-    0,
-  );
-  const annotations = props.renderAnnotation
-    ? (props.annotations ?? [])
-        .filter(
-          (annotation) =>
-            annotation.anchor.blockId === region.blockId &&
-            annotation.anchor.itemId === region.itemId &&
-            annotation.anchor.field === region.field &&
-            Number.isInteger(annotation.anchor.offset) &&
-            Number.isInteger(annotation.anchor.length) &&
-            annotation.anchor.offset >= 0 &&
-            annotation.anchor.length >= 0 &&
-            annotation.anchor.offset + annotation.anchor.length <= length,
-        )
-        .sort((a, b) => a.anchor.offset - b.anchor.offset)
-    : [];
-  if (!annotations.length)
-    return renderInline(
-      content,
+  return renderAnnotatedContent(content, region, props, (values) =>
+    renderInline(
+      values,
       props.document.references,
       props.onInternalDocumentLink,
       props.documentTargetProvider,
       props.onReferenceOpen,
-    );
-  const output: ReactNode[] = [];
-  let cursor = 0;
-  const slice = (from: number, to: number) => {
-    let offset = 0;
-    return content.flatMap((inline): InlineContent[] => {
-      const size = inline.type === 'text' ? inline.text.length : 1;
-      const start = Math.max(0, from - offset);
-      const end = Math.min(size, to - offset);
-      offset += size;
-      return end <= start
-        ? []
-        : inline.type === 'text'
-          ? [{ ...inline, text: inline.text.slice(start, end) }]
-          : [inline];
-    });
-  };
-  for (const annotation of annotations) {
-    output.push(
-      <Fragment key={`text-${annotation.id}`}>
-        {renderInline(
-          slice(cursor, annotation.anchor.offset),
-          props.document.references,
-          props.onInternalDocumentLink,
-          props.documentTargetProvider,
-          props.onReferenceOpen,
-        )}
-      </Fragment>,
-    );
-    output.push(
-      <span
-        className="scriptr-external-annotation"
-        data-scriptr-annotation={annotation.id}
-        key={annotation.id}
-      >
-        {props.renderAnnotation?.(annotation)}
-      </span>,
-    );
-    cursor = annotation.anchor.offset;
-  }
-  output.push(
-    <Fragment key="remaining">
-      {renderInline(
-        slice(cursor, length),
-        props.document.references,
-        props.onInternalDocumentLink,
-        props.documentTargetProvider,
-        props.onReferenceOpen,
-      )}
-    </Fragment>,
+    ),
   );
-  return output;
 }
 
 function renderListItems(
@@ -567,7 +501,14 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
         <ImageBlockContent
           block={block}
           captionContent={
-            block.caption ? inline(block.caption, 'caption') : undefined
+            block.caption ||
+            annotationsForRegion(
+              { blockId: block.id, field: 'caption' },
+              0,
+              props,
+            ).length
+              ? inline(block.caption ?? [], 'caption')
+              : undefined
           }
           imageHost={props.imageHost}
           key={block.id}
@@ -578,6 +519,24 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
       return (
         <MediaBlockContent
           block={block}
+          captionContent={
+            (block.type === 'video' ? block.caption : block.transcript) ||
+            annotationsForRegion(
+              {
+                blockId: block.id,
+                field: block.type === 'video' ? 'caption' : 'transcript',
+              },
+              0,
+              props,
+            ).length
+              ? inline(
+                  block.type === 'video'
+                    ? (block.caption ?? [])
+                    : (block.transcript ?? []),
+                  block.type === 'video' ? 'caption' : 'transcript',
+                )
+              : undefined
+          }
           key={block.id}
           mediaHost={props.mediaHost}
         />

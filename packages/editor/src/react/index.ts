@@ -1,5 +1,6 @@
 export { canonicalToEditorJson, editorJsonToCanonical } from './adapter.js';
 export { ScriptrEditor } from './editor.js';
+export type { TextFieldEdit } from './annotation-content.js';
 export type {
   EditorChange,
   ScriptrEditorHandle,

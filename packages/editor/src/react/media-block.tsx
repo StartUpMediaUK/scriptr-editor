@@ -18,7 +18,7 @@ import {
   Video,
   Volume2,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Button, buttonVariants } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
@@ -32,6 +32,15 @@ import { createDocumentCodec } from '../document/codec.js';
 import type { AudioBlock, VideoBlock } from '../document/types.js';
 import type { HostedMedia, MediaHost, MediaKind } from '../host/media.js';
 import { useAudioWaveform } from './use-audio-waveform.js';
+import type { ExternalAnnotationProps } from './annotations.js';
+import {
+  AnnotationContext,
+  FieldNavigationContext,
+  AnnotatedFieldInput,
+  annotationsForRegion,
+  renderAnnotatedContent,
+  type TextFieldEdit,
+} from './annotation-content.js';
 
 type AuthoredMediaBlock = VideoBlock | AudioBlock;
 
@@ -51,11 +60,14 @@ const inlineText = (content: VideoBlock['caption']) =>
   content?.map((item) => (item.type === 'text' ? item.text : '\n')).join('') ??
   '';
 
-export type MediaBlockContentProps = {
+export type MediaBlockContentProps = ExternalAnnotationProps & {
   readonly block: AuthoredMediaBlock;
   readonly mediaHost?: MediaHost | undefined;
   readonly editable?: boolean | undefined;
-  readonly onChange?: ((block: AuthoredMediaBlock) => void) | undefined;
+  readonly onChange?:
+    | ((block: AuthoredMediaBlock, edit?: TextFieldEdit) => void)
+    | undefined;
+  readonly captionContent?: ReactNode | undefined;
   readonly onRemove?: (() => void) | undefined;
   readonly onDuplicate?: (() => void) | undefined;
 };
@@ -67,11 +79,40 @@ export function MediaBlockContent({
   onChange,
   onRemove,
   onDuplicate,
+  captionContent,
+  annotations,
+  renderAnnotation,
 }: MediaBlockContentProps) {
+  const inheritedAnnotations = useContext(AnnotationContext);
+  const annotationProps =
+    annotations !== undefined || renderAnnotation !== undefined
+      ? { annotations, renderAnnotation }
+      : inheritedAnnotations;
+  const field = block.type === 'video' ? 'caption' : 'transcript';
+  const fieldContent =
+    block.type === 'video' ? block.caption : block.transcript;
+  const renderedCaption =
+    captionContent ??
+    renderAnnotatedContent(
+      fieldContent ?? [],
+      { blockId: block.id, field },
+      annotationProps,
+    );
+  const hasCaption = Boolean(
+    fieldContent ||
+      captionContent ||
+      annotationsForRegion({ blockId: block.id, field }, 0, annotationProps)
+        .length,
+  );
   const [resolved, setResolved] = useState<HostedMedia>();
   const [posterSource, setPosterSource] = useState<string>();
   const [unavailable, setUnavailable] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
+  const navigation = useContext(FieldNavigationContext);
+  useEffect(() => {
+    if (navigation?.blockId === block.id && navigation.field === field)
+      setCaptionOpen(true);
+  }, [navigation, block.id, field]);
   const [renaming, setRenaming] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -453,18 +494,23 @@ export function MediaBlockContent({
         </p>
       ) : null}
       {editable && captionOpen ? (
-        <Input
+        <AnnotatedFieldInput
           autoFocus
-          aria-label={`${block.type} caption`}
+          aria-label={
+            block.type === 'audio' ? 'Audio transcript' : 'video caption'
+          }
+          region={{ blockId: block.id, field }}
+          annotationProps={annotationProps}
           className="scriptr-media__quiet-input"
-          onChange={(event) => {
-            const content = event.currentTarget.value
-              ? [{ type: 'text' as const, text: event.currentTarget.value }]
+          onValueChange={(value, edit) => {
+            const content = value
+              ? [{ type: 'text' as const, text: value }]
               : undefined;
             onChange?.(
               block.type === 'video'
                 ? { ...block, caption: content }
                 : { ...block, transcript: content },
+              edit,
             );
           }}
           placeholder="Write a caption…"
@@ -474,15 +520,13 @@ export function MediaBlockContent({
               : inlineText(block.transcript)
           }
         />
-      ) : block.type === 'video' && (block.title || block.caption) ? (
+      ) : block.type === 'video' && (block.title || hasCaption) ? (
         <div className="scriptr-media__details">
           {block.title ? <strong>{block.title}</strong> : null}
-          {block.caption ? (
-            <figcaption>{inlineText(block.caption)}</figcaption>
-          ) : null}
+          {hasCaption ? <figcaption>{renderedCaption}</figcaption> : null}
         </div>
-      ) : block.type === 'audio' && block.transcript ? (
-        <figcaption>{inlineText(block.transcript)}</figcaption>
+      ) : block.type === 'audio' && hasCaption ? (
+        <figcaption>{renderedCaption}</figcaption>
       ) : null}
     </figure>
   );
@@ -613,7 +657,6 @@ export function MediaUploader({
 
 function MediaNodeView({
   node,
-  updateAttributes,
   deleteNode,
   getPos,
   editor,
@@ -631,7 +674,24 @@ function MediaNodeView({
         block={parsed}
         editable={editor.isEditable}
         mediaHost={mediaHost}
-        onChange={(next) => updateAttributes({ payload: JSON.stringify(next) })}
+        onChange={(next, edit) => {
+          const position = getPos();
+          if (typeof position !== 'number') return;
+          const transaction = editor.state.tr.setNodeMarkup(
+            position,
+            undefined,
+            { ...node.attrs, payload: JSON.stringify(next) },
+          );
+          if (edit)
+            transaction
+              .setMeta('scriptrFieldEdit', {
+                blockId: parsed.id,
+                field: parsed.type === 'audio' ? 'transcript' : 'caption',
+                ...edit,
+              })
+              .setMeta('uiEvent', edit.source === 'paste' ? 'paste' : 'input');
+          editor.view.dispatch(transaction);
+        }}
         onDuplicate={() => {
           const position = getPos();
           const id = `media-${Date.now()}`;

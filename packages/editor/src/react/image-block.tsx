@@ -1,6 +1,6 @@
 import type { NodeViewProps } from '@tiptap/react';
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   Captions,
@@ -28,6 +28,15 @@ import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group.js';
 import { createDocumentCodec } from '../document/codec.js';
 import type { ImageBlock } from '../document/types.js';
 import type { HostedImage, ImageHost } from '../host/images.js';
+import type { ExternalAnnotationProps } from './annotations.js';
+import {
+  AnnotationContext,
+  FieldNavigationContext,
+  AnnotatedFieldInput,
+  annotationsForRegion,
+  renderAnnotatedContent,
+  type TextFieldEdit,
+} from './annotation-content.js';
 
 function safeImageSource(source: string | undefined) {
   if (!source) return undefined;
@@ -44,11 +53,13 @@ function safeImageSource(source: string | undefined) {
   }
 }
 
-export type ImageBlockContentProps = {
+export type ImageBlockContentProps = ExternalAnnotationProps & {
   readonly block: ImageBlock;
   readonly imageHost?: ImageHost | undefined;
   readonly editable?: boolean | undefined;
-  readonly onChange?: ((block: ImageBlock) => void) | undefined;
+  readonly onChange?:
+    | ((block: ImageBlock, edit?: TextFieldEdit) => void)
+    | undefined;
   readonly onRemove?: (() => void) | undefined;
   readonly onDuplicate?: (() => void) | undefined;
   readonly captionContent?: ReactNode | undefined;
@@ -62,10 +73,22 @@ export function ImageBlockContent({
   onRemove,
   onDuplicate,
   captionContent,
+  annotations,
+  renderAnnotation,
 }: ImageBlockContentProps) {
+  const inheritedAnnotations = useContext(AnnotationContext);
+  const annotationProps =
+    annotations !== undefined || renderAnnotation !== undefined
+      ? { annotations, renderAnnotation }
+      : inheritedAnnotations;
   const [resolved, setResolved] = useState<HostedImage>();
   const [unavailable, setUnavailable] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
+  const navigation = useContext(FieldNavigationContext);
+  useEffect(() => {
+    if (navigation?.blockId === block.id && navigation.field === 'caption')
+      setCaptionOpen(true);
+  }, [navigation, block.id]);
   const [natural, setNatural] = useState<{
     src: string;
     width: number;
@@ -393,22 +416,38 @@ export function ImageBlockContent({
         </p>
       ) : null}
       {editable && captionOpen ? (
-        <Input
+        <AnnotatedFieldInput
           aria-label="Image caption"
+          region={{ blockId: block.id, field: 'caption' }}
+          annotationProps={annotationProps}
           className="scriptr-image__caption-input"
-          onChange={(event) =>
-            onChange?.({
-              ...block,
-              caption: event.currentTarget.value
-                ? [{ type: 'text', text: event.currentTarget.value }]
-                : undefined,
-            })
+          onValueChange={(value, edit) =>
+            onChange?.(
+              {
+                ...block,
+                caption: value ? [{ type: 'text', text: value }] : undefined,
+              },
+              edit,
+            )
           }
           placeholder="Add a caption…"
           value={caption ?? ''}
         />
-      ) : captionContent || caption ? (
-        <figcaption>{captionContent ?? caption}</figcaption>
+      ) : captionContent ||
+        caption ||
+        annotationsForRegion(
+          { blockId: block.id, field: 'caption' },
+          0,
+          annotationProps,
+        ).length ? (
+        <figcaption>
+          {captionContent ??
+            renderAnnotatedContent(
+              block.caption ?? [],
+              { blockId: block.id, field: 'caption' },
+              annotationProps,
+            )}
+        </figcaption>
       ) : null}
     </figure>
   );
@@ -518,7 +557,6 @@ export function ImageUploader({
 
 function ImageNodeView({
   node,
-  updateAttributes,
   deleteNode,
   getPos,
   editor,
@@ -536,7 +574,24 @@ function ImageNodeView({
         block={parsed}
         editable={editor.isEditable}
         imageHost={imageHost}
-        onChange={(next) => updateAttributes({ payload: JSON.stringify(next) })}
+        onChange={(next, edit) => {
+          const position = getPos();
+          if (typeof position !== 'number') return;
+          const transaction = editor.state.tr.setNodeMarkup(
+            position,
+            undefined,
+            { ...node.attrs, payload: JSON.stringify(next) },
+          );
+          if (edit)
+            transaction
+              .setMeta('scriptrFieldEdit', {
+                blockId: parsed.id,
+                field: 'caption',
+                ...edit,
+              })
+              .setMeta('uiEvent', edit.source === 'paste' ? 'paste' : 'input');
+          editor.view.dispatch(transaction);
+        }}
         onDuplicate={() => {
           const position = getPos();
           const id = `image-${Date.now()}`;
