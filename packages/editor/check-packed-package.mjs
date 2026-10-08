@@ -64,6 +64,8 @@ try {
     'package/dist/document/anchors.d.ts',
     'package/dist/document/anchors.js',
     'package/dist/document/changes.d.ts',
+    'package/dist/document/provenance.d.ts',
+    'package/dist/document/provenance.js',
     'package/dist/extensions/index.d.ts',
     'package/dist/extensions/index.js',
     'package/dist/host/index.d.ts',
@@ -149,7 +151,7 @@ try {
     join(fixtureDirectory, 'consumer.ts'),
     `import { defineScriptr } from '@startupmedia/scriptr-editor';
 import type { CanonicalDocument, ScriptureProvider } from '@startupmedia/scriptr-editor';
-import { documentTextRegions, resolveDocumentAnchor, remapDocumentAnchor, type DocumentAnchor, type DocumentChangeDetails } from '@startupmedia/scriptr-editor/document';
+import { documentTextRegions, resolveDocumentAnchor, remapDocumentAnchor, parseDocumentProvenance, type DocumentProvenance, type DocumentAnchor, type DocumentChangeDetails } from '@startupmedia/scriptr-editor/document';
 import type { BookmarkProvider, MediaHost } from '@startupmedia/scriptr-editor/host';
 import type { ScriptrEditorHandle, ScriptrEditorProps, ExternalAnnotation, ScriptrRendererProps } from '@startupmedia/scriptr-editor/react';
 import { createScriptrServer } from '@startupmedia/scriptr-editor/server';
@@ -160,12 +162,13 @@ const bookmarks: BookmarkProvider | undefined = undefined;
 const handle: ScriptrEditorHandle | undefined = undefined;
 const anchor: DocumentAnchor = { blockId: 'paragraph', field: 'content', offset: 0, length: 0 };
 const annotation: ExternalAnnotation = { id: 'external', anchor };
+const provenance: DocumentProvenance = parseDocumentProvenance({ version: 1, contributions: [] }, document);
 const onChangeDetails = (_document: CanonicalDocument, details: DocumentChangeDetails) => { void details.contributions; };
 const editorProps: ScriptrEditorProps = { trackChanges: true, annotations: [annotation], onChangeDetails };
 const rendererProps: ScriptrRendererProps = { document, annotations: [annotation] };
 const client = defineScriptr();
 const server = createScriptrServer({});
-void [document, provider, media, bookmarks, handle, client, server, editorProps, rendererProps, documentTextRegions(document), resolveDocumentAnchor(document, anchor), remapDocumentAnchor(document, anchor)];
+void [document, provider, media, bookmarks, handle, client, server, provenance, editorProps, rendererProps, documentTextRegions(document), resolveDocumentAnchor(document, anchor), remapDocumentAnchor(document, anchor)];
 `,
   );
   writeFileSync(

@@ -14,6 +14,8 @@ export {
 } from './anchors.js';
 export type { DocumentAnchor, DocumentTextRegion } from './anchors.js';
 export type { ContentContribution, DocumentChangeDetails } from './changes.js';
+export { parseDocumentProvenance } from './provenance.js';
+export type { DocumentProvenance } from './provenance.js';
 export type { CanonicalLocation, LocatedDocumentMatch } from './locations.js';
 export { documentV1ToV2Migration, migrateDocument } from './migrations.js';
 export type { DocumentMigration, MigrationResult } from './migrations.js';

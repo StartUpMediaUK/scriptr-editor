@@ -42,6 +42,89 @@ const annotations: readonly ExternalAnnotation[] = [
 const renderAnnotation = () => <time>External label</time>;
 
 describe('external annotations', () => {
+  it('reports browser replacement paste as fresh writing', async () => {
+    const ref = createRef<ScriptrEditorHandle>();
+    const events: DocumentChangeDetails[] = [];
+    render(
+      <ScriptrEditor
+        ref={ref}
+        defaultValue={document}
+        initialContributions={[
+          {
+            id: 'old-writing',
+            anchors: [{ blockId: 'p', field: 'content', offset: 6, length: 6 }],
+          },
+        ]}
+        onChangeDetails={(_, details) => events.push(details)}
+      />,
+    );
+    const editor = await screen.findByRole('textbox');
+    act(() => {
+      ref.current?.navigateToAnchor({
+        blockId: 'p',
+        field: 'content',
+        offset: 6,
+        length: 6,
+      });
+    });
+    fireEvent.paste(editor, {
+      clipboardData: {
+        getData: (type: string) => (type === 'text/plain' ? 'XYZ' : ''),
+        types: ['text/plain'],
+      },
+    });
+    await waitFor(() => expect(events.at(-1)?.source).toBe('paste'));
+    expect(events.at(-1)?.additions).toHaveLength(1);
+    expect(events.at(-1)?.additions[0]?.id).not.toBe('old-writing');
+    expect(events.at(-1)?.removedContributionIds).toContain('old-writing');
+  });
+  it('preserves restored contributions through public controlled value updates', async () => {
+    const original: CanonicalDocument = {
+      version: 2,
+      content: [
+        {
+          id: 'p',
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Old ABC' }],
+        },
+      ],
+    };
+    const contributions = [
+      {
+        id: 'writing',
+        anchors: [
+          { blockId: 'p', field: 'content' as const, offset: 3, length: 4 },
+        ],
+      },
+    ];
+    const events: DocumentChangeDetails[] = [];
+    const props = {
+      initialContributions: contributions,
+      onChangeDetails: (_: CanonicalDocument, details: DocumentChangeDetails) =>
+        events.push(details),
+    };
+    const { rerender } = render(<ScriptrEditor value={original} {...props} />);
+    await screen.findByRole('textbox');
+    rerender(
+      <ScriptrEditor
+        value={{
+          version: 2,
+          content: [
+            {
+              id: 'p',
+              type: 'paragraph',
+              content: [{ type: 'text', text: 'Old ABC remote' }],
+            },
+          ],
+        }}
+        {...props}
+      />,
+    );
+    await waitFor(() => expect(events.at(-1)?.source).toBe('external'));
+    expect(events.at(-1)?.contributions).toEqual(contributions);
+    expect(events.at(-1)?.removedContributionIds).toEqual([]);
+    expect(events.at(-1)?.provenance).toBe('complete');
+  });
   it('classifies existing Scripture configuration changes without adding provider text', async () => {
     const events: DocumentChangeDetails[] = [];
     const provider = createFakeScriptureProvider({

@@ -15,7 +15,78 @@ type Snapshot = {
   readonly doc: EditorNode;
   readonly tokens: readonly Token[];
   readonly historyDepth?: number | undefined;
+  readonly provenance: DocumentChangeDetails['provenance'];
 };
+
+// Controlled setContent replaces the entire engine document. Recover only the
+// unchanged prefix/suffix of the same identified text region; never search for
+// matching text elsewhere or infer authorship for the remote edit itself.
+function createExternalRecovery(before: EditorNode, after: EditorNode) {
+  const regions = new Map<
+    EditorNode,
+    | { start: number; prefix: number; suffixStart: number; delta: number }
+    | undefined
+  >();
+  return (token: Token): Token | undefined => {
+    const anchor = anchorAtPosition(before, token.position, 1);
+    if (!anchor) return undefined;
+    const oldParent = before.resolve(token.position).parent;
+    if (!regions.has(oldParent)) {
+      const start = positionForAnchor(after, {
+        ...anchor,
+        offset: 0,
+        length: 0,
+      });
+      if (start === undefined) {
+        regions.set(oldParent, undefined);
+        return undefined;
+      }
+      const newParent = after.resolve(start).parent;
+      const oldText = oldParent.textBetween(
+        0,
+        oldParent.content.size,
+        '',
+        '\n',
+      );
+      const newText = newParent.textBetween(
+        0,
+        newParent.content.size,
+        '',
+        '\n',
+      );
+      let prefix = 0;
+      while (
+        prefix < Math.min(oldText.length, newText.length) &&
+        oldText[prefix] === newText[prefix]
+      )
+        prefix++;
+      let suffix = 0;
+      while (
+        suffix < Math.min(oldText.length, newText.length) - prefix &&
+        oldText[oldText.length - suffix - 1] ===
+          newText[newText.length - suffix - 1]
+      )
+        suffix++;
+      regions.set(oldParent, {
+        start,
+        prefix,
+        suffixStart: oldText.length - suffix,
+        delta: newText.length - oldText.length,
+      });
+    }
+    const region = regions.get(oldParent);
+    if (!region) return undefined;
+    const offset =
+      anchor.offset < region.prefix
+        ? anchor.offset
+        : anchor.offset >= region.suffixStart
+          ? anchor.offset + region.delta
+          : undefined;
+    return offset === undefined
+      ? undefined
+      : { ...token, position: region.start + offset };
+  };
+}
 
 const summarize = (
   doc: EditorNode,
@@ -71,18 +142,25 @@ export function createTransactionTracker(
   const initialTokens = seed.flatMap((contribution) =>
     contribution.anchors.flatMap((anchor) => {
       const position = positionForAnchor(initial, anchor);
-      return position === undefined
-        ? []
-        : anchor.field === 'block'
-          ? [{ id: contribution.id, position, blockId: anchor.blockId }]
-          : Array.from({ length: anchor.length }, (_, offset) => ({
-              id: contribution.id,
-              position: position + offset,
-            }));
+      if (position === undefined)
+        throw new RangeError(
+          'Contribution anchor cannot be restored by this editing surface.',
+        );
+      return anchor.field === 'block'
+        ? [{ id: contribution.id, position, blockId: anchor.blockId }]
+        : Array.from({ length: anchor.length }, (_, offset) => ({
+            id: contribution.id,
+            position: position + offset,
+          }));
     }),
   );
   let snapshots: Snapshot[] = [
-    { doc: initial, tokens: initialTokens, historyDepth: 0 },
+    {
+      doc: initial,
+      tokens: initialTokens,
+      historyDepth: 0,
+      provenance: 'complete',
+    },
   ];
   let cursor = 0;
   let serial = 0;
@@ -99,7 +177,7 @@ export function createTransactionTracker(
       let tokens: readonly Token[];
       let additions: ContentContribution[] = [];
       let kinds: DocumentChangeDetails['kinds'] = [];
-      let provenance: DocumentChangeDetails['provenance'] = 'complete';
+      let provenance = previous.provenance;
       if (source === 'undo' || source === 'redo') {
         const indices =
           source === 'undo'
@@ -114,14 +192,21 @@ export function createTransactionTracker(
         if (matched === undefined) {
           provenance = 'unresolved';
           tokens = [];
-          snapshots = [{ doc: transaction.doc, tokens, historyDepth }];
+          snapshots = [
+            { doc: transaction.doc, tokens, historyDepth, provenance },
+          ];
           cursor = 0;
         } else {
           cursor = matched;
           tokens = snapshots[cursor]?.tokens ?? [];
+          provenance = snapshots[cursor]?.provenance ?? 'unresolved';
         }
         kinds = ['structure'];
       } else {
+        const recoverExternalToken = createExternalRecovery(
+          previous.doc,
+          transaction.doc,
+        );
         // Preserve surviving characters individually, including partial deletions and splits.
         tokens = previous.tokens.flatMap((token) => {
           if (token.blockId) {
@@ -131,12 +216,20 @@ export function createTransactionTracker(
               offset: 0,
               length: 0,
             });
+            if (position === undefined && source === 'external')
+              provenance = 'unresolved';
             return position === undefined ? [] : [{ ...token, position }];
           }
           const mapped = transaction.mapping.mapResult(token.position, 1);
           const end = transaction.mapping.mapResult(token.position + 1, -1);
           if (!mapped.deleted && !end.deleted && end.pos > mapped.pos)
             return [{ ...token, position: mapped.pos }];
+          if (source === 'external') {
+            const recovered = recoverExternalToken(token);
+            if (!recovered) provenance = 'unresolved';
+            return recovered ? [recovered] : [];
+          }
+          if (source === 'paste') return [];
           // Moving an intact identified text region is not a new contribution.
           const oldAnchor = anchorAtPosition(previous.doc, token.position, 1);
           const position = oldAnchor
@@ -169,7 +262,7 @@ export function createTransactionTracker(
             deletion ||= oldText.length > 0;
             replacement ||= oldText.length > 0 && end > start;
             if (source === 'external') return;
-            if (oldText.length > 0) {
+            if (oldText.length > 0 && source !== 'paste') {
               // Editing attributed text retains its provenance, without new authorship.
               const owner = previous.tokens.find(
                 (token) =>
@@ -195,7 +288,8 @@ export function createTransactionTracker(
               const anchor = anchorAtPosition(transaction.doc, position, 1);
               if (
                 !anchor ||
-                (positionForAnchor(previous.doc, anchor) !== undefined &&
+                (source !== 'paste' &&
+                  positionForAnchor(previous.doc, anchor) !== undefined &&
                   transaction.doc
                     .resolve(position)
                     .parent.eq(
@@ -251,7 +345,7 @@ export function createTransactionTracker(
           historyDepth !== undefined && previous.historyDepth === historyDepth;
         snapshots = [
           ...snapshots.slice(0, merge ? cursor : cursor + 1),
-          { doc: transaction.doc, tokens, historyDepth },
+          { doc: transaction.doc, tokens, historyDepth, provenance },
         ];
         if (!merge) cursor++;
         // Keep history-group checkpoints, not a snapshot for every keystroke.
@@ -270,9 +364,10 @@ export function createTransactionTracker(
         kinds,
         additions,
         contributions,
-        removedContributionIds: [...previousIds].filter(
-          (id) => !currentIds.has(id),
-        ),
+        removedContributionIds:
+          provenance === 'unresolved'
+            ? []
+            : [...previousIds].filter((id) => !currentIds.has(id)),
         restoredContributionIds:
           source === 'undo' || source === 'redo'
             ? [...currentIds].filter((id) => !previousIds.has(id))

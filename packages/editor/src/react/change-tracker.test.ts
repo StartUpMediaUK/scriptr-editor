@@ -34,6 +34,93 @@ const make = () =>
   });
 
 describe('neutral change provenance', () => {
+  it('rejects unrestorable initial contribution ranges', () => {
+    expect(() =>
+      createTransactionTracker(make().doc, [
+        {
+          id: 'invalid',
+          anchors: [
+            { blockId: 'missing', field: 'content', offset: 0, length: 1 },
+          ],
+        },
+      ]),
+    ).toThrow('cannot be restored');
+  });
+  it('reports uncertain external replacements without pretending they are confirmed removals', () => {
+    let state = make();
+    const tracker = createTransactionTracker(state.doc);
+    const write = state.tr.insertText('ABC', 9);
+    tracker.update(write, 'input');
+    state = state.apply(write);
+    const remote = schema.node('doc', null, [
+      schema.node(
+        'paragraph',
+        { id: 'p' },
+        schema.text('Different remote content'),
+      ),
+    ]);
+    const details = tracker.update(
+      state.tr.replaceWith(0, state.doc.content.size, remote.content),
+      'external',
+    );
+    expect(details.provenance).toBe('unresolved');
+    expect(details.removedContributionIds).toEqual([]);
+    expect(details.additions).toEqual([]);
+    state = state.apply(
+      state.tr.replaceWith(0, state.doc.content.size, remote.content),
+    );
+    expect(
+      tracker.update(state.tr.insertText('more', 1), 'input').provenance,
+    ).toBe('unresolved');
+  });
+
+  it('does not reuse provenance when identical text is pasted over a contribution', () => {
+    let state = make();
+    const tracker = createTransactionTracker(state.doc);
+    const write = state.tr.insertText('ABC', 9);
+    const added = tracker.update(write, 'input');
+    state = state.apply(write);
+    const details = tracker.update(state.tr.insertText('ABC', 9, 12), 'paste');
+    expect(details.additions).toHaveLength(1);
+    expect(details.additions[0]?.id).not.toBe(added.additions[0]?.id);
+  });
+  it('preserves surviving writing through whole-document external updates', () => {
+    let state = make();
+    const tracker = createTransactionTracker(state.doc);
+    const write = state.tr.insertText(' ABC', 9);
+    const added = tracker.update(write, 'input');
+    state = state.apply(write);
+    const remote = schema.node('doc', null, [
+      schema.node('paragraph', { id: 'p' }, schema.text('Old text ABC remote')),
+    ]);
+    const details = tracker.update(
+      state.tr.replaceWith(0, state.doc.content.size, remote.content),
+      'external',
+    );
+    expect(details.contributions[0]?.id).toBe(added.additions[0]?.id);
+    expect(details.contributions[0]?.anchors[0]).toMatchObject({
+      offset: 8,
+      length: 4,
+    });
+    expect(details.removedContributionIds).toEqual([]);
+    expect(details.additions).toEqual([]);
+    expect(details.provenance).toBe('complete');
+  });
+
+  it('gives replacement paste a fresh identity', () => {
+    let state = make();
+    const tracker = createTransactionTracker(state.doc);
+    const write = state.tr.insertText('ABC', 9);
+    const added = tracker.update(write, 'input');
+    state = state.apply(write);
+    const details = tracker.update(
+      state.tr.insertText('XYZ', 9, 12).setMeta('uiEvent', 'paste'),
+      'paste',
+    );
+    expect(details.additions).toHaveLength(1);
+    expect(details.additions[0]?.id).not.toBe(added.additions[0]?.id);
+    expect(details.removedContributionIds).toEqual([added.additions[0]?.id]);
+  });
   it('retains grouped undo/redo provenance after more than 1,000 keystrokes', () => {
     let state = make();
     const tracker = createTransactionTracker(state.doc);
@@ -121,7 +208,7 @@ describe('neutral change provenance', () => {
       'paste',
     );
     expect(details.kinds).toEqual(['insertion', 'replacement']);
-    expect(details.additions[0]?.anchors[0]?.length).toBe(5);
+    expect(details.additions.map((c) => c.anchors[0]?.length)).toEqual([3, 5]);
   });
 
   it('preserves contributions when an identified block moves and then joins', () => {

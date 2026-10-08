@@ -13,6 +13,7 @@ import type {
 } from '../document/changes.js';
 import { createTransactionTracker } from './change-tracker.js';
 import type { DocumentAnchor } from '../document/anchors.js';
+import { parseDocumentProvenance } from '../document/provenance.js';
 import { positionForAnchor } from './anchor-adapter.js';
 import { createAnnotationExtension } from './annotations.js';
 import type { ExternalAnnotationProps } from './annotations.js';
@@ -1146,7 +1147,13 @@ export const ScriptrEditor = forwardRef<
       if (!(trackChanges || onChangeDetails) || !transaction.docChanged) return;
       tracker.current ??= createTransactionTracker(
         transaction.before,
-        initialContributions,
+        parseDocumentProvenance(
+          { version: 1, contributions: initialContributions ?? [] },
+          editorJsonToCanonical(
+            transaction.before.toJSON(),
+            documentRef.current.references,
+          ),
+        ).contributions,
       );
       const history = isHistoryTransaction(transaction);
       const rawDepth: unknown = redoDepth(updatedEditor.state);
