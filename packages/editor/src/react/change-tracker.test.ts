@@ -34,6 +34,29 @@ const make = () =>
   });
 
 describe('neutral change provenance', () => {
+  it('retains grouped undo/redo provenance after more than 1,000 keystrokes', () => {
+    let state = make();
+    const tracker = createTransactionTracker(state.doc);
+    for (let index = 0; index < 1005; index++) {
+      const transaction = state.tr
+        .insertText('a', state.doc.child(0).nodeSize - 1)
+        .setTime(1);
+      tracker.update(transaction, 'input', 1);
+      state = state.apply(transaction);
+    }
+    undo(state, (tr) => {
+      const details = tracker.update(tr, 'undo', 0);
+      expect(details.provenance).toBe('complete');
+      expect(details.contributions).toEqual([]);
+      state = state.apply(tr);
+    });
+    redo(state, (tr) => {
+      const details = tracker.update(tr, 'redo', 1);
+      expect(details.provenance).toBe('complete');
+      expect(details.restoredContributionIds).toHaveLength(1005);
+      expect(details.additions).toEqual([]);
+    });
+  });
   it('reports unresolved history without inventing new contributions', () => {
     const state = make();
     const details = createTransactionTracker(state.doc).update(

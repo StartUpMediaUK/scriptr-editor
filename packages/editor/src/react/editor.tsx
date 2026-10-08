@@ -4,7 +4,7 @@ import { EditorState, NodeSelection, TextSelection } from '@tiptap/pm/state';
 import type { EditorView } from '@tiptap/pm/view';
 import type { Editor } from '@tiptap/react';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { isHistoryTransaction, redoDepth } from '@tiptap/pm/history';
+import { isHistoryTransaction, redoDepth, undoDepth } from '@tiptap/pm/history';
 import { createPortal } from 'react-dom';
 import { AddMarkStep, RemoveMarkStep } from '@tiptap/pm/transform';
 import type {
@@ -1164,7 +1164,12 @@ export const ScriptrEditor = forwardRef<
       const combined = EditorState.create({ doc: transaction.before }).tr;
       for (const change of [transaction, ...appendedTransactions])
         for (const step of change.steps) combined.step(step);
-      const tracked = tracker.current.update(combined, source);
+      const rawUndoDepth: unknown = undoDepth(updatedEditor.state);
+      const tracked = tracker.current.update(
+        combined,
+        source,
+        typeof rawUndoDepth === 'number' ? rawUndoDepth : undefined,
+      );
       const referenceChange = combined.steps.some(
         (step) =>
           (step instanceof AddMarkStep || step instanceof RemoveMarkStep) &&

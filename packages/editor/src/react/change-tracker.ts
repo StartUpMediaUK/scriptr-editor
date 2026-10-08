@@ -11,7 +11,11 @@ type Token = {
   readonly position: number;
   readonly blockId?: string | undefined;
 };
-type Snapshot = { readonly doc: EditorNode; readonly tokens: readonly Token[] };
+type Snapshot = {
+  readonly doc: EditorNode;
+  readonly tokens: readonly Token[];
+  readonly historyDepth?: number | undefined;
+};
 
 const summarize = (
   doc: EditorNode,
@@ -77,7 +81,9 @@ export function createTransactionTracker(
             }));
     }),
   );
-  let snapshots: Snapshot[] = [{ doc: initial, tokens: initialTokens }];
+  let snapshots: Snapshot[] = [
+    { doc: initial, tokens: initialTokens, historyDepth: 0 },
+  ];
   let cursor = 0;
   let serial = 0;
   const prefix = globalThis.crypto.randomUUID();
@@ -85,6 +91,7 @@ export function createTransactionTracker(
     update(
       transaction: Transaction,
       source: DocumentChangeDetails['source'],
+      historyDepth?: number,
     ): DocumentChangeDetails {
       const previous = snapshots[cursor];
       if (!previous) throw new Error('Change tracker state is missing.');
@@ -107,7 +114,7 @@ export function createTransactionTracker(
         if (matched === undefined) {
           provenance = 'unresolved';
           tokens = [];
-          snapshots = [{ doc: transaction.doc, tokens }];
+          snapshots = [{ doc: transaction.doc, tokens, historyDepth }];
           cursor = 0;
         } else {
           cursor = matched;
@@ -240,12 +247,14 @@ export function createTransactionTracker(
         ];
         if (!kinds.length) kinds = ['formatting'];
         if (source === 'external') kinds = ['structure'];
+        const merge =
+          historyDepth !== undefined && previous.historyDepth === historyDepth;
         snapshots = [
-          ...snapshots.slice(0, cursor + 1),
-          { doc: transaction.doc, tokens },
+          ...snapshots.slice(0, merge ? cursor : cursor + 1),
+          { doc: transaction.doc, tokens, historyDepth },
         ];
-        cursor++;
-        // Bound opt-in sidecar history independently of the engine's grouped undo stack.
+        if (!merge) cursor++;
+        // Keep history-group checkpoints, not a snapshot for every keystroke.
         if (snapshots.length > 1000) {
           snapshots = snapshots.slice(-1000);
           cursor = snapshots.length - 1;
