@@ -12,7 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PACKAGE_NAME } from '@startupmedia/scriptr-editor';
-import type { CanonicalDocument } from '@startupmedia/scriptr-editor/document';
+import {
+  documentTextRegions,
+  type CanonicalDocument,
+  type DocumentChangeDetails,
+} from '@startupmedia/scriptr-editor/document';
 import {
   ScriptureProviderError,
   type ImageUploadInput,
@@ -688,6 +692,21 @@ function DevelopmentHarness({
     cloneDocument(initialScenario.document),
   );
   const [preview, setPreview] = useState(false);
+  const [showAnnotations, setShowAnnotations] = useState(false);
+  const [changeDetails, setChangeDetails] = useState<DocumentChangeDetails>();
+  const firstRegion = documentTextRegions(document)[0];
+  const annotationAnchor =
+    changeDetails?.contributions[0]?.anchors[0] ??
+    (firstRegion ? { ...firstRegion, offset: 0, length: 0 } : undefined);
+  const externalAnnotations =
+    showAnnotations && annotationAnchor
+      ? [{ id: 'example-annotation', anchor: annotationAnchor }]
+      : [];
+  const renderExternalAnnotation = () => (
+    <span className="text-sm font-normal text-muted-foreground">
+      External annotation
+    </span>
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedReference, setSelectedReference] = useState<string>();
   const [fixtureState, setFixtureState] =
@@ -732,6 +751,7 @@ function DevelopmentHarness({
     setDocument(cloneDocument(scenario.document));
     setPreview(false);
     setSelectedReference(undefined);
+    setChangeDetails(undefined);
   };
 
   useEffect(() => {
@@ -774,6 +794,15 @@ function DevelopmentHarness({
           <span id="page-title">{PACKAGE_NAME}</span>
           <div className="harness-actions">
             <SettingsPanel />
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              aria-pressed={showAnnotations}
+              onClick={() => setShowAnnotations((current) => !current)}
+            >
+              External annotations
+            </Button>
             <Button
               size="sm"
               type="button"
@@ -894,6 +923,8 @@ function DevelopmentHarness({
           <ScriptrRenderer
             key={`${scenarioId}-${fixtureState}-preview`}
             document={document}
+            annotations={externalAnnotations}
+            renderAnnotation={renderExternalAnnotation}
             extensions={[workbenchExtension]}
             onReferenceOpen={(reference) =>
               setSelectedReference(reference.title ?? reference.id)
@@ -913,6 +944,10 @@ function DevelopmentHarness({
           <ScriptrEditor
             key={`${scenarioId}-${fixtureState}-editor`}
             value={document}
+            annotations={externalAnnotations}
+            renderAnnotation={renderExternalAnnotation}
+            initialContributions={changeDetails?.contributions}
+            onChangeDetails={(_, details) => setChangeDetails(details)}
             extensions={[workbenchExtension]}
             onChange={setDocument}
             scriptureProvider={activeScriptureProvider}

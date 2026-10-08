@@ -208,6 +208,13 @@
   }
 }
 
+.scriptr-external-annotation {
+  display: block;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
 @media print {
   :where(.scriptr-editor, .scriptr-renderer) {
     --scriptr-editor-measure: none;

@@ -24,6 +24,18 @@ Use `createDocumentCodec` for all persistence boundaries. It validates, normaliz
 
 Import `@startupmedia/scriptr-editor/styles.css` once. The renderer and editor accept the same provider and extension capabilities to preserve semantic parity.
 
+### Optional change tracking and external annotations (0.2.0)
+
+Set `trackChanges` or provide `onChangeDetails(document, details)` to opt into engine-independent change tracking. The ordinary `onChange(document, change)` remains compatible and gains optional `change.details`. Details identify input, paste, undo, redo and external controlled updates, classify changes, and report new contributions, surviving contribution ranges, removals and restorations. Selection changes produce no document-change event. Replacements and formatting are not fresh insertions; restored history content retains its original contribution identity. Provider passage text is never a contribution.
+
+`ContentContribution` has a stable ID and one or more `DocumentAnchor` ranges. Supply `initialContributions` when reopening a document to preserve host-owned provenance. Persist this sidecar atomically with the canonical document. The package owns no dates or inactivity rules. Change tracking is opt-in and retains at most 1,000 transaction snapshots. A history operation outside retained provenance reports `provenance: 'unresolved'`, creates no new contributions, and never prevents editing; hosts must handle that explicitly. External document replacements are also not new user writing.
+
+Both `ScriptrEditor` and `ScriptrRenderer` accept `annotations` (`{ id, anchor }`) and `renderAnnotation(annotation)`. Return inline-safe React content such as spans and time elements; the annotation container uses block display. Text annotations can appear within a paragraph, code block, list item or toggle summary; block annotations appear before an identified block. Annotation IDs must be unique. Unresolved anchors are omitted rather than guessed. Captions and transcripts can be discovered as canonical text regions but do not currently support editor decoration placement.
+
+Annotations are external presentation: they create no canonical nodes, marks, clipboard document content or undo entries. They are non-editable and styled as non-selectable; host renderers should provide labels rather than interactive editing controls. Hosts use mapped contribution ranges from change details to update their annotation anchors and keep any application-specific metadata private.
+
+The `/document` entry point exports `documentTextRegions`, `resolveDocumentAnchor`, and `remapDocumentAnchor`. Anchors use block identity, optional list-item identity, a field, and UTF-16 offsets/lengths (hard breaks occupy one unit). Validate anchors after load/migration; supply explicit block/item identity maps to `remapDocumentAnchor` when a migration changes identities. Unresolvable ranges return `undefined`; no text-matching guess is made.
+
 ## `@startupmedia/scriptr-editor/scripture`
 
 Canonical book data, address parsing/formatting/validation, offline structure types, the provider conformance assertion, a deterministic fake provider, and the normalized local-dataset provider live here. Ordinary typed text is never recognized automatically. Provider credentials and remote licensing/cache policy remain host-owned.

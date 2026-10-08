@@ -12,6 +12,8 @@ pnpm check
 
 Commits should explain one coherent change. Changes to a published API or persisted document shape require a Changeset and corresponding compatibility or migration coverage.
 
+Changesets prepares version bumps. Record each release in `docs/change logs/<version>.md`; automatic per-package changelog generation is disabled so release details stay in that location.
+
 ## Release review
 
 Before publishing, confirm the version and npm authority, run `pnpm check` and `pnpm audit --prod`, inspect the packed npm artifact, and verify installation in a clean consumer. Publish from the protected Release workflow only after explicit maintainer approval. Verify the published version and provenance before announcing it. Package versions and canonical document versions advance independently.
@@ -20,4 +22,4 @@ The Release workflow runs only from `main`, checks the candidate, uploads its ex
 
 ## Local working material
 
-Keep private plans, audits, scratch files and local datasets in ignored `.local/` files or a separate private repository. Root `/docs/` is reserved for ignored local material; maintained public documentation belongs in `apps/docs/content/docs`. Useful tests and portable fixtures remain tracked.
+Keep private plans, audits, scratch files and local datasets in ignored `.local/` files or a separate private repository. Historical local documentation is archived in ignored `docs/pre release`. Versioned release records live in tracked `docs/change logs`; maintained consumer documentation belongs in `apps/docs/content/docs`. Useful tests and portable fixtures remain tracked.

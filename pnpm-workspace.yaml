@@ -15,6 +15,7 @@ strictPeerDependencies: true
 
 # Keep vulnerable transitive versions out of the audited workspace graph.
 overrides:
+  sharp: 0.35.5
   esbuild: 0.28.2
   prosemirror-view: 1.42.6
   prosemirror-model: 1.25.12

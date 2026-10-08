@@ -61,6 +61,9 @@ try {
     'package/dist/commands/index.js',
     'package/dist/document/index.d.ts',
     'package/dist/document/index.js',
+    'package/dist/document/anchors.d.ts',
+    'package/dist/document/anchors.js',
+    'package/dist/document/changes.d.ts',
     'package/dist/extensions/index.d.ts',
     'package/dist/extensions/index.js',
     'package/dist/host/index.d.ts',
@@ -144,7 +147,26 @@ try {
 
   writeFileSync(
     join(fixtureDirectory, 'consumer.ts'),
-    "import { defineScriptr } from '@startupmedia/scriptr-editor';\nimport type { CanonicalDocument, ScriptureProvider } from '@startupmedia/scriptr-editor';\nimport type { BookmarkProvider, MediaHost } from '@startupmedia/scriptr-editor/host';\nimport type { ScriptrEditorHandle } from '@startupmedia/scriptr-editor/react';\nimport { createScriptrServer } from '@startupmedia/scriptr-editor/server';\nconst document: CanonicalDocument = { version: 2, content: [] };\nconst provider: ScriptureProvider | undefined = undefined;\nconst media: MediaHost | undefined = undefined;\nconst bookmarks: BookmarkProvider | undefined = undefined;\nconst handle: ScriptrEditorHandle | undefined = undefined;\nconst client = defineScriptr();\nconst server = createScriptrServer({});\nvoid [document, provider, media, bookmarks, handle, client, server];\n",
+    `import { defineScriptr } from '@startupmedia/scriptr-editor';
+import type { CanonicalDocument, ScriptureProvider } from '@startupmedia/scriptr-editor';
+import { documentTextRegions, resolveDocumentAnchor, remapDocumentAnchor, type DocumentAnchor, type DocumentChangeDetails } from '@startupmedia/scriptr-editor/document';
+import type { BookmarkProvider, MediaHost } from '@startupmedia/scriptr-editor/host';
+import type { ScriptrEditorHandle, ScriptrEditorProps, ExternalAnnotation, ScriptrRendererProps } from '@startupmedia/scriptr-editor/react';
+import { createScriptrServer } from '@startupmedia/scriptr-editor/server';
+const document: CanonicalDocument = { version: 2, content: [] };
+const provider: ScriptureProvider | undefined = undefined;
+const media: MediaHost | undefined = undefined;
+const bookmarks: BookmarkProvider | undefined = undefined;
+const handle: ScriptrEditorHandle | undefined = undefined;
+const anchor: DocumentAnchor = { blockId: 'paragraph', field: 'content', offset: 0, length: 0 };
+const annotation: ExternalAnnotation = { id: 'external', anchor };
+const onChangeDetails = (_document: CanonicalDocument, details: DocumentChangeDetails) => { void details.contributions; };
+const editorProps: ScriptrEditorProps = { trackChanges: true, annotations: [annotation], onChangeDetails };
+const rendererProps: ScriptrRendererProps = { document, annotations: [annotation] };
+const client = defineScriptr();
+const server = createScriptrServer({});
+void [document, provider, media, bookmarks, handle, client, server, editorProps, rendererProps, documentTextRegions(document), resolveDocumentAnchor(document, anchor), remapDocumentAnchor(document, anchor)];
+`,
   );
   writeFileSync(
     join(fixtureDirectory, 'tsconfig.json'),

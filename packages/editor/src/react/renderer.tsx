@@ -1,4 +1,6 @@
-import { Component } from 'react';
+import { Component, Fragment } from 'react';
+import type { ExternalAnnotationProps } from './annotations.js';
+import type { DocumentAnchor } from '../document/anchors.js';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -22,7 +24,7 @@ import { ImageBlockContent } from './image-block.js';
 import { BookmarkBlockContent } from './bookmark-block.js';
 import { MediaBlockContent } from './media-block.js';
 
-export type ScriptrRendererProps = {
+export type ScriptrRendererProps = ExternalAnnotationProps & {
   readonly document: CanonicalDocument;
   readonly className?: string | undefined;
   readonly onInternalDocumentLink?: ((targetId: string) => void) | undefined;
@@ -331,6 +333,92 @@ function renderInline(
   });
 }
 
+function renderAnnotatedInline(
+  content: readonly InlineContent[],
+  props: ScriptrRendererProps,
+  region: Pick<DocumentAnchor, 'blockId' | 'itemId' | 'field'>,
+): ReactNode {
+  const length = content.reduce(
+    (total, inline) =>
+      total + (inline.type === 'text' ? inline.text.length : 1),
+    0,
+  );
+  const annotations = props.renderAnnotation
+    ? (props.annotations ?? [])
+        .filter(
+          (annotation) =>
+            annotation.anchor.blockId === region.blockId &&
+            annotation.anchor.itemId === region.itemId &&
+            annotation.anchor.field === region.field &&
+            Number.isInteger(annotation.anchor.offset) &&
+            Number.isInteger(annotation.anchor.length) &&
+            annotation.anchor.offset >= 0 &&
+            annotation.anchor.length >= 0 &&
+            annotation.anchor.offset + annotation.anchor.length <= length,
+        )
+        .sort((a, b) => a.anchor.offset - b.anchor.offset)
+    : [];
+  if (!annotations.length)
+    return renderInline(
+      content,
+      props.document.references,
+      props.onInternalDocumentLink,
+      props.documentTargetProvider,
+      props.onReferenceOpen,
+    );
+  const output: ReactNode[] = [];
+  let cursor = 0;
+  const slice = (from: number, to: number) => {
+    let offset = 0;
+    return content.flatMap((inline): InlineContent[] => {
+      const size = inline.type === 'text' ? inline.text.length : 1;
+      const start = Math.max(0, from - offset);
+      const end = Math.min(size, to - offset);
+      offset += size;
+      return end <= start
+        ? []
+        : inline.type === 'text'
+          ? [{ ...inline, text: inline.text.slice(start, end) }]
+          : [inline];
+    });
+  };
+  for (const annotation of annotations) {
+    output.push(
+      <Fragment key={`text-${annotation.id}`}>
+        {renderInline(
+          slice(cursor, annotation.anchor.offset),
+          props.document.references,
+          props.onInternalDocumentLink,
+          props.documentTargetProvider,
+          props.onReferenceOpen,
+        )}
+      </Fragment>,
+    );
+    output.push(
+      <span
+        className="scriptr-external-annotation"
+        data-scriptr-annotation={annotation.id}
+        key={annotation.id}
+      >
+        {props.renderAnnotation?.(annotation)}
+      </span>,
+    );
+    cursor = annotation.anchor.offset;
+  }
+  output.push(
+    <Fragment key="remaining">
+      {renderInline(
+        slice(cursor, length),
+        props.document.references,
+        props.onInternalDocumentLink,
+        props.documentTargetProvider,
+        props.onReferenceOpen,
+      )}
+    </Fragment>,
+  );
+  return output;
+}
+
 function renderListItems(
   items: readonly ListItem[],
   kind: 'bullet' | 'numbered' | 'check',
@@ -338,6 +426,10 @@ function renderListItems(
   onInternalDocumentLink: ScriptrRendererProps['onInternalDocumentLink'],
   documentTargetProvider: ScriptrRendererProps['documentTargetProvider'],
   onReferenceOpen: ScriptrRendererProps['onReferenceOpen'],
+  annotationContext?: {
+    readonly props: ScriptrRendererProps;
+    readonly blockId: string;
+  },
 ): ReactNode {
   return items.map((item) => (
     <li
@@ -353,13 +445,19 @@ function renderListItems(
         />
       ) : null}
       <span>
-        {renderInline(
-          item.content,
-          references,
-          onInternalDocumentLink,
-          documentTargetProvider,
-          onReferenceOpen,
-        )}
+        {annotationContext
+          ? renderAnnotatedInline(item.content, annotationContext.props, {
+              blockId: annotationContext.blockId,
+              itemId: item.id,
+              field: 'content',
+            })
+          : renderInline(
+              item.content,
+              references,
+              onInternalDocumentLink,
+              documentTargetProvider,
+              onReferenceOpen,
+            )}
       </span>
       {item.children?.length ? (
         kind === 'numbered' ? (
@@ -371,6 +469,7 @@ function renderListItems(
               onInternalDocumentLink,
               documentTargetProvider,
               onReferenceOpen,
+              annotationContext,
             )}
           </ol>
         ) : (
@@ -382,6 +481,7 @@ function renderListItems(
               onInternalDocumentLink,
               documentTargetProvider,
               onReferenceOpen,
+              annotationContext,
             )}
           </ul>
         )
@@ -391,14 +491,10 @@ function renderListItems(
 }
 
 function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
-  const inline = (content: readonly InlineContent[]) =>
-    renderInline(
-      content,
-      props.document.references,
-      props.onInternalDocumentLink,
-      props.documentTargetProvider,
-      props.onReferenceOpen,
-    );
+  const inline = (
+    content: readonly InlineContent[],
+    field: DocumentAnchor['field'] = 'content',
+  ) => renderAnnotatedInline(content, props, { blockId: block.id, field });
   switch (block.type) {
     case 'paragraph':
       return <p key={block.id}>{inline(block.content)}</p>;
@@ -411,7 +507,9 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
     case 'codeBlock':
       return (
         <pre className="native-scrollbar" key={block.id}>
-          <code data-language={block.language}>{block.code}</code>
+          <code data-language={block.language}>
+            {inline([{ type: 'text', text: block.code }], 'code')}
+          </code>
         </pre>
       );
     case 'callout':
@@ -436,6 +534,7 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
             props.onInternalDocumentLink,
             props.documentTargetProvider,
             props.onReferenceOpen,
+            { props, blockId: block.id },
           )}
         </ol>
       ) : (
@@ -450,6 +549,7 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
             props.onInternalDocumentLink,
             props.documentTargetProvider,
             props.onReferenceOpen,
+            { props, blockId: block.id },
           )}
         </ul>
       );
@@ -466,7 +566,9 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
       return (
         <ImageBlockContent
           block={block}
-          captionContent={block.caption ? inline(block.caption) : undefined}
+          captionContent={
+            block.caption ? inline(block.caption, 'caption') : undefined
+          }
           imageHost={props.imageHost}
           key={block.id}
         />
@@ -514,10 +616,10 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
           <summary data-scriptr-toggle-summary="">
             {block.headingLevel ? (
               <span aria-level={block.headingLevel} role="heading">
-                {inline(block.summary)}
+                {inline(block.summary, 'summary')}
               </span>
             ) : (
-              inline(block.summary)
+              inline(block.summary, 'summary')
             )}
           </summary>
           <div data-scriptr-toggle-content="">
@@ -556,7 +658,7 @@ function renderBlockBase(block: Block, props: ScriptrRendererProps): ReactNode {
 
 function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
   const content = renderBlockBase(block, props);
-  return block.background ? (
+  const rendered = block.background ? (
     <div
       className="scriptr-renderer__block-background"
       data-scriptr-background={block.background}
@@ -566,6 +668,32 @@ function renderBlock(block: Block, props: ScriptrRendererProps): ReactNode {
     </div>
   ) : (
     content
+  );
+  const annotations = props.renderAnnotation
+    ? (props.annotations ?? []).filter(
+        (annotation) =>
+          annotation.anchor.field === 'block' &&
+          annotation.anchor.blockId === block.id &&
+          annotation.anchor.itemId === undefined &&
+          annotation.anchor.offset === 0 &&
+          annotation.anchor.length === 0,
+      )
+    : [];
+  return annotations.length ? (
+    <Fragment key={block.id}>
+      {annotations.map((annotation) => (
+        <span
+          className="scriptr-external-annotation"
+          data-scriptr-annotation={annotation.id}
+          key={annotation.id}
+        >
+          {props.renderAnnotation?.(annotation)}
+        </span>
+      ))}
+      {rendered}
+    </Fragment>
+  ) : (
+    rendered
   );
 }
 

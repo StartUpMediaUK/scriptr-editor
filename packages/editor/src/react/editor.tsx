@@ -1,9 +1,21 @@
 import DragHandle from '@tiptap/extension-drag-handle-react';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
-import { NodeSelection, TextSelection } from '@tiptap/pm/state';
+import { EditorState, NodeSelection, TextSelection } from '@tiptap/pm/state';
 import type { EditorView } from '@tiptap/pm/view';
 import type { Editor } from '@tiptap/react';
 import { EditorContent, useEditor } from '@tiptap/react';
+import { isHistoryTransaction, redoDepth } from '@tiptap/pm/history';
+import { createPortal } from 'react-dom';
+import { AddMarkStep, RemoveMarkStep } from '@tiptap/pm/transform';
+import type {
+  ContentContribution,
+  DocumentChangeDetails,
+} from '../document/changes.js';
+import { createTransactionTracker } from './change-tracker.js';
+import type { DocumentAnchor } from '../document/anchors.js';
+import { positionForAnchor } from './anchor-adapter.js';
+import { createAnnotationExtension } from './annotations.js';
+import type { ExternalAnnotationProps } from './annotations.js';
 import { BubbleMenu } from '@tiptap/react/menus';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -145,9 +157,15 @@ import { ScriptureCommandDialog } from './scripture-command-dialog.js';
 export type EditorChange = {
   readonly origin: 'user';
   readonly editorJson: unknown;
+  readonly details?: DocumentChangeDetails | undefined;
 };
 
-export type ScriptrEditorProps = {
+export type ScriptrEditorProps = ExternalAnnotationProps & {
+  readonly trackChanges?: boolean | undefined;
+  readonly initialContributions?: readonly ContentContribution[] | undefined;
+  readonly onChangeDetails?:
+    | ((document: CanonicalDocument, details: DocumentChangeDetails) => void)
+    | undefined;
   readonly value?: CanonicalDocument | undefined;
   readonly defaultValue?: CanonicalDocument | undefined;
   readonly onChange?:
@@ -169,6 +187,7 @@ export type ScriptrEditorProps = {
 };
 
 export type ScriptrEditorHandle = {
+  readonly navigateToAnchor: (anchor: DocumentAnchor) => boolean;
   readonly focus: (position?: 'start' | 'end') => void;
   readonly blur: () => void;
   readonly selectAll: () => void;
@@ -746,6 +765,11 @@ export const ScriptrEditor = forwardRef<
     value,
     defaultValue,
     onChange,
+    trackChanges = false,
+    initialContributions,
+    onChangeDetails,
+    annotations,
+    renderAnnotation,
     editable = true,
     autofocus = false,
     placeholder = "Write, or type '/' for commands…",
@@ -763,6 +787,40 @@ export const ScriptrEditor = forwardRef<
   forwardedRef,
 ) {
   const editorId = useId();
+  const [annotationMounts, setAnnotationMounts] = useState<
+    ReadonlyMap<HTMLElement, string>
+  >(() => new Map());
+  const annotationProps = useRef({ annotations, renderAnnotation });
+  annotationProps.current = { annotations, renderAnnotation };
+  const tracker = useRef<
+    ReturnType<typeof createTransactionTracker> | undefined
+  >(undefined);
+  const detailsRef = useRef<DocumentChangeDetails | undefined>(undefined);
+  const previousRedoDepth = useRef(0);
+  const annotationExtension = useMemo(
+    () =>
+      createAnnotationExtension(
+        () =>
+          annotationProps.current.renderAnnotation
+            ? (annotationProps.current.annotations ?? [])
+            : [],
+        (id, container) =>
+          queueMicrotask(() =>
+            setAnnotationMounts((current) =>
+              new Map(current).set(container, id),
+            ),
+          ),
+        (container) =>
+          queueMicrotask(() =>
+            setAnnotationMounts((current) => {
+              const next = new Map(current);
+              next.delete(container);
+              return next;
+            }),
+          ),
+      ),
+    [],
+  );
   const [initialDocument] = useState(
     () => value ?? defaultValue ?? emptyDocument,
   );
@@ -955,7 +1013,7 @@ export const ScriptrEditor = forwardRef<
   };
   const serializedValue = value ? codec.serialize(value) : undefined;
   const editor = useEditor({
-    extensions: editorExtensions,
+    extensions: [...editorExtensions, annotationExtension],
     content: canonicalToEditorJson(initialDocument),
     editable,
     autofocus,
@@ -1080,6 +1138,66 @@ export const ScriptrEditor = forwardRef<
         return false;
       },
     },
+    onTransaction({
+      editor: updatedEditor,
+      transaction,
+      appendedTransactions,
+    }) {
+      if (!(trackChanges || onChangeDetails) || !transaction.docChanged) return;
+      tracker.current ??= createTransactionTracker(
+        transaction.before,
+        initialContributions,
+      );
+      const history = isHistoryTransaction(transaction);
+      const rawDepth: unknown = redoDepth(updatedEditor.state);
+      const depth = typeof rawDepth === 'number' ? rawDepth : 0;
+      const source = transaction.getMeta('scriptrExternal')
+        ? 'external'
+        : history
+          ? depth > previousRedoDepth.current
+            ? 'undo'
+            : 'redo'
+          : transaction.getMeta('uiEvent') === 'paste'
+            ? 'paste'
+            : 'input';
+      previousRedoDepth.current = depth;
+      const combined = EditorState.create({ doc: transaction.before }).tr;
+      for (const change of [transaction, ...appendedTransactions])
+        for (const step of change.steps) combined.step(step);
+      const tracked = tracker.current.update(combined, source);
+      const referenceChange = combined.steps.some(
+        (step) =>
+          (step instanceof AddMarkStep || step instanceof RemoveMarkStep) &&
+          step.mark.type.name === 'referenceAnchor',
+      );
+      const scriptureChange = combined.steps.some((step, index) => {
+        let changed = false;
+        step.getMap().forEach((start, end) =>
+          combined.docs[index]?.nodesBetween(start, end, (node) => {
+            if (node.type.name === 'scriptureBlock') changed = true;
+          }),
+        );
+        return changed;
+      });
+      const details: DocumentChangeDetails = {
+        ...tracked,
+        kinds: tracked.additions.length
+          ? tracked.kinds
+          : referenceChange
+            ? ['reference']
+            : scriptureChange
+              ? ['scripture']
+              : tracked.kinds,
+      };
+      detailsRef.current = details;
+      onChangeDetails?.(
+        editorJsonToCanonical(
+          updatedEditor.getJSON(),
+          documentRef.current.references,
+        ),
+        details,
+      );
+    },
     onUpdate({ editor: updatedEditor }) {
       setSlashState(updateSlashQuery(updatedEditor));
       const editorJson = updatedEditor.getJSON();
@@ -1091,6 +1209,7 @@ export const ScriptrEditor = forwardRef<
       onChange?.(nextDocument, {
         origin: 'user',
         editorJson,
+        details: detailsRef.current,
       });
     },
     onSelectionUpdate({ editor: updatedEditor }) {
@@ -1267,6 +1386,22 @@ export const ScriptrEditor = forwardRef<
         editor
           ? navigateToLocation(editor, location, options?.highlightMs)
           : false,
+      navigateToAnchor: (anchor) => {
+        if (!editor) return false;
+        const position = positionForAnchor(editor.state.doc, anchor);
+        if (position === undefined) return false;
+        const transaction = editor.state.tr.setSelection(
+          anchor.field === 'block'
+            ? NodeSelection.create(editor.state.doc, position)
+            : TextSelection.create(
+                editor.state.doc,
+                position,
+                position + anchor.length,
+              ),
+        );
+        editor.view.dispatch(transaction.scrollIntoView());
+        return true;
+      },
       addReference: (reference) => {
         if (!editor || editor.state.selection.empty) return;
         const nextReferences = {
@@ -1345,14 +1480,23 @@ export const ScriptrEditor = forwardRef<
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled || editor.isDestroyed) return;
-      editor.commands.setContent(canonicalToEditorJson(value), {
-        emitUpdate: false,
-      });
+      editor
+        .chain()
+        .setMeta('scriptrExternal', true)
+        .setContent(canonicalToEditorJson(value), {
+          emitUpdate: false,
+        })
+        .run();
     });
     return () => {
       cancelled = true;
     };
   }, [codec, editor, serializedValue, value]);
+
+  useEffect(() => {
+    if (editor && !editor.isDestroyed)
+      editor.view.dispatch(editor.state.tr.setMeta('addToHistory', false));
+  }, [editor, annotations, renderAnnotation]);
 
   if (!editor)
     return (
@@ -2239,6 +2383,14 @@ export const ScriptrEditor = forwardRef<
       ) : null}
 
       <EditorContent editor={editor} />
+      {[...annotationMounts].map(([container, id]) => {
+        const annotation = annotations?.find(
+          (candidate) => candidate.id === id,
+        );
+        return annotation
+          ? createPortal(renderAnnotation?.(annotation), container, id)
+          : null;
+      })}
 
       {editable && slashQuery !== undefined ? (
         <Popover

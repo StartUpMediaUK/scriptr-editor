@@ -7,6 +7,13 @@ export type {
 export { extractInternalDocumentLinks } from './links.js';
 export type { InternalDocumentLinkEdge } from './links.js';
 export { findDocumentLocations } from './locations.js';
+export {
+  documentTextRegions,
+  resolveDocumentAnchor,
+  remapDocumentAnchor,
+} from './anchors.js';
+export type { DocumentAnchor, DocumentTextRegion } from './anchors.js';
+export type { ContentContribution, DocumentChangeDetails } from './changes.js';
 export type { CanonicalLocation, LocatedDocumentMatch } from './locations.js';
 export { documentV1ToV2Migration, migrateDocument } from './migrations.js';
 export type { DocumentMigration, MigrationResult } from './migrations.js';

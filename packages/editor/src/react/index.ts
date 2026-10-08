@@ -6,6 +6,10 @@ export type {
   ScriptrEditorProps,
 } from './editor.js';
 export { ScriptrRenderer } from './renderer.js';
+export type {
+  ExternalAnnotation,
+  ExternalAnnotationProps,
+} from './annotations.js';
 export { defineReactExtension } from './renderer.js';
 export type { ScriptrRendererProps } from './renderer.js';
 export type {
