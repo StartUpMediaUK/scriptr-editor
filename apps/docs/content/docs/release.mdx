@@ -9,7 +9,8 @@ Version 0.2.1 fixes standalone slash-menu styling, adds block-aware ghost text,
 and groups continuous typing into word-like undo units. Canonical Document v2
 is unchanged. Application dependency updates and integration verification remain
 a separate consumer task. Local validation does not publish the package; the
-maintainer-approved Release workflow performs publication.
+Release workflow stages the verified tarball. A maintainer then approves that
+staged version in npm with 2FA before it becomes public.
 
 ## Trusted publishing setup
 
@@ -21,18 +22,26 @@ not restore dependency caches.
 In the npm package settings for `@startupmedia/scriptr-editor`, register a GitHub
 Actions trusted publisher with these exact, case-sensitive values:
 
-| Field                | Value                                |
-| -------------------- | ------------------------------------ |
-| Organization or user | `StartUpMediaUK`                     |
-| Repository           | `scriptr-editor`                     |
-| Workflow filename    | `release.yml`                        |
-| Environment          | `npm`                                |
-| Allowed action       | Direct publishing with `npm publish` |
+| Field                | Value                                      |
+| -------------------- | ------------------------------------------ |
+| Organization or user | `StartUpMediaUK`                           |
+| Repository           | `scriptr-editor`                           |
+| Workflow filename    | `release.yml`                              |
+| Environment          | `npm`                                      |
+| Allowed action       | Staged publishing with `npm stage publish` |
 
 The workflow filename excludes `.github/workflows/`. The `npm` environment
 matches the publish job. Register this relationship in npm before dispatching
 the Release workflow on `main` with `publish=true`. Workflow reruns retain their
 original commit; dispatch a new run to use an updated workflow.
+
+The workflow deliberately does not call `npm publish` or approve its own staged
+release. After it succeeds, open npm's **Staged Packages** tab, review the staged
+package and its release evidence, then select **Approve** and complete 2FA.
+Alternatively, an authenticated maintainer with npm 11.15+ may run
+`npm stage list @startupmedia/scriptr-editor`, inspect the returned stage with
+`npm stage view <stage-id>`, then approve it with `npm stage approve <stage-id>`.
+See [npm's staged publishing documentation](https://docs.npmjs.com/staged-publishing/).
 
 See [npm's trusted publishing documentation](https://docs.npmjs.com/trusted-publishers/).
 The existing `NPM_TOKEN` GitHub secret is unused by this workflow. Remove or

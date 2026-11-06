@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the owner-approved release to npm
+        description: Stage the verified release for maintainer approval in npm
         required: true
         default: false
         type: boolean
@@ -43,5 +43,5 @@ jobs:
         with:
           name: npm-release-candidate
           path: ${{ runner.temp }}/scriptr-release/*.tgz
-      - name: Publish to npm using trusted publishing (OIDC)
-        run: npm publish "$RUNNER_TEMP/scriptr-release/"*.tgz --access public --provenance
+      - name: Stage release in npm using trusted publishing (OIDC)
+        run: npm stage publish "$RUNNER_TEMP/scriptr-release/"*.tgz --access public --provenance
