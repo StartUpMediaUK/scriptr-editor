@@ -26,9 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
           registry-url: https://registry.npmjs.org
-      - run: npm install --global npm@11.6.2
+      - run: npm install --global npm@11.21.2
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm audit --prod
@@ -43,6 +42,5 @@ jobs:
         with:
           name: npm-release-candidate
           path: ${{ runner.temp }}/scriptr-release/*.tgz
-      - run: npm publish "$RUNNER_TEMP/scriptr-release/"*.tgz --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm using trusted publishing (OIDC)
+        run: npm publish "$RUNNER_TEMP/scriptr-release/"*.tgz --access public --provenance
