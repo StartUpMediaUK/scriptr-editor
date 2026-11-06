@@ -11,6 +11,7 @@ import {
   Underline as UnderlineIcon,
 } from 'lucide-react';
 import StarterKit from '@tiptap/starter-kit';
+import { EditingHistory } from './editing-history.js';
 import { useState } from 'react';
 
 import { Button } from '../components/ui/button.js';
@@ -151,6 +152,7 @@ export function ReferenceEditor({
     content: toEditorContent(reference),
     extensions: [
       StarterKit.configure({
+        undoRedo: false,
         blockquote: false,
         code: false,
         codeBlock: false,
@@ -159,6 +161,7 @@ export function ReferenceEditor({
         link: false,
         underline: false,
       }),
+      EditingHistory,
       Underline,
       Link.configure({ autolink: false, openOnClick: false }),
       Placeholder.configure({ placeholder: 'Add a description…' }),

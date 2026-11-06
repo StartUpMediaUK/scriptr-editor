@@ -489,6 +489,12 @@ export function createTransactionTracker(
           { doc: transaction.doc, tokens, historyDepth, provenance },
         ];
         if (!merge) cursor++;
+        if (source === 'external') {
+          snapshots = [
+            { doc: transaction.doc, tokens, historyDepth: 0, provenance },
+          ];
+          cursor = 0;
+        }
         // Keep history-group checkpoints, not a snapshot for every keystroke.
         if (snapshots.length > 1000) {
           snapshots = snapshots.slice(-1000);

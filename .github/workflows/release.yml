@@ -32,6 +32,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm audit --prod
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm package:browser-check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-release-evidence
+          path: .local/release-evidence/
       - run: pnpm --dir packages/editor pack --pack-destination "$RUNNER_TEMP/scriptr-release"
       - uses: actions/upload-artifact@v4
         with:

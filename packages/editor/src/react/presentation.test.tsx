@@ -31,9 +31,12 @@ function Inspector() {
 
 describe('React presentation adapter', () => {
   it('keeps portalled overlays scoped to their provider and updates them live', () => {
-    const first = createPresentationController(undefined, {
-      colourScheme: 'dark',
-    });
+    const first = createPresentationController(
+      { accentColour: '#3976b8' },
+      {
+        colourScheme: 'dark',
+      },
+    );
     const second = createPresentationController(undefined, {
       colourScheme: 'light',
     });
@@ -60,6 +63,9 @@ describe('React presentation adapter', () => {
       name: 'Second overlay',
     });
     expect(firstOverlay).toHaveAttribute('data-colour-scheme', 'dark');
+    expect(firstOverlay.style.getPropertyValue('--scriptr-color-accent')).toBe(
+      '#3976b8',
+    );
     expect(secondOverlay).toHaveAttribute('data-colour-scheme', 'light');
     act(() => first.update({ colourScheme: 'system', contrast: 125 }));
     expect(firstOverlay).toHaveAttribute('data-colour-scheme', 'system');

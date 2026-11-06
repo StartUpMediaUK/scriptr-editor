@@ -5,7 +5,26 @@ description: Separate tested implementation behavior from pending release certif
 
 ## Current status
 
-The editor implementation is complete, with the verification limits below accepted for the current candidate. npm publication and live application integration remain pending. No npm publication occurs as part of documentation or local package validation.
+Version 0.2.1 fixes standalone slash-menu styling, adds block-aware ghost text,
+and groups continuous typing into word-like undo units. Canonical Document v2
+is unchanged. Application dependency updates and integration verification remain
+a separate consumer task. Local validation does not publish the package; the
+maintainer-approved Release workflow performs publication.
+
+The optional `PresentationConfiguration.accentColour` CSS colour configures
+controls and their portals; defaults require no new configuration. Import
+`@startupmedia/scriptr-editor/styles.css` once. Tailwind scanning is unnecessary.
+Headings 4–6 now also appear in the slash catalogue. Equivalent controlled echoes
+preserve history and selection, while genuine external replacements clear undo
+and redo. See [React integration](/docs/react) and
+[Styling and presentation](/docs/styling) for the exact behavior.
+
+The 0.2.1 packed Chromium acceptance check runs with
+`pnpm exec playwright install chromium` followed by `pnpm package:browser-check`.
+It records 40 assertions, screenshots and computed contrast in
+`.local/release-evidence/`; the Release workflow uploads this evidence. Native
+OS IME behavior is represented by simulated composition events. Physical touch,
+live screen readers and other browser engines are not certified by that check.
 
 The package declares ESM exports, React/React DOM 18.3.1 or React 19 peer compatibility, and Node 20.19+ runtime support. Workspace development uses Node 22.14+ and pnpm 11.19.0; CI runs the full gate on Node 22.14 and 24. A declared range is not proof every runtime/peer combination has been exercised locally.
 

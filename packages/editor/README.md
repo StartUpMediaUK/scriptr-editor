@@ -22,10 +22,19 @@ From the repository root:
 ```sh
 pnpm install
 pnpm check
+pnpm exec playwright install chromium
+pnpm package:browser-check
 pnpm dev
 ```
 
 The Vite development harness demonstrates the public editor APIs and maintained design system. Consumer guides and runnable framework examples live in `apps/docs`.
+
+The packed browser check installs the npm tarball into an isolated minimal Vite
+host that imports only `@startupmedia/scriptr-editor/styles.css`. It exercises
+timed keyboard events, controlled values, provenance, placeholders, menu states,
+contrast, reduced motion, forced colors and emulated touch. Screenshots and
+results are written to `.local/release-evidence/`. Native OS IMEs, physical touch
+and live screen-reader behavior require separate verification.
 
 ## Foundation interfaces
 

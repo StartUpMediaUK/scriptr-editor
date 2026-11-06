@@ -657,7 +657,7 @@ button.scriptr-renderer__reference {
   float: left;
   height: 0;
   color: var(--scriptr-color-muted);
-  content: attr(data-placeholder);
+  content: attr(data-placeholder) / '';
   pointer-events: none;
 }
 
@@ -1757,11 +1757,6 @@ button.scriptr-renderer__reference {
   opacity: 0.62;
 }
 
-.scriptr-editor__slash-item:hover,
-.scriptr-editor__slash-item[data-selected='true'] {
-  background: color-mix(in srgb, var(--scriptr-color-text) 6%, transparent);
-}
-
 .scriptr-editor__slash-item small {
   color: var(--scriptr-color-muted);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -1943,11 +1938,12 @@ button.scriptr-renderer__reference {
   }
 }
 
-.scriptr-editor__content p.is-editor-empty:first-child::before {
+.scriptr-editor__content
+  :is(p, h1, h2, h3, h4, h5, h6, pre, summary).is-empty::before {
   float: left;
   height: 0;
-  color: color-mix(in srgb, var(--scriptr-color-text) 35%, transparent);
-  content: attr(data-placeholder);
+  color: var(--scriptr-color-muted);
+  content: attr(data-placeholder) / '';
   pointer-events: none;
 }
 
@@ -2678,5 +2674,93 @@ button.scriptr-renderer__reference {
   .scriptr-bookmark__toolbar button {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+/* Explicit package styles also apply when the host does not scan utilities. */
+.scriptr-editor__slash {
+  font-family: var(--scriptr-font-ui);
+}
+.scriptr-editor__slash [data-slot='input-group'] {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--scriptr-color-divider);
+  border-radius: var(--scriptr-radius-md);
+  background: var(--scriptr-color-surface);
+}
+.scriptr-editor__slash [data-slot='input-group-addon'] {
+  order: -1;
+  padding-left: 8px;
+}
+.scriptr-editor__slash [data-slot='command-input'] {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 0;
+  color: var(--scriptr-color-text);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+}
+.scriptr-editor__slash [data-slot='command-input']::placeholder {
+  color: var(--scriptr-color-muted);
+}
+.scriptr-editor__slash [data-slot='command-input-wrapper'] svg {
+  opacity: 1;
+  width: 16px;
+  height: 16px;
+  color: var(--scriptr-color-muted);
+}
+.scriptr-editor__slash [data-slot='command-input-wrapper']:focus-within {
+  outline: 2px solid var(--scriptr-color-accent);
+  outline-offset: 1px;
+  border-radius: var(--scriptr-radius-sm);
+}
+.scriptr-editor__slash [data-slot='command-item'] {
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+.scriptr-editor__slash
+  [data-slot='command-item']:is(:hover, [data-selected='true']) {
+  color: var(--scriptr-color-text);
+  background: color-mix(
+    in srgb,
+    var(--scriptr-color-accent) 18%,
+    var(--background)
+  );
+  box-shadow: inset 3px 0 var(--scriptr-color-accent);
+}
+.scriptr-editor__slash
+  [data-slot='command-item']:is(:hover, [data-selected='true'])
+  > * {
+  color: inherit;
+}
+.scriptr-editor__slash [data-slot='command-item'][data-disabled='true'] {
+  opacity: 1;
+  color: var(--scriptr-color-muted);
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+}
+.scriptr-editor__slash .scriptr-editor__command-icon {
+  opacity: 1;
+}
+@media (pointer: coarse), (max-width: 640px) {
+  .scriptr-editor__slash [data-slot='command-item'] {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scriptr-editor__slash [data-slot='command-item'] {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .scriptr-editor__slash [data-slot='command-item'][data-selected='true'] {
+    color: HighlightText;
+    background: Highlight;
+    forced-color-adjust: none;
   }
 }

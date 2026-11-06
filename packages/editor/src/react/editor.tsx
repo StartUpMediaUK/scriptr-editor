@@ -264,6 +264,9 @@ const editorCommandIds = new Set([
   'heading-1',
   'heading-2',
   'heading-3',
+  'heading-4',
+  'heading-5',
+  'heading-6',
   'bullet-list',
   'ordered-list',
   'checklist',
@@ -295,6 +298,15 @@ const runEditorCommand = (id: string, editor: Editor): void => {
       return;
     case 'heading-3':
       void chain.toggleHeading({ level: 3 }).run();
+      return;
+    case 'heading-4':
+      void chain.toggleHeading({ level: 4 }).run();
+      return;
+    case 'heading-5':
+      void chain.toggleHeading({ level: 5 }).run();
+      return;
+    case 'heading-6':
+      void chain.toggleHeading({ level: 6 }).run();
       return;
     case 'bullet-list':
       void chain.toggleBulletList().run();
@@ -2478,6 +2490,12 @@ export const ScriptrEditor = forwardRef<
               className="scriptr-editor__slash"
               role="menu"
               shouldFilter={false}
+              onValueChange={(id) => {
+                const index = filteredEnabledSlashItems.findIndex(
+                  (item) => item.id === id,
+                );
+                if (index >= 0) setSlashState(slashQuery, index);
+              }}
               {...(filteredEnabledSlashItems[slashIndex]
                 ? { value: filteredEnabledSlashItems[slashIndex].id }
                 : {})}
@@ -2485,7 +2503,15 @@ export const ScriptrEditor = forwardRef<
               <CommandInput
                 aria-label="Search blocks"
                 className="scriptr-editor__slash-query"
-                readOnly
+                placeholder="Search blocks…"
+                onValueChange={(query) => setSlashState(query)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Escape') return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setSlashState(undefined);
+                  void editor.commands.focus();
+                }}
                 value={slashQuery}
               />
               <CommandList>

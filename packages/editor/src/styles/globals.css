@@ -20,6 +20,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-reference-editor,
+  [data-scriptr-ui]
+),
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-reference-editor,
+    [data-scriptr-ui]
+  )
+  * {
+  box-sizing: border-box;
+}
+
 @theme inline {
   --font-sans: var(--scriptr-font-ui);
   --color-background: var(--background);
@@ -49,7 +65,15 @@
   --radius-xl: 7px;
 }
 
-:root {
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker,
+  [data-scriptr-presentation],
+  [data-scriptr-ui]
+):not(:where([data-scriptr-presentation] *, [data-scriptr-ui] *)) {
   color-scheme: light;
   --scriptr-color-ground: #f3f2f2;
   --scriptr-color-surface: #eae9e9;
@@ -95,7 +119,15 @@
   --destructive: #9b3f38;
 }
 
-.dark {
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker,
+  [data-scriptr-presentation],
+  [data-scriptr-ui]
+):is(.dark, .dark *) {
   color-scheme: dark;
   --background: #201f1d;
   --foreground: #eee9df;
@@ -124,32 +156,140 @@
   --scriptr-color-accent-700: #e1ad66;
 }
 
-::selection {
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  ::selection {
   color: var(--foreground);
   background: color-mix(in srgb, var(--scriptr-color-accent) 30%, transparent);
 }
 
-:where(button, input, textarea, select, [tabindex]):focus-visible {
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  :where(button, input, textarea, select, [tabindex]):focus-visible {
   outline-color: var(--ring);
 }
 
-/* Every native overflow region matches the slim shadcn ScrollArea treatment. */
-* {
+/* Package overflow regions, including portalled UI, use slim scrollbars. */
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker,
+  [data-scriptr-presentation],
+  [data-scriptr-ui]
+),
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  * {
   scrollbar-color: var(--border) transparent;
   scrollbar-width: thin;
 }
 
-*::-webkit-scrollbar {
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker,
+  [data-scriptr-presentation],
+  [data-scriptr-ui]
+)::-webkit-scrollbar,
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  *::-webkit-scrollbar {
   width: 0.625rem;
   height: 0.625rem;
 }
 
-*::-webkit-scrollbar-track,
-*::-webkit-scrollbar-corner {
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker,
+  [data-scriptr-presentation],
+  [data-scriptr-ui]
+)::-webkit-scrollbar-track,
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  *::-webkit-scrollbar-track,
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker,
+  [data-scriptr-presentation],
+  [data-scriptr-ui]
+)::-webkit-scrollbar-corner,
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  *::-webkit-scrollbar-corner {
   background: transparent;
 }
 
-*::-webkit-scrollbar-thumb {
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker,
+  [data-scriptr-presentation],
+  [data-scriptr-ui]
+)::-webkit-scrollbar-thumb,
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  *::-webkit-scrollbar-thumb {
   min-width: 2rem;
   min-height: 2rem;
   border: 2px solid transparent;
@@ -158,7 +298,25 @@
   background-clip: content-box;
 }
 
-*::-webkit-scrollbar-thumb:hover {
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )::-webkit-scrollbar-thumb:hover,
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  *::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(
     in oklab,
     var(--muted-foreground) 55%,
@@ -166,7 +324,25 @@
   );
 }
 
-*::-webkit-scrollbar-button {
+:where(
+  .scriptr-editor,
+  .scriptr-renderer,
+  .scriptr-scripture-picker,
+  .scriptr-reference-editor,
+  .scriptr-document-picker,
+  [data-scriptr-presentation],
+  [data-scriptr-ui]
+)::-webkit-scrollbar-button,
+:where(
+    .scriptr-editor,
+    .scriptr-renderer,
+    .scriptr-scripture-picker,
+    .scriptr-reference-editor,
+    .scriptr-document-picker,
+    [data-scriptr-presentation],
+    [data-scriptr-ui]
+  )
+  *::-webkit-scrollbar-button {
   display: none;
   width: 0;
   height: 0;

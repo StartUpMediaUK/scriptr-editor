@@ -5,6 +5,7 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     ignores: [
+      '.local/**',
       '**/.next/**',
       '**/.source/**',
       '**/.turbo/**',
@@ -21,6 +22,10 @@ export default tseslint.config(
     ...config,
     files: ['**/*.{ts,tsx}'],
   })),
+  {
+    files: ['packages/editor/check-packed-browser.mjs'],
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

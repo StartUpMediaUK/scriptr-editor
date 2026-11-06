@@ -45,6 +45,8 @@ export type PresentationPreferencesInput = Omit<
 >;
 
 export interface PresentationConfiguration {
+  /** CSS colour used by editor controls and portalled menus. */
+  readonly accentColour?: string;
   readonly defaults?: PresentationPreferencesInput;
   readonly fonts?: RegistryInput<FontDefinition>;
   readonly themes?: RegistryInput<ThemeDefinition>;

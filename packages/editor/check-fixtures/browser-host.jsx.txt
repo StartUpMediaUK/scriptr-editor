@@ -1,0 +1,21 @@
+import React, { useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ScriptrEditor, ScriptrRenderer, ScriptrPresentationProvider, ScriptrPresentationSurface, ReferenceEditor } from '@startupmedia/scriptr-editor/react';
+import '@startupmedia/scriptr-editor/styles.css';
+
+const empty = {version:2,content:[{id:'p',type:'paragraph',content:[]}]};
+function Host() {
+  const ref = useRef(null);
+  const [value,setValue] = useState(empty);
+  const [scheme,setScheme] = useState('light');
+  const [accent,setAccent] = useState(undefined);
+  const [details,setDetails] = useState([]);
+  const [reference,setReference] = useState({id:'r',content:[{type:'paragraph',content:[]}]});
+  window.acceptance = { value, details, reference, replace: text=>setValue({version:2,content:[{id:'p',type:'paragraph',content:text ? [{type:'text',text}] : []}]}), echo: ()=>setValue(structuredClone(value)), undo:()=>ref.current.undo(), redo:()=>ref.current.redo(), scheme:setScheme, accent:setAccent };
+  return <>
+    <header style={{fontFamily:'system-ui',padding:16}}><h1>Packed Scriptr acceptance host</h1><label>Host date <input type="date" /></label><button onClick={()=>setValue(empty)}>Reset</button><button onClick={()=>setScheme(scheme==='light'?'dark':'light')}>Toggle theme</button><button onClick={()=>setAccent(accent ? undefined : '#3976b8')}>Toggle accent</button><button onClick={()=>window.acceptance.echo()}>Echo</button></header>
+    <ScriptrPresentationProvider configuration={{accentColour:accent}} value={{colourScheme:scheme}}><ScriptrPresentationSurface><ScriptrEditor ref={ref} value={value} onChange={setValue} trackChanges onChangeDetails={(doc,change)=>setDetails(previous=>[...previous,change])} /><details><summary>Read-only rendering</summary><ScriptrRenderer document={value}/></details><ReferenceEditor reference={reference} onChange={setReference}/></ScriptrPresentationSurface></ScriptrPresentationProvider>
+    <pre aria-label="Canonical document">{JSON.stringify(value)}</pre>
+  </>;
+}
+createRoot(document.getElementById('root')).render(<Host/>);

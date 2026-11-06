@@ -140,6 +140,9 @@ function resolve(
     fonts,
     themes,
     cssVariables: {
+      ...(config.accentColour
+        ? { '--scriptr-color-accent': config.accentColour }
+        : {}),
       '--scriptr-font-heading': fontFamily(typography.heading.fontId),
       '--scriptr-font-body': fontFamily(typography.body.fontId),
       '--scriptr-font-accent': fontFamily(typography.accent.fontId),

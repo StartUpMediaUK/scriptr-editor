@@ -3,6 +3,30 @@ title: React integration
 description: Use the same canonical document and capabilities for editable and read-only output.
 ---
 
+## Undo and controlled values
+
+Undo and redo use the editing engine for both keyboard shortcuts and public
+toolbar/handle commands. Continuous typing groups words with their trailing
+whitespace: `one two three` undoes to `one two `, `one `, then empty. The idle
+boundary remains 500 ms, so a pause inside a word can create a smaller group.
+Scripts without whitespace group until an idle boundary, composition commit, or
+another editing action. Unicode graphemes are not sliced by the grouping logic.
+Each IME composition is grouped as one action, including its intermediate updates.
+
+Paste, selection replacement, formatting, block conversion, paragraph breaks,
+deliberate selection movement, and deletion-direction changes separate typing
+groups. New typing after undo discards the obsolete redo branch.
+
+Equivalent controlled `value` echoes do not replace engine content and preserve
+selection, undo, redo, and provenance. A genuinely different external `value`
+starts a new history baseline: both undo and redo are cleared, reconciliation
+is excluded from authored history, and undo cannot restore the replaced document.
+External reconciliation still reports `source: 'external'` through
+`onChangeDetails`; it adds no authored contributions. Surviving contributions
+retain their identifiers where they can be resolved; ambiguous provenance keeps
+the existing `unresolved` contract. Reference annotation editing uses the same
+word grouping; heading commands are not supported inside Reference annotations.
+
 ## Install and import
 
 Use React and React DOM 18.3.1 or supported React 19 versions together. The package is ESM-only. Development and SSR tooling require Node 20.19 or newer.

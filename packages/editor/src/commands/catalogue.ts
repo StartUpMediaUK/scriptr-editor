@@ -98,6 +98,9 @@ const builtins: readonly BuiltinCommand[] = [
     'h3',
     'subsection',
   ]),
+  command('heading-4', 'basic', 'Heading 4', '####', 'heading', ['h4']),
+  command('heading-5', 'basic', 'Heading 5', '#####', 'heading', ['h5']),
+  command('heading-6', 'basic', 'Heading 6', '######', 'heading', ['h6']),
   command('accent', 'basic', 'Accent', 'Abc', 'accent', ['font', 'typeface']),
   command('bullet-list', 'basic', 'Bulleted list', '-', 'list', [
     'unordered',

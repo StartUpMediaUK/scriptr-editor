@@ -6,6 +6,7 @@ import TaskList from '@tiptap/extension-task-list';
 import Underline from '@tiptap/extension-underline';
 import UniqueID from '@tiptap/extension-unique-id';
 import StarterKit from '@tiptap/starter-kit';
+import { EditingHistory } from './editing-history.js';
 import { parseReferenceMetadata } from './reference-metadata.js';
 import type { ScriptureProvider } from '../host/scripture.js';
 import type { ImageHost } from '../host/images.js';
@@ -576,11 +577,13 @@ export function createEditorExtensions(
 ) {
   return [
     StarterKit.configure({
+      undoRedo: false,
       codeBlock: { HTMLAttributes: { class: 'native-scrollbar' } },
       link: false,
       underline: false,
       trailingNode: false,
     }),
+    EditingHistory,
     Underline,
     Link.configure({
       autolink: false,
@@ -607,6 +610,15 @@ export function createEditorExtensions(
     HighlightColour,
     BlockBackground,
     UniqueID.configure({ types: idTypes }),
-    Placeholder.configure({ placeholder }),
+    Placeholder.configure({
+      placeholder: ({ node }) => {
+        if (node.type.name === 'heading')
+          return 'Heading ' + String(node.attrs.level);
+        if (node.type.name === 'codeBlock') return 'Write code…';
+        if (node.type.name === 'toggleSummary') return 'Toggle title';
+        if (node.type.name === 'paragraph') return placeholder;
+        return '';
+      },
+    }),
   ];
 }
