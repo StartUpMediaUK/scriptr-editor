@@ -15,6 +15,9 @@ strictPeerDependencies: true
 
 # Keep vulnerable transitive versions out of the audited workspace graph.
 overrides:
+  # 4.62.4 adds optional LZMA binaries requiring Node 22.20; pnpm's license
+  # inventory fails when those binaries are skipped on our Node 22.14 baseline.
+  rollup: 4.62.3
   vite: 7.3.7
   zod: 4.6.6
   sharp: 0.35.5
