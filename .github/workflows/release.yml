@@ -16,7 +16,7 @@ permissions:
 jobs:
   verify-release:
     if: ${{ inputs.publish && github.ref == 'refs/heads/main' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: npm
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +32,7 @@ jobs:
       - run: pnpm check
       - run: pnpm audit --prod
       - run: pnpm exec playwright install --with-deps chromium
+        timeout-minutes: 10
       - run: pnpm package:browser-check
       - uses: actions/upload-artifact@v4
         with:
